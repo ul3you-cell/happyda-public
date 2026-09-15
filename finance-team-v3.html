@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>財經投資團隊共享 Skill — v3</title>
+<style>
+:root{--ink:#172033;--muted:#5b6578;--blue:#2764d8;--pale:#eef4ff;--line:#dbe3ef;--green:#087a55;--amber:#9a6400}
+*{box-sizing:border-box}body{margin:0;background:#f5f7fb;color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.65}.page{max-width:1080px;margin:0 auto;padding:44px 24px 72px}.hero{padding:38px;border-radius:22px;background:linear-gradient(135deg,#142a57,#2764d8);color:#fff;box-shadow:0 18px 45px #1f4d9b2e}.eyebrow{font-size:.78rem;letter-spacing:.13em;text-transform:uppercase;opacity:.78}.hero h1{font-size:clamp(2rem,5vw,3.35rem);line-height:1.12;margin:.45rem 0}.hero p{max-width:720px;opacity:.9}.badges{display:flex;gap:8px;flex-wrap:wrap;margin-top:20px}.badge{padding:5px 11px;border:1px solid #ffffff55;border-radius:999px;font-size:.82rem}.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;margin-top:24px}.card,.section{background:#fff;border:1px solid var(--line);border-radius:16px;padding:24px}.section{margin-top:18px}.card h3,.section h2{margin-top:0}.role{color:var(--blue);font-weight:750}.route{font-size:.85rem;color:var(--green);font-weight:650}.flow{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.step{padding:14px;border-radius:12px;background:var(--pale);text-align:center}.step b{display:block;color:var(--blue)}table{border-collapse:collapse;width:100%}th,td{padding:12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{font-size:.78rem;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}code,pre{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}pre{padding:17px;border-radius:12px;background:#111a2c;color:#dce8ff;overflow:auto}.notice{border-left:5px solid #e5a100;background:#fff8e6}.ok{color:var(--green);font-weight:700}.sources a{overflow-wrap:anywhere}.footer{color:var(--muted);font-size:.84rem;margin-top:24px}@media(max-width:760px){.grid,.flow{grid-template-columns:1fr}.hero{padding:28px}.page{padding:20px 14px 50px}}
+</style>
+</head>
+<body><main class="page">
+<section class="hero">
+<div class="eyebrow">Finance Team / Shared Skill / Version 3</div>
+<h1>按問題組隊，不為角色湊人數</h1>
+<p>v3 將投資研究制度化為一個共享 Skill、五張可按需載入的角色卡，以及一份嚴格 JSON 交卷格式。既有 profile 負責執行，角色規格不再綁定永久 finance-* profile。</p>
+<div class="badges"><span class="badge">5 role cards</span><span class="badge">1 JSON Schema</span><span class="badge">Kanban on-demand</span><span class="badge">source-grounded</span></div>
+</section>
+<section class="section">
+<h2>v3 實作結論</h2>
+<ul><li><span class="ok">已落地：</span><code>finance-team/SKILL.md</code> 統一規範硬規則、路由與交卷流程。</li><li><span class="ok">已拆分：</span>基本面、技術籌碼、產業鏈、新聞催化、反方風控各自有角色卡。</li><li><span class="ok">已定型：</span>所有角色使用相同 JSON Schema；保留來源、信心、異議、風險與結論類型。</li><li><span class="ok">維持邊界：</span>不建立或重建 finance-* profiles，不修改其他 profile 的 SOUL/config。</li></ul>
+</section>
+<section class="grid">
+<article class="card"><div class="role">Fundamental</div><h3>基本面研究員</h3><p>財務品質、估值、競爭力；ETF 改看指數方法、費用、持股與集中度。</p><div class="route">建議執行：anne / main</div></article>
+<article class="card"><div class="role">Technical</div><h3>技術籌碼研究員</h3><p>價格、成交量、趨勢、波動與流動性；強制標示資料延遲與調整方式。</p><div class="route">建議執行：dev-local</div></article>
+<article class="card"><div class="role">Industry</div><h3>產業鏈研究員</h3><p>價值鏈與直接受惠者；第二層關係一律先列假說，不偷升級為事實。</p><div class="route">建議執行：dev-local</div></article>
+<article class="card"><div class="role">News</div><h3>新聞催化研究員</h3><p>以日期建立事件線，回溯原始來源；社群內容只能是「情緒訊號」。</p><div class="route">建議執行：anne / main</div></article>
+<article class="card"><div class="role">Risk</div><h3>反方風控官</h3><p>挑戰必要假設、壓力情境與尾部風險；異議不可被平均，必要時可 veto。</p><div class="route">建議執行：dev</div></article>
+<article class="card"><div class="role">Director</div><h3>投資研究總監</h3><p>先分流再派工，只合併已通過 schema 與來源檢查的交卷；總監不是第六張專家卡。</p><div class="route">協調：anne</div></article>
+</section>
+<section class="section"><h2>Kanban 按需載入流程</h2><div class="flow"><div class="step"><b>1 分流</b>判斷 ETF、個股、產業或事件</div><div class="step"><b>2 選卡</b>只選 1–4 張必要角色卡</div><div class="step"><b>3 派工</b>body 指定卡片、截至日與來源限制</div><div class="step"><b>4 驗收</b>Schema 驗證、來源查證、保留異議</div></div>
+<pre>skill_view(name='finance-team')
+skill_view(name='finance-team', file_path='references/risk.md')</pre>
+<p>預設組合：ETF＝基本面＋技術＋風控；上市個股＝基本面＋技術＋新聞＋風控；產業題才加產業鏈；揭露有限標的＝簡化基本面＋風控並降低信心。</p></section>
+<section class="section"><h2>共同 JSON 交卷欄位</h2><table><tr><th>欄位</th><th>用途</th></tr><tr><td><code>role / ticker / security_type</code></td><td>識別任務與資產類型</td></tr><tr><td><code>as_of_date / data_timestamp</code></td><td>固定資料邊界，避免新舊資訊混用</td></tr><tr><td><code>evidence / source_urls</code></td><td>逐項區分 fact、estimate、hypothesis、sentiment、needs_confirmation</td></tr><tr><td><code>confidence / risk_flags / dissent_note</code></td><td>保留不確定性與反方意見</td></tr><tr><td><code>position_rec / conclusion_type</code></td><td>限定為 entry、hold、watch、trim 或 veto 等標準結論</td></tr></table></section>
+<section class="section notice"><h2>免責聲明</h2><p>本報告描述研究流程與工具配置，僅供研究與教育用途，不構成投資建議、招攬或個人化資產配置。投資涉及本金損失風險；任何決策都應另行核對最新公告、價格、流動性與個人風險承受能力。</p><p><strong>資料截至日：</strong>2026-09-15（Asia/Taipei）。</p></section>
+<section class="section sources"><h2>可查證來源</h2><ul><li><a href="https://hermes-agent.nousresearch.com/docs">Hermes Agent 官方文件</a></li><li><a href="https://json-schema.org/draft/2020-12/json-schema-core">JSON Schema Draft 2020-12 Core</a></li><li><a href="https://github.com/ul3you-cell/happyda-public">happyda-public 公開儲存庫</a></li><li><a href="https://ul3you-cell.github.io/happyda-public/finance-team-v2.html">前版 finance-team-v2 報告</a></li></ul></section>
+<p class="footer">Generated by Hermes Agent · finance-team-v3 · 2026-09-15</p>
+</main></body></html>

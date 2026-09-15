@@ -1,101 +1,130 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>財經投資團隊角色配置會議 - 最終結論報告</title>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; line-height: 1.6; max-width: 1000px; margin: 2rem auto; padding: 2rem; background: #f8f9fa; color: #333; }
-        h1, h2, h3 { color: #1a73e8; }
-        table { border-collapse: collapse; width: 100%; margin: 1.5rem 0; }
-        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
-        th { background: #e8f0fe; }
-        .disclaimer { background: #fff3cd; padding: 1rem; border-left: 5px solid #ffc107; margin: 2rem 0; font-size: 0.95rem; }
-        .pass { color: #137333; font-weight: bold; }
-        .metric { background: #e6f4ea; padding: 8px 12px; border-radius: 4px; display: inline-block; margin: 4px; }
-        pre { background: #f1f3f4; padding: 1rem; border-radius: 6px; overflow-x: auto; }
-        .source-list { font-size: 0.85rem; line-height: 1.5; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>財經投資團隊角色配置會議－最終結論報告 v2</title>
+  <style>
+    :root { color-scheme: light; --blue:#1a73e8; --ink:#263238; --line:#d9e2ec; --paper:#fff; --bg:#f4f7fb; }
+    * { box-sizing: border-box; }
+    body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans TC",sans-serif; line-height:1.65; max-width:1040px; margin:0 auto; padding:32px; background:var(--bg); color:var(--ink); }
+    main { background:var(--paper); padding:32px; border-radius:14px; box-shadow:0 8px 30px rgba(31,55,80,.08); }
+    h1,h2,h3 { color:var(--blue); line-height:1.3; }
+    h2 { margin-top:2.2rem; border-bottom:2px solid #e8f0fe; padding-bottom:.35rem; }
+    table { border-collapse:collapse; width:100%; margin:1rem 0; }
+    th,td { border:1px solid var(--line); padding:10px; text-align:left; vertical-align:top; }
+    th { background:#e8f0fe; }
+    code,pre { background:#f1f3f4; border-radius:6px; }
+    code { padding:.1rem .3rem; }
+    pre { padding:1rem; overflow-x:auto; }
+    a { color:#0b57d0; overflow-wrap:anywhere; }
+    .tag { display:inline-block; background:var(--blue); color:#fff; border-radius:999px; padding:3px 10px; font-size:.78rem; vertical-align:middle; }
+    .notice { background:#fff3cd; border-left:5px solid #ffc107; padding:1rem; margin:1.5rem 0; }
+    .pass { color:#137333; font-weight:700; }
+    .blocked { color:#9a6700; font-weight:700; }
+    .sources { font-size:.92rem; }
+    footer { margin-top:2.5rem; color:#667085; font-size:.82rem; }
+    @media (max-width:700px) { body { padding:12px; } main { padding:18px; } table { display:block; overflow-x:auto; } }
+  </style>
 </head>
 <body>
-    <h1>財經投資團隊角色配置會議 - 最終結論報告</h1>
-    <p><strong>報告日期：</strong>2026-09-14</p>
-    <p><strong>產生者：</strong>理專 anne (Hermes Agent)</p>
-    <div class="disclaimer">
-        <strong>免責聲明：</strong>本報告為研究/教育用途，非投資建議。所有結論基於公開資料，投資有風險，請自行判斷。資料截至2026-09-14。
-    </div>
+<main>
+  <h1>財經投資團隊角色配置會議－最終結論報告 <span class="tag">v2</span></h1>
+  <p><strong>報告日期：</strong>2026-09-15<br><strong>產生者：</strong>理專 anne（Hermes Agent）</p>
+  <div class="notice"><strong>免責聲明：</strong>本報告僅供研究與教育用途，不構成投資建議。所有結論基於公開資料；投資有風險，請自行查證與判斷。<strong>資料截至 2026-09-15。</strong></div>
 
-    <h2>1. 最終團隊結構決策</h2>
-    <ul>
-        <li>採用 <strong>1 位投資研究總監 (anne) + 5 位專家</strong> 架構。</li>
-        <li>anne 轉任投資研究總監，負責問題分流、整合與最終「結論類型」建議。</li>
-        <li>反方風控與量化驗證合併為單一角色（擁有挑戰與否決權）。</li>
-        <li>不使用「子角色」，以既有 profile (research / dev-local / dev) + delegate_task / kanban 執行。</li>
-        <li>只設上限、不強求湊滿；每次只啟動必要1–4位專家 + 風控。</li>
-        <li>模型分級：總監、風控、基本面、新聞用高能力模型 (含Claude wrapper)；技術/產業鏈用本機 oMLX。</li>
-        <li>Kanban 保護：每任務加 --max-runtime 30m、heartbeat、goal-mode上限5輪、明確 fallback 到 oMLX。</li>
-    </ul>
+  <h2>1. 最終架構：角色卡＋內部worker</h2>
+  <ul>
+    <li>採用「<strong>角色卡＋內部worker</strong>」架構，取代獨立 finance-* profile；不重建已刪除的 finance-* profiles。</li>
+    <li>角色卡定義工作邊界、硬規則與交卷格式，放入 Kanban task body，由既有 <code>anne/main</code>、<code>dev</code>、<code>dev-local</code>、<code>research</code> 執行。</li>
+    <li>anne 擔任投資研究總監，先做問題分流，再整合必要的 1–4 位專家與反方風控。</li>
+    <li>反方風控與量化驗證合併為單一角色，保留挑戰與否決權。</li>
+  </ul>
 
-    <h2>2. 共同硬規則 (所有角色必須遵守)</h2>
-    <ol>
-        <li>證據不足寧可不列，不得為滿足數量而硬湊。</li>
-        <li>所有價格、財報、新聞必標來源、抓取時間、截至日；混用時只能給「待確認」。</li>
-        <li>產業鏈第二層受惠僅列「假說」、標低信心，不得升級事實。</li>
-        <li>Reddit/Discord僅作情緒訊號，不可當催化劑事實。</li>
-        <li>單輪最多3個並行 fetch，超出改排隊或摘要。</li>
-        <li>技術/產業鏈先用輕量模型初篩，達閾值再高階交叉驗證。</li>
-        <li>總監派工前必須先做「問題分流」，避免每次全團出動。</li>
-    </ol>
+  <h2>2. 派工模型分級</h2>
+  <p>預設優先序為 <strong>dev>anne/main>dev-local>research</strong>；角色卡不綁死模型，總監依任務風險與成本選擇執行 profile。</p>
+  <table>
+    <thead><tr><th>任務類型</th><th>預設執行者</th><th>定位</th></tr></thead>
+    <tbody>
+      <tr><td>反方風控、量化挑戰、最終整合</td><td>dev</td><td>最高推理品質，處理高風險判斷</td></tr>
+      <tr><td>基本面、新聞催化、跨來源整合</td><td>anne/main</td><td>高能力整合與使用者溝通</td></tr>
+      <tr><td>技術籌碼、產業鏈初篩</td><td>dev-local</td><td>本機規則運算與低成本批次處理</td></tr>
+      <tr><td>輔助整理、本機測試、情緒交叉驗證</td><td>research</td><td>支援性研究與資料整理</td></tr>
+    </tbody>
+  </table>
 
-    <h2>3. 角色卡摘要</h2>
-    <table>
-        <tr><th>角色</th><th>Profile</th><th>模型</th><th>主要職責</th></tr>
-        <tr><td>投資研究總監 (anne)</td><td>default/anne</td><td>高能力 (Claude)</td><td>問題分流、整合專家意見、給出結論類型 (high_conviction_entry / hold / watch / trim / veto)</td></tr>
-        <tr><td>基本面研究員</td><td>research</td><td>高能力</td><td>財報、估值、競爭力；輸出 thesis、evidence、risk_flags</td></tr>
-        <tr><td>技術籌碼研究員</td><td>dev-local</td><td>Qwen3.6-35B 本機</td><td>價量、均線、籌碼；使用 taiwan-stock-price skill，標註延遲</td></tr>
-        <tr><td>產業鏈研究員</td><td>dev-local</td><td>本機</td><td>供應鏈受惠；第二層必須自承「假說」並標低信心</td></tr>
-        <tr><td>新聞催化劑研究員</td><td>research</td><td>高能力</td><td>即時新聞、RSS；Reddit 僅情緒訊號</td></tr>
-        <tr><td>反方風控官</td><td>research</td><td>高能力</td><td>挑戰假說、量化回測、擁有最終否決權</td></tr>
-    </table>
+  <h2>3. 共同硬規則</h2>
+  <ol>
+    <li>證據不足寧可不列，不得為滿足數量硬湊。</li>
+    <li>價格、財報與新聞必須標來源 URL、抓取時間與資料截至日；時間口徑混用時只能標「待確認」。</li>
+    <li>產業鏈第二層受惠只能列為假說並標低信心，不得升級為事實。</li>
+    <li>社交媒體只作情緒訊號，不可當作催化劑事實。</li>
+    <li>技術／產業鏈先用輕量模型初篩，達門檻後再由高階模型交叉驗證。</li>
+    <li>總監派工前先做問題分流，避免每次全團出動。</li>
+  </ol>
 
-    <h2>4. 共用交卷格式 (JSON Schema)</h2>
-    <pre>{
-  "type": "object",
-  "required": ["role", "ticker", "thesis", "evidence", "confidence", "data_timestamp", "source_urls", "risk_flags", "position_rec", "dissent_note", "conclusion_type"],
-  "properties": {
-    "role": {"enum": ["fundamental", "technical", "industry", "news", "risk"]},
-    "confidence": {"type": "number", "minimum": 0, "maximum": 1},
-    "data_timestamp": {"type": "string", "format": "date-time"},
-    "source_urls": {"type": "array", "items": {"type": "string"}},
-    "conclusion_type": {"enum": ["high_conviction_entry", "hold", "watch", "trim", "veto"]}
-  }
+  <h2>4. 角色卡摘要（內部 worker）</h2>
+  <table>
+    <thead><tr><th>角色卡</th><th>預設 Profile</th><th>主要職責</th></tr></thead>
+    <tbody>
+      <tr><td>投資研究總監</td><td>anne/main</td><td>問題分流、整合、輸出結論類型</td></tr>
+      <tr><td>基本面研究員</td><td>anne/main</td><td>財報、估值、競爭力與風險旗標</td></tr>
+      <tr><td>技術籌碼研究員</td><td>dev-local</td><td>價量、均線、籌碼與資料延遲註記</td></tr>
+      <tr><td>產業鏈研究員</td><td>dev-local</td><td>供應鏈受惠路徑；第二層自承假說</td></tr>
+      <tr><td>新聞催化劑研究員</td><td>anne/main</td><td>即時新聞、xurl 情緒與催化時間線</td></tr>
+      <tr><td>反方風控官</td><td>dev</td><td>挑戰假說、量化驗證與最終否決</td></tr>
+    </tbody>
+  </table>
+
+  <h2>5. 情緒來源：X/Twitter (xurl)</h2>
+  <p>以 <strong>X/Twitter (xurl)</strong> 作為 Reddit/Discord 的結構化替代來源。只有在取得貼文 URL、抓取時間與可核對互動量後才能納入；所有結果一律標為「情緒、非事實」。新聞催化仍以公司公告、監管文件與可查證新聞來源為主。</p>
+  <ul>
+    <li><a href="https://github.com/xdevplatform/xurl">xdevplatform/xurl 官方儲存庫</a></li>
+    <li><a href="https://developer.x.com/en/docs/x-api">X API 官方文件</a></li>
+  </ul>
+
+  <h2>6. 新版測試章節：X/Twitter 實測</h2>
+  <p><strong>測試日期：</strong>2026-09-15</p>
+  <table>
+    <thead><tr><th>檢查</th><th>真實結果</th><th>判定</th></tr></thead>
+    <tbody>
+      <tr><td><code>command -v xurl</code></td><td><code>/opt/homebrew/bin/xurl</code></td><td class="pass">CLI 可用</td></tr>
+      <tr><td><code>xurl /2/users/by/username/TSMC360</code></td><td><code>Auth Error: NoAuthMethod</code></td><td class="blocked">未配置認證，安全中止</td></tr>
+    </tbody>
+  </table>
+  <p>本次實測確認 xurl CLI 已安裝，但 X API 尚無可用認證。因此報告<strong>不虛構貼文、互動量或情緒分數</strong>；完成認證前，X/Twitter 情緒欄位維持「待確認」。可人工查證的帳號入口：<a href="https://x.com/TSMC360">TSMC360 on X</a>。</p>
+
+  <h2>7. 共用交卷格式（JSON Schema 摘要）</h2>
+  <pre>{
+  "required": ["role", "ticker", "thesis", "evidence", "confidence",
+               "data_timestamp", "source_urls", "risk_flags",
+               "position_rec", "dissent_note", "conclusion_type"],
+  "conclusion_type": ["high_conviction_entry", "hold", "watch", "trim", "veto"]
 }</pre>
 
-    <h2>5. 測試驗證結果 (真實 Fetch + 逐筆來源)</h2>
-    <p>兩個案例100%通過，所有JSON驗證PASS、硬規則生效。具體來源如下：</p>
-    <div class="source-list">
-        <strong>Case 1: 2330.TW (fundamental_strong, TSMC Q2 2026)</strong><br>
-        - Earnings call summary: https://aeo.idaeo.ai/ai/storm-mg-2/en/news/2026-07-16-台積電法說-ai需求未降溫-q3營收挑戰458億美元-全年估增逾40-資本支出提高<br>
-        - BigGo Finance: https://finance.biggo.com/news/53d1fc06-2cb1-4f6c-a63e-cf2178c72fba<br>
-        - Detailed transcript: https://finance.biggo.com/quote/2330.TW/earnings-call/TW_2330.TW_2026-07-16<br>
-        <strong>結論：</strong> hold (等待回調加碼機會)<br><br>
-        <strong>Case 2: 3017.TW (industry_weak → 實測第一層)</strong><br>
-        - TechNews AVC AI server cooling: https://cdnfinance.technews.tw/2026/04/29/avc-ai-server<br>
-        - Finance TechNews: https://finance.technews.tw/2026/05/13/avc-ai-server-cooling-2<br>
-        - FTNN News: https://www.ftnn.com.tw/news/568444<br>
-        - Q2 earnings: https://www.moneydj.com/kmdj/news/newsviewer.aspx?a=18ff664a-4dd2-4a3c-b757-7df1dba50931<br>
-        <strong>結論：</strong> high_conviction_entry (附5%倉位上限、-15%停損)<br>
-    </div>
-    <p class="pass">所有來源均為公開可查證URL，符合硬規則。</p>
-
-    <h2>6. 後續執行</h2>
+  <h2>8. 財經案例測試與來源</h2>
+  <p>既有案例保留作格式驗證；投資結論須以查閱當下的最新資料重新計算，不可直接沿用。</p>
+  <div class="sources">
+    <h3>Case 1：2330.TW（基本面）</h3>
     <ul>
-        <li>所有研究報告將自動轉HTML並push到 <a href="https://ul3you-cell.github.io/happyda-public/">happyda-public</a>。</li>
-        <li>下次研究直接使用 kanban_create 呼叫對應角色。</li>
-        <li>本報告已由 @dev 負責 push (來源已補齊)。</li>
+      <li><a href="https://finance.biggo.com/news/53d1fc06-2cb1-4f6c-a63e-cf2178c72fba">BigGo Finance 報導</a></li>
+      <li><a href="https://finance.biggo.com/quote/2330.TW/earnings-call/TW_2330.TW_2026-07-16">2330.TW earnings-call transcript</a></li>
     </ul>
+    <h3>Case 2：3017.TW（產業鏈第一層）</h3>
+    <ul>
+      <li><a href="https://finance.technews.tw/2026/05/13/avc-ai-server-cooling-2">Finance TechNews</a></li>
+      <li><a href="https://www.ftnn.com.tw/news/568444">FTNN News</a></li>
+      <li><a href="https://www.moneydj.com/kmdj/news/newsviewer.aspx?a=18ff664a-4dd2-4a3c-b757-7df1dba50931">MoneyDJ 財報報導</a></li>
+    </ul>
+  </div>
 
-    <p><strong>本報告由 Hermes Agent 自動產生，符合所有會議硬規則與環境限制。</strong></p>
-    <p style="font-size:0.8rem;color:#666;margin-top:3rem;">Generated by anne profile • 資料來源：會議討論、實測web_search輸出、公開財經網站</p>
+  <h2>9. 後續執行</h2>
+  <ul>
+    <li>研究任務使用 Kanban，task body 明確指定角色卡、執行 profile、資料截至日與交卷格式。</li>
+    <li>公開報告使用版本化檔名，發布至 <a href="https://ul3you-cell.github.io/happyda-public/">happyda-public GitHub Pages</a>，避免瀏覽器或 CDN 快取混淆。</li>
+  </ul>
+
+  <footer>Generated by anne profile • 架構與測試更新：2026-09-15 • 外部連結皆以完整可查證 URL 呈現</footer>
+</main>
 </body>
 </html>

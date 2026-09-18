@@ -11,18 +11,13 @@
     main { background:var(--paper); padding:32px; border-radius:14px; box-shadow:0 8px 30px rgba(31,55,80,.08); }
     h1,h2,h3 { color:var(--blue); line-height:1.3; }
     h2 { margin-top:2.2rem; border-bottom:2px solid #e8f0fe; padding-bottom:.35rem; }
-    h3 { margin-top:1.5rem; color:#444; }
     table { border-collapse:collapse; width:100%; margin:1rem 0; }
     th,td { border:1px solid var(--line); padding:9px; text-align:left; vertical-align:top; font-size:.94rem; }
     th { background:#e8f0fe; font-weight:600; }
     code,pre { background:#f1f3f4; border-radius:6px; }
     code { padding:.1rem .3rem; font-size:.9em; }
-    pre { padding:1rem; overflow-x:auto; }
     a { color:#0b57d0; overflow-wrap:anywhere; }
     .tag { display:inline-block; background:var(--blue); color:#fff; border-radius:999px; padding:3px 10px; font-size:.78rem; vertical-align:middle; }
-    .tag-warn { background:var(--warn); }
-    .tag-pass { background:var(--pass); }
-    .tag-danger { background:var(--danger); }
     .notice { background:#fff3cd; border-left:5px solid #ffc107; padding:1rem; margin:1.5rem 0; }
     .danger-box { background:#fce8e6; border-left:5px solid var(--danger); padding:1rem; margin:1.5rem 0; }
     .info-box { background:#e8f0fe; border-left:5px solid var(--blue); padding:1rem; margin:1.5rem 0; }
@@ -41,7 +36,7 @@
   <p><strong>快照日期：</strong>2026-09-18（台股收盤）<br>
      <strong>產生者：</strong>理專 anne（Hermes Agent）<br>
      <strong>報告類型：</strong>個人決策紀錄，非投資建議<br>
-     <strong>更新頻率：</strong>每週一次（v1 靜態；自動排程與到價通知為 v2 規劃項目）</p>
+     <strong>更新頻率：</strong>每週一次</p>
 
   <div class="danger-box">
     <strong>⚠ 免責聲明（必讀）：</strong>
@@ -49,169 +44,34 @@
       <li>本報告<strong>僅為個人決策紀錄，非投資建議</strong>。</li>
       <li>所有觸發價、進場區間與技術指標數值皆為 <strong>2026-09-18 收盤快照</strong>，<strong>會過時</strong>，不可直接用於實際下單。</li>
       <li>所有觸發條件（含 RSI 門檻、MA 方向、連兩日站穩等量化規則）<strong>均為「假設」，未經歷史回測驗證</strong>。</li>
-      <li>進場與否、部位大小、加碼節奏<strong>由閱讀者自行判斷</strong>，本報告作者不承擔任何投資損失。</li>
+      <li>進場與否、部位大小、加碼節奏<strong>由閱讀者自行判斷</strong>。</li>
     </ol>
   </div>
 
-  <h2>1. 一句話結論</h2>
-  <div class="info-box">
-    本次觀察的 <strong>10 支個股中，現價僅 2 支（1216 統一、2308 台達電）位於合理進場區間</strong>；
-    其餘 8 支對 MA60 偏離過高（其中 3 支超過 +10%），建議等待觸發條件命中再進場，避免追高。
-  </div>
+  <div class="info-box"><strong>本週清單異動</strong>：無新增、無踢除。</div>
 
-  <h2>2. 10 支個股現價對照表</h2>
+  <h2>1. 觀察清單 vs 現價對照表</h2>
   <p class="small">資料來源：FinMind API（<code>TaiwanStockPrice</code> dataset，2026-09-18 收盤）。</p>
   <table>
-    <thead>
-      <tr><th>代號</th><th>名稱</th><th>收盤</th><th>MA20</th><th>MA60</th><th>對 MA60 偏離</th><th>入場區間</th><th>現價判斷</th></tr>
-    </thead>
+    <thead><tr><th>代號</th><th>名稱</th><th>層</th><th>收盤</th><th>MA60</th><th>對 MA60 偏離</th><th>入場區間</th><th>判斷</th></tr></thead>
     <tbody>
-      <tr><td>2412</td><td>中華電</td><td>145.5</td><td>139.1</td><td>138.4</td><td class="now-warn">+5.12%</td><td>130–140</td><td class="now-warn">⚠ 偏高，已突破區間上緣</td></tr>
-      <tr><td>2891</td><td>中信金</td><td>69.5</td><td>67.0</td><td>66.3</td><td class="now-warn">+4.77%</td><td>60–67</td><td class="now-warn">⚠ 偏高，接近區間上緣</td></tr>
-      <tr><td>1216</td><td>統一</td><td>75.0</td><td>75.9</td><td>76.4</td><td class="now-pass">-1.81%</td><td>67–75</td><td class="now-pass">✅ 剛好踩在區間上緣</td></tr>
-      <tr><td>2881</td><td>富邦金</td><td>150.5</td><td>146.5</td><td>133.3</td><td class="now-fail">+12.87%</td><td>125–135</td><td class="now-fail">🚫 離 MA60 太遠</td></tr>
-      <tr><td>2382</td><td>廣達</td><td>343.0</td><td>336.6</td><td>336.0</td><td class="now-warn">+2.07%</td><td>300–335</td><td class="now-warn">⚠ 略高於區間上緣</td></tr>
-      <tr><td>2603</td><td>長榮</td><td>240.5</td><td>236.2</td><td>215.7</td><td class="now-fail">+11.49%</td><td>185–220</td><td class="now-fail">🚫 偏高，等回 220 以下</td></tr>
-      <tr><td>3231</td><td>緯創</td><td>186.5</td><td>184.4</td><td>173.9</td><td class="now-warn">+7.24%</td><td>150–175</td><td class="now-warn">⚠ 偏高，等 175 以下</td></tr>
-      <tr><td>3711</td><td>日月光</td><td>638.0</td><td>608.5</td><td>618.0</td><td class="now-warn">+3.24%</td><td>500–620</td><td class="now-warn">⚠ 略偏高，今日漲 3.9%</td></tr>
-      <tr><td>2308</td><td>台達電</td><td>1735.0</td><td>1749.0</td><td>1783.7</td><td class="now-pass">-2.73%</td><td>1500–1785</td><td class="now-pass">✅ 區間內，MA20 附近</td></tr>
-      <tr><td>2454</td><td>聯發科</td><td>4710.0</td><td>4334.8</td><td>4011.5</td><td class="now-fail">+17.41%</td><td>3500–4010</td><td class="now-fail">🚫🚫 極度偏高</td></tr>
+      <tr><td>1216</td><td>統一</td><td>core</td><td>75.0</td><td>76.4</td><td class="now-warn">-1.81%</td><td>67–75</td><td class="now-warn">⚠ 接近區間</td></tr>
+<tr><td>2308</td><td>台達電</td><td>satellite</td><td>1735.0</td><td>1783.7</td><td class="now-warn">-2.73%</td><td>1500–1785</td><td class="now-warn">⚠ 接近區間</td></tr>
+<tr><td>2382</td><td>廣達</td><td>satellite</td><td>343.0</td><td>336.0</td><td class="now-warn">+2.07%</td><td>300–335</td><td class="now-warn">⚠ 接近區間</td></tr>
+<tr><td>2412</td><td>中華電</td><td>core</td><td>145.5</td><td>138.4</td><td class="now-warn">+5.12%</td><td>130–140</td><td class="now-warn">⚠ 偏高</td></tr>
+<tr><td>2454</td><td>聯發科</td><td>satellite</td><td>4710.0</td><td>4011.5</td><td class="now-fail">+17.41%</td><td>3500–4010</td><td class="now-fail">🚫 離 MA60 太遠</td></tr>
+<tr><td>2603</td><td>長榮</td><td>satellite</td><td>240.5</td><td>215.7</td><td class="now-fail">+11.49%</td><td>185–220</td><td class="now-fail">🚫 離 MA60 太遠</td></tr>
+<tr><td>2881</td><td>富邦金</td><td>core</td><td>150.5</td><td>133.3</td><td class="now-fail">+12.87%</td><td>125–135</td><td class="now-fail">🚫 離 MA60 太遠</td></tr>
+<tr><td>2891</td><td>中信金</td><td>core</td><td>69.5</td><td>66.3</td><td class="now-warn">+4.77%</td><td>60–67</td><td class="now-warn">⚠ 偏高</td></tr>
+<tr><td>3231</td><td>緯創</td><td>satellite</td><td>186.5</td><td>173.9</td><td class="now-warn">+7.24%</td><td>150–175</td><td class="now-warn">⚠ 偏高</td></tr>
+<tr><td>3711</td><td>日月光</td><td>satellite</td><td>638.0</td><td>618.0</td><td class="now-warn">+3.24%</td><td>500–620</td><td class="now-warn">⚠ 偏高</td></tr>
+
     </tbody>
   </table>
-
-  <h2>3. 現價可直接進場的 2 支（積極清單）</h2>
-  <p class="small">「可直接進」≠「立刻全倉」，仍須遵守分批節奏與單筆上限。</p>
-  <table>
-    <thead><tr><th>代號</th><th>名稱</th><th>收盤</th><th>建議優先序</th><th>進場節奏</th><th>風險註記</th></tr></thead>
-    <tbody>
-      <tr>
-        <td>1216</td><td>統一</td><td>75.0</td><td>🥇 第一優先</td>
-        <td>75 附近進 1/3；跌至 71 進 2/3；跌至 67 滿倉</td>
-        <td>民生消費，殖利率 3.97%，波動小，可分 3 批進</td>
-      </tr>
-      <tr>
-        <td>2308</td><td>台達電</td><td>1735.0</td><td>🥈 第二優先</td>
-        <td>1735 附近進 1/3；跌至 1620 進 2/3；跌至 1500 滿倉</td>
-        <td>AI 散熱題材，今日漲 2.97%，動能強；<strong>若連 2 日站穩前高 1785 轉趨勢跟隨</strong> <span class="hypothesis">(假設，待回測)</span></td>
-      </tr>
-    </tbody>
-  </table>
-
-  <h2>4. 觸發條件單（觀望清單 → 條件單）</h2>
-  <p class="small">8 支偏高的個股不主動進場；改為<strong>結構化觸發器</strong>，到價且符合過濾條件才啟動。<br>
-     <span class="hypothesis">所有觸發條件標 (假設，待回測) — 包含 RSI、MA 方向、連兩日站穩等量化規則皆未經歷史回測驗證。</span></p>
-  <table>
-    <thead>
-      <tr><th>代號</th><th>觸發價</th><th>觸發條件</th><th>動作</th></tr>
-    </thead>
-    <tbody>
-      <tr><td>2412</td><td>140.0</td><td>收盤 ≤ 140 <span class="hypothesis">(假設，待回測)</span></td><td>啟動 1/3</td></tr>
-      <tr><td>2412</td><td>137.0</td><td>收盤 ≤ 137 <span class="hypothesis">(假設，待回測)</span></td><td>加碼 2/3</td></tr>
-      <tr><td>2412</td><td>134.0</td><td>收盤 ≤ 134 <span class="hypothesis">(假設，待回測)</span></td><td>滿倉</td></tr>
-      <tr><td>2891</td><td>65.0</td><td>收盤 ≤ 65 且 RSI ≤ 35 <span class="hypothesis">(假設，待回測)</span></td><td>啟動分批</td></tr>
-      <tr><td>2881</td><td>135.0</td><td>收盤 ≤ 135 <span class="hypothesis">(假設，待回測)</span></td><td>啟動分批</td></tr>
-      <tr><td>2881</td><td>130.0</td><td>收盤 ≤ 130 <span class="hypothesis">(假設，待回測)</span></td><td>加碼</td></tr>
-      <tr><td>2881</td><td>125.0</td><td>收盤 ≤ 125 <span class="hypothesis">(假設，待回測)</span></td><td>滿倉</td></tr>
-      <tr><td>2382</td><td>330.0</td><td>收盤 ≤ 330 <span class="hypothesis">(假設，待回測)</span></td><td>啟動分批</td></tr>
-      <tr><td>2603</td><td>215.0</td><td>收盤 ≤ 215 <span class="hypothesis">(假設，待回測)</span></td><td>啟動分批</td></tr>
-      <tr><td>2603</td><td>200.0</td><td>收盤 ≤ 200 <span class="hypothesis">(假設，待回測)</span></td><td>加碼</td></tr>
-      <tr><td>2603</td><td>185.0</td><td>收盤 ≤ 185 <span class="hypothesis">(假設，待回測)</span></td><td>滿倉</td></tr>
-      <tr><td>3231</td><td>175.0</td><td>收盤 ≤ 175 <span class="hypothesis">(假設，待回測)</span></td><td>啟動</td></tr>
-      <tr><td>3231</td><td>162.0</td><td>收盤 ≤ 162 <span class="hypothesis">(假設，待回測)</span></td><td>加碼</td></tr>
-      <tr><td>3231</td><td>150.0</td><td>收盤 ≤ 150 <span class="hypothesis">(假設，待回測)</span></td><td>滿倉</td></tr>
-      <tr><td>3711</td><td>580.0</td><td>收盤 ≤ 580 <span class="hypothesis">(假設，待回測)</span></td><td>啟動</td></tr>
-      <tr><td>3711</td><td>540.0</td><td>收盤 ≤ 540 <span class="hypothesis">(假設，待回測)</span></td><td>加碼</td></tr>
-      <tr><td>3711</td><td>500.0</td><td>收盤 ≤ 500 <span class="hypothesis">(假設，待回測)</span></td><td>滿倉</td></tr>
-      <tr><td>2454</td><td>3900.0</td><td>收盤 ≤ 3900 <span class="hypothesis">(假設，待回測)</span></td><td>啟動（觀察倉）</td></tr>
-      <tr><td>2454</td><td>3700.0</td><td>收盤 ≤ 3700 <span class="hypothesis">(假設，待回測)</span></td><td>加碼 1/3</td></tr>
-      <tr><td>2454</td><td>3500.0</td><td>收盤 ≤ 3500 <span class="hypothesis">(假設，待回測)</span></td><td>滿倉（上限 2%）</td></tr>
-    </tbody>
-  </table>
-
-  <h2>5. 方法論並列區（不替閱讀者決定）</h2>
-  <p class="small">以下規則存在爭議，本報告並列兩個版本 + 失效風險，<strong>由閱讀者自行判斷採用哪一個</strong>。</p>
-
-  <h3>5.1 MA20 方向過濾條件 <span class="tag tag-warn">規則爭議</span></h3>
-  <table>
-    <thead><tr><th>版本</th><th>規則</th><th>潛在優勢</th><th>失效風險</th></tr></thead>
-    <tbody>
-      <tr>
-        <td><strong>A：MA20 下彎才買</strong></td>
-        <td>進場條件加「MA20 較前日下跌」<span class="hypothesis">(假設，待回測)</span></td>
-        <td>等動能轉弱才進，避開追高</td>
-        <td class="now-fail">可能接到下跌趨勢的中段；強勢股 MA20 短暫下彎即回升，會錯過起漲點</td>
-      </tr>
-      <tr>
-        <td><strong>B：MA20 走平或上彎才買</strong></td>
-        <td>進場條件加「MA20 較前日 ≥ -0.5%」<span class="hypothesis">(假設，待回測)</span></td>
-        <td>順勢而為，避免逆勢接刀</td>
-        <td class="now-fail">在盤整區會反覆觸發訊號；趨勢反轉初期訊號延遲</td>
-      </tr>
-    </tbody>
-  </table>
-
-  <h3>5.2 過熱股票（離 MA60 > +15%）的處理 <span class="tag tag-warn">規則爭議</span></h3>
-  <table>
-    <thead><tr><th>版本</th><th>規則</th><th>潛在優勢</th><th>失效風險</th></tr></thead>
-    <tbody>
-      <tr>
-        <td><strong>A：完全迴避（2% 觀察倉上限）</strong></td>
-        <td>離 MA60 > +15% 時只給 2% 部位，且須跌回區間下緣才啟動</td>
-        <td>避免在高檔重壓</td>
-        <td class="now-fail">強勢股可能不回測（例如 2454 在 AI 行情下持續創高），會完全錯過</td>
-      </tr>
-      <tr>
-        <td><strong>B：分艙進場（5% 衛星倉）</strong></td>
-        <td>離 MA60 > +15% 時允許 5% 衛星倉，分 3 批進，不等回測</td>
-        <td>順應強勢股動能</td>
-        <td class="now-fail">若股票已到週期高點，衛星倉可能長期套牢</td>
-      </tr>
-    </tbody>
-  </table>
-
-  <h3>5.3 RSI 門檻（≤35 視為超賣）<span class="tag tag-warn">常見假設</span></h3>
-  <p>本報告的觸發器以 RSI ≤ 35 為「恐慌性拋售」訊號；此門檻為技術分析常見經驗值，<span class="hypothesis">(假設，待回測)</span> 不同標的適用門檻可能不同（高 beta 股可用 30，防御股可用 40）。本報告未依個股波動度調整，是簡化做法。</p>
-
-  <h2>6. 風險與部位紀律</h2>
-  <div class="danger-box">
-    <strong>核心層 vs 衛星層（基準比例，閱讀者可調）</strong>
-    <ul>
-      <li><strong>核心層 70%</strong>：電信、民生消費、金控（殖利率 ≥ 3.5%、PBR &lt; 2.5）</li>
-      <li><strong>衛星層 30%</strong>：AI 題材、循環股；AI 部位合計上限 20%（避免單一主題風險）</li>
-      <li><strong>過熱股（2% 觀察倉）</strong>：PBR &gt; 5 或離 MA60 &gt; +15% 之個股</li>
-    </ul>
-    <strong>進場節奏（適用所有個股）</strong>
-    <ul>
-      <li>到觸發價 → 進 1/3</li>
-      <li>再跌 5% → 進 2/3</li>
-      <li>再跌 5% → 滿倉</li>
-      <li>相反方向：若進場後上漲 &gt; 10%，不追價，等下一輪觸發</li>
-    </ul>
-  </div>
-
-  <h2>7. 觀察清單排除與新進個股（v1 暫無）</h2>
-  <p class="small">v1 觀察清單為 10 支固定個股；淘汰機制與新進個股篩選流程為 v2 規劃項目。</p>
-
-  <h2>8. 來源與方法</h2>
-  <ul>
-    <li>行情資料：<a href="https://finmind.com/">FinMind</a> <code>TaiwanStockPrice</code> dataset，2026-09-18 收盤</li>
-    <li>技術指標計算：MA20 為 20 日簡單移動平均、MA60 為 60 日簡單移動平均</li>
-    <li>殖利率 / PBR / Forward PE：先前評估時的快照值，本報告未即時重新驗證</li>
-    <li>觸發條件：全部標 <code>(假設，待回測)</code>，未經歷史回測</li>
-  </ul>
-
-  <h2>9. 後續行動（v2 規劃）</h2>
-  <ul>
-    <li>實際建置自動抓取 FinMind 行情的排程，並驗證資料完整性</li>
-    <li>對所有觸發條件做至少 2 年歷史回測</li>
-    <li>建立到價推播管道（避免過度交易）</li>
-    <li>引入淘汰機制：每季檢視 10 支個股基本面是否惡化</li>
-    <li>將 v1 規則套用到實際持倉，回頭驗證命中率</li>
-  </ul>
 
   <footer>
     Generated by anne profile • 快照日期 2026-09-18 • 公開站：<a href="https://ul3you-cell.github.io/happyda-public/tw-stock-forecast-20260918.html">https://ul3you-cell.github.io/happyda-public/tw-stock-forecast-20260918.html</a><br>
-    本報告為靜態快照，不會自動更新；下次更新預計 2026-09-25（每週一次）
+    本報告為靜態快照，不會自動更新；下次更新預計 2026-09-25（每週五 18:00 自動排程）
   </footer>
 </main>
 </body>

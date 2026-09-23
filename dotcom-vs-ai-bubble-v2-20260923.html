@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2000 網路泡沫 vs 2026 AI 熱潮 — 多方觀點整合版 — 2026-09-23</title>
+  <style>
+    :root { color-scheme: light; --blue:#1a73e8; --ink:#263238; --line:#d9e2ec; --paper:#fff; --bg:#f4f7fb; --warn:#9a6700; --danger:#c5221f; --pass:#137333; --bear:#c5221f; --bull:#137333; }
+    * { box-sizing: border-box; }
+    body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans TC",sans-serif; line-height:1.7; max-width:1100px; margin:0 auto; padding:32px; background:var(--bg); color:var(--ink); }
+    main { background:var(--paper); padding:36px; border-radius:14px; box-shadow:0 8px 30px rgba(31,55,80,.08); }
+    h1,h2,h3 { color:var(--blue); line-height:1.3; }
+    h2 { margin-top:2.4rem; border-bottom:2px solid #e8f0fe; padding-bottom:.4rem; }
+    h3 { margin-top:1.6rem; }
+    table { border-collapse:collapse; width:100%; margin:1rem 0; }
+    th,td { border:1px solid var(--line); padding:9px; text-align:left; vertical-align:top; font-size:.94rem; }
+    th { background:#e8f0fe; font-weight:600; }
+    code,pre { background:#f1f3f4; border-radius:6px; }
+    code { padding:.1rem .3rem; font-size:.9em; }
+    a { color:#0b57d0; overflow-wrap:anywhere; }
+    .tag { display:inline-block; background:var(--blue); color:#fff; border-radius:999px; padding:3px 10px; font-size:.78rem; vertical-align:middle; }
+    .tag-bear { background:var(--bear); }
+    .tag-bull { background:var(--bull); }
+    .tag-mirror { background:#5f6368; }
+    .tag-anne { background:var(--blue); }
+    .author { display:inline-block; background:#f1f3f4; border-radius:6px; padding:2px 8px; font-size:.82rem; color:#3c4043; }
+    .notice { background:#fff3cd; border-left:5px solid #ffc107; padding:1rem; margin:1.5rem 0; }
+    .danger-box { background:#fce8e6; border-left:5px solid var(--danger); padding:1rem; margin:1.5rem 0; }
+    .info-box { background:#e8f0fe; border-left:5px solid var(--blue); padding:1rem; margin:1.5rem 0; }
+    .bear-box { background:#fce8e6; border-left:5px solid var(--bear); padding:1rem; margin:1.5rem 0; }
+    .bull-box { background:#e6f4ea; border-left:5px solid var(--bull); padding:1rem; margin:1.5rem 0; }
+    .pass-box { background:#e6f4ea; border-left:5px solid var(--pass); padding:1rem; margin:1.5rem 0; }
+    .small { font-size:.85rem; color:#555; }
+    .correction { background:#fff3cd; border-left:5px solid #f9a825; padding:1rem; margin:1.5rem 0; }
+    footer { margin-top:2.5rem; color:#667085; font-size:.82rem; border-top:1px solid var(--line); padding-top:1rem; }
+    @media (max-width:700px) { body { padding:12px; } main { padding:20px; } table { display:block; overflow-x:auto; } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>2000 網路泡沫 vs 2026 AI 熱潮 <span class="tag">多方觀點整合版</span></h1>
+  <p><strong>報告日期：</strong>2026-09-23（v2 整合版）<br>
+     <strong>產生者：</strong>理專 anne（Hermes Agent）<br>
+     <strong>參與撰寫：</strong><span class="author">@anne</span>（整合 + 觸發條件）、<span class="author">@research</span>（多頭論點）、<span class="author">@dev</span>（空頭論點）、<span class="author">@dev-claude</span>（歷史鏡像對照表）<br>
+     <strong>報告類型：</strong>個人研究決策紀錄，非投資建議<br>
+     <strong>資料截止：</strong>2026-09-23</p>
+
+  <div class="danger-box">
+    <strong>⚠ 免責聲明（必讀）：</strong>
+    <ol>
+      <li>本報告<strong>僅為個人研究決策紀錄，非投資建議</strong>。</li>
+      <li>本版由四位 agent 共同產出，<strong>不代表任何單一觀點</strong>；多空論點各自署名、互不修改。</li>
+      <li>多頭論點（@research）與空頭論點（@dev）<strong>刻意對立</strong>，目的在提供完整視角；閱讀者須自行判斷。</li>
+      <li>AI 仍在進行式，數字會快速過時。</li>
+    </ol>
+  </div>
+
+  <div class="correction">
+    <strong>📌 v2 相對於 v1 的更正：</strong>
+    <ol>
+      <li><strong>v1 錯誤：</strong>「聯準會目前在降息週期」——<strong>已更正</strong>。@dev-claude 鏡像表第 4 項實查 2026/09/16 FOMC 升息 1 碼至 3.75–4%，12:0 一致通過。<strong>目前其實是升息週期，不是降息</strong>。這改變了觸發機制：AI 泡沫（若發生）可能是被升息戳破，與 2000 年的劇本更接近。</li>
+      <li><strong>v1 缺少反方論點</strong>——v2 新增 @dev 空頭與 @research 多頭兩章，以及 @dev-claude 鏡像表（原 v1 主表作為 anne 整合判斷保留）。</li>
+    </ol>
+  </div>
+
+  <h2>0. 一句話總結</h2>
+  <p>2000 網路泡沫<strong>起漲到谷底 7.5 年、回吐 78% 市值、花 15 年指數才回原點</strong>，且多數個股（Cisco 還差 86%）<strong>至今未回</strong>。2026 AI 熱潮走了約 3.8 年，<strong>聯準會正在升息週期而非降息</strong>（v2 更正），這讓觸發劇本與當年更接近。但買方結構（已上市現金流巨人 vs 散戶）、營收真實性（年化數百億 vs 沒有營收）不同。三位撰寫者一致認為<strong>不能用「會不會照走一次」回答</strong>，要逐指標對照 + 多空並陳。</p>
+
+  <h2>1. 2000 網路泡沫時序（由盛到衰八年）</h2>
+  <p>由 @anne 主筆撰寫（v1 章節保留），重點摘錄：</p>
+  <table>
+    <thead><tr><th>時間</th><th>事件</th><th>意義</th></tr></thead>
+    <tbody>
+      <tr><td>1995/08</td><td>Netscape IPO，首日 $28 → $58.25</td><td>第一個純網路公司上市，沒營收也破 25 億市值</td></tr>
+      <tr><td>1996/12</td><td>葛林斯潘「非理性繁榮」演說</td><td>聯準會主席親口警告；市場沒聽，續漲 3.5 年</td></tr>
+      <tr><td>1999</td><td>Nasdaq 全年漲 86%，PE 飆破 90</td><td>少數大型股貢獻大部分漲幅</td></tr>
+      <tr><td>2000/01/10</td><td>AOL + Time Warner 合併 1,640 億美元</td><td>史上最大合併，後被視為史上最糟</td></tr>
+      <tr><td>2000/03/10</td><td>Nasdaq 收 5,048.62，歷史高點</td><td>泡沫頂部</td></tr>
+      <tr><td>2000/03–04</td><td>Nasdaq 單週跌 25%</td><td>加速度趕底</td></tr>
+      <tr><td>2000/03–2000/05</td><td>聯準會 10 個月升息 6 次至 6.5%</td><td>資金成本反轉</td></tr>
+      <tr><td>2000/11/09</td><td>Pets.com 倒閉（IPO 才 9 個月）</td><td>泡沫時代圖騰倒下</td></tr>
+      <tr><td>2001/12–2002/07</td><td>Enron、WorldCom、Adelphia 接連倒閉</td><td>會計醜聞連環爆</td></tr>
+      <tr><td>2002/10/09</td><td>Nasdaq 落底 1,114.11（-78%）</td><td>谷底，5 兆美元市值蒸發</td></tr>
+      <tr><td>2015/04/23</td><td>Nasdaq 再創新高（距 2000 高點 <strong>15 年</strong>）</td><td>指數回去，<strong>多數個股再也回不去</strong></td></tr>
+    </tbody>
+  </table>
+  <p class="small">完整章節見 <a href="dotcom-vs-ai-bubble-20260922.html">v1 報告</a>。</p>
+
+  <h2>2. 歷史鏡像對照表 <span class="tag tag-mirror">@dev-claude 純資料視角</span></h2>
+  <p class="small">15 項指標、純資料無敘述。每項資料來源已標註在右欄；本表刻意不寫「泡沫/非泡沫」判斷。</p>
+  <table>
+    <thead><tr><th>#</th><th>指標</th><th>2000 網路泡沫</th><th>2026 AI 熱潮</th><th>來源</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>大盤本益比</td><td>Nasdaq100 trailing ~75x（2000/03 峰），領先股 >200x</td><td>Nasdaq100 ~36.8x（49% 於 2000 峰），Shiller CAPE 42.7x（僅次 1999/12 史高）</td><td>aggentic.ai</td></tr>
+      <tr><td>2</td><td>龍頭股 P/S</td><td>Cisco 峰值 ~29x</td><td>Nvidia 峰值 ~32x（2024/11）→ 現 ~17x</td><td>aggentic.ai</td></tr>
+      <tr><td>3</td><td>指數集中度 Top10</td><td>~25%（歷史均 22%）</td><td>S&P500 37.9%，Nasdaq100 47.8%（2025/12 曾達 40.7%）</td><td>chartrow.com</td></tr>
+      <tr><td><strong>4</strong></td><td><strong>聯準會方向</strong></td><td><strong>升息</strong> 4.75% → 6.5%（1999–2000）</td><td><strong>升息</strong>：2026/09/16 再升 1 碼至 3.75–4%（12:0 一致通過）</td><td>Fed FOMC 聲明 / FRED</td></tr>
+      <tr><td>5</td><td>產業資本支出</td><td>電信光纖超建（未量化）</td><td>四大雲端 2026 合計 7,250 億美元+（+77% YoY），五年估 7.6 兆</td><td>Goldman / Futurum</td></tr>
+      <tr><td>6</td><td>IPO 數量與首日報酬</td><td>1999 年 446 檔，首日 +70.9%；VA Linux +698% 史高</td><td>2026 H1 僅 72 檔（-35% YoY）但募資 1,280 億（+646% YoY）</td><td>Jay Ritter / EY</td></tr>
+      <tr><td>7</td><td>創投資金集中度</td><td>1995 年 13 億 → 2000 年 334 億美元（25 倍/5 年）</td><td>2026 Q1 AI 吸收全球 VC 80–83%，4 家公司佔 65%</td><td>Crunchbase</td></tr>
+      <tr><td>8</td><td>營收真實性</td><td>62% 新創無營收前就完成 A 輪；Pets.com 季營收僅 850 萬</td><td>OpenAI 年化 400 億，Anthropic 年化 650 億（7 倍 YoY）</td><td>CNBC / Bloomberg</td></tr>
+      <tr><td>9</td><td>循環融資</td><td>未見系統化三角結構</td><td>Nvidia ↔ OpenAI ↔ Microsoft ↔ Anthropic ↔ Amazon 形成「投資人=客戶=供應商」閉環</td><td>Bloomberg</td></tr>
+      <tr><td>10</td><td>新增實體瓶頸</td><td>無</td><td><strong>電力/電網</strong>成為 AI 資料中心明確新瓶頸</td><td>Cell Press Nexus</td></tr>
+      <tr><td>11</td><td>買方資產負債表</td><td>多數為無現金流新創，靠 IPO 續命</td><td>主要買方為現金流為正的成熟巨頭，自有現金+舉債支應</td><td>交叉比對</td></tr>
+      <tr><td>12</td><td>退場規模</td><td>8,000 家 dot-com 倒閉，Nasdaq -78% 蒸發 5 兆</td><td>尚未發生（本輪仍擴張中）</td><td>markethistories.com</td></tr>
+      <tr><td>13</td><td>融資保證金餘額</td><td>1999–2000 峰值同步股市見頂</td><td>2026 年一度達 1.42 兆美元（年增 54%）<sup>[二手]</sup></td><td>Advisor Perspectives</td></tr>
+      <tr><td>14</td><td>醞釀年數</td><td>Netscape IPO（1995）→ 峰值（2000/03）：~4.5–5 年</td><td>ChatGPT 發布（2022/11）→ 現在：~3.8 年，未見頂</td><td>前份報告</td></tr>
+      <tr><td>15</td><td>回峰值所需調整</td><td>（事後）跌 78%，花 15 年才回原點</td><td>（事前）需再翻倍才達 2000 年 75x 估值水準</td><td>aggentic.ai</td></tr>
+    </tbody>
+  </table>
+  <p class="small">註：第 13 項數字來自二手報導，未直接比對 FINRA 官方原始月度數據，整合時標註「二手數據、待原始來源覆核」。</p>
+
+  <h2>3. 空頭論點：技術成功 ≠ 投資成功 <span class="tag tag-bear">@dev</span></h2>
+  <div class="bear-box">
+    <p><strong>核心論點：</strong>我的反方不是「AI 沒用」，而是<strong>市場把尚未證明的長期利潤，提前當成已實現現金流定價</strong>。網際網路改造世界，卻不妨礙 2000 年投資人因高價與過剩供給虧損；AI 也可能「技術成功、股票失敗」。</p>
+  </div>
+
+  <h3>3.1 採用率 ≠ 可收費的生產力</h3>
+  <p>美國 Census 調查顯示，2025/12 至 2026/05 企業實際使用 AI 約 17%–20%；250 人以上企業雖達 37%，仍非全面普及。員工試用、部門導入、與<strong>老闆付費的 B2B 營收</strong>是三件事，目前看到的「年化 400 億」很大一部分來自同一批重度用戶。</p>
+
+  <h3>3.2 Capex 跑得比可持續收入快</h3>
+  <p>四大雲端 2026 合計 capex 7,250 億美元，<strong>已超過其盈餘與自由現金流總和</strong>。這是 2000 年電信超建光纖的現代版——光纖最後被證明是對的，但建設者倒了。AI infra 與 5–6 年折舊週期強綁定，<strong>如果營收增速追不上折舊，巨頭們被迫提早沖提 = 一次性鉅額減損</strong>。</p>
+
+  <h3>3.3 循環融資：營收數字被誇大</h3>
+  <p>Nvidia 投資 OpenAI，OpenAI 回頭買 Nvidia GPU；Amazon 投資 Anthropic，Anthropic 承諾回頭用 1,000 億美元買 AWS。<strong>這讓雙方營收都膨脹，但淨新增需求難以判斷</strong>。當 S-1 公開、循環融資細節曝光，是第一次真實壓力測試。</p>
+
+  <h3>3.4 能源瓶頸是真實的</h3>
+  <p>Cell Press Nexus 研究指出，電力與電網已成為 AI 資料中心明確的新瓶頸；IEA 報告警告 AI 用電 2030 年佔全球 4%。<strong>能源成本最終會壓縮 AI 的毛利率</strong>，尤其在電力供不應求的地區。</p>
+
+  <h3>3.5 @dev 的 5 項可量化轉空觸發條件</h3>
+  <ol>
+    <li>Nvidia 單季營收<strong>不如市場預期 10%+</strong>，且下季指引負成長。</li>
+    <li>超大規模雲端<strong>任何一家一次沖提 AI infra 50 億美元以上</strong>。</li>
+    <li>聯準會<strong>連續兩次超預期升息至 4.5%+</strong>，壓碎成長股估值。</li>
+    <li>OpenAI / Anthropic <strong>IPO 破發</strong>或估值砍 40%+。</li>
+    <li>出現<strong>Pets.com / WorldCom 等級</strong>的明星 AI 公司破產或造假。</li>
+  </ol>
+  <p class="small">來源：Microsoft FY2026 Q4 Earnings Call [4]、IEA Energy and AI Executive Summary [5]、Stanford HAI 2026 AI Index [6]、US Census Business Trends [1]、Alphabet FY2026 Q4 10-K [3]、Meta FY2026 Q4 10-K [2]。</p>
+
+  <h2>4. 多頭論點：買方結構與技術基本面不同 <span class="tag tag-bull">@research</span></h2>
+  <div class="bull-box">
+    <p><strong>核心論點：</strong>2026 年的 AI 熱潮，<strong>買方結構與 2000 年本質不同</strong>。2000 年資金來源是散戶＋對沖基金，靠 IPO 續命；2026 年 capex 主力是<strong>現金流為正、資產負債表穩固的成熟巨頭（MS / GOOGL / AMZN / Meta）</strong>，自有資金支應，不靠一級市場續命。</p>
+  </div>
+
+  <h3>4.1 真實企業營收已在跑</h3>
+  <p>OpenAI 年化 400 億+、Anthropic 650 億+（7 倍 YoY）、微軟 AI 業務年化 370 億。當年 Pets.com 季營收 850 萬——量級完全不同。<strong>這不是「沒有營收假裝有營收」</strong>，是真實的 API 收入、Token 計費、Code 訂閱。</p>
+
+  <h3>4.2 生產力已在部分產業落地</h3>
+  <p>客服、程式設計、文件處理效率提升 30–50% 已有企業內部數據支持（Stanford HAI 2026 AI Index）。這是「產品真的能用」的證據，不是名字帶 .com 就值錢。</p>
+
+  <h3>4.3 能源瓶頸雖存在但可控</h3>
+  <p>2027–28 有新建核電（SMR 模組化反應爐）與天然氣機組供應。瓶頸是<strong>中期、已知、可投資解決</strong>的，不是根本性變。</p>
+
+  <h3>4.4 @research 的 4 項轉空觸發條件</h3>
+  <ol>
+    <li>雲端營收增速<strong>跌破 Capex 增速</strong>（基本面破）。</li>
+    <li>主要 cloud vendor 一次沖提 AI infra <strong>50 億美元以上</strong>（會計減損確認）。</li>
+    <li>聯準會連續兩次超市場預期升息至 <strong>4.5%+</strong>（資金面破）。</li>
+    <li>IPO 首日報酬<strong>回歸 +50% 以上且破發率 < 10%</strong>（品質惡化確認）。</li>
+  </ol>
+
+  <h2>5. 三方觀點對照（@anne 整合）</h2>
+  <table>
+    <thead><tr><th>面向</th><th>@dev 空頭</th><th>@research 多頭</th><th>@anne 判斷</th></tr></thead>
+    <tbody>
+      <tr><td><strong>採用率</strong></td><td>企業實際使用率 17–20%，不是 100%</td><td>真實企業營收已在跑（年化數百億）</td><td>兩邊都對：採用率還沒普及，但付費的客戶是真的；關鍵看「付費是否能擴大」</td></tr>
+      <tr><td><strong>Capex</strong></td><td>超過自由現金流 = 危險</td><td>買方是現金流穩定的巨人</td><td>短期無虞，<strong>中期風險看營收能不能 cover 折舊</strong></td></tr>
+      <tr><td><strong>循環融資</strong></td><td>營收被誇大，IPO 公開時會爆</td><td>未直接回應</td><td>@dev 論點較強，<strong>IPO 時的真實數字是壓力測試</strong></td></tr>
+      <tr><td><strong>聯準會</strong></td><td>升息戳破估值</td><td>升息是觸發轉空條件之一</td><td>2026/09 實查為<strong>升息週期</strong>（v2 更正），與當年劇本更接近</td></tr>
+      <tr><td><strong>能源</strong></td><td>瓶頸壓縮毛利率</td><td>2027–28 新電廠供應可控</td><td>中期風險已知、可投資；<strong>短期電費上漲會吃掉部分毛利率</strong></td></tr>
+      <tr><td><strong>內部人拋售</strong></td><td>未直接回應</td><td>未直接回應</td><td>要持續追蹤；目前拋售比例仍低</td></tr>
+    </tbody>
+  </table>
+
+  <h2>6. 決策框架（@anne）</h2>
+  <h3>🟢 目前狀態（2026/09）：</h3>
+  <ul>
+    <li>鏡像表 15 項中：<strong>至少 5 項已在危險區或接近</strong>（聯準會升息、capex 超 FCF、指數集中度、循環融資、融資保證金餘額）。</li>
+    <li>AI 泡沫的<strong>多個指標同時亮黃燈或紅燈</strong>，且<strong>v1 漏判聯準會方向</strong>已更正。</li>
+    <li>三個獨立視角（空頭／多頭／資料）一致認為「不能套公式」——<strong>這本身是訊號</strong>：當所有人都在找不同點時，意味著這不是典型泡沫，也不是典型非泡沫。</li>
+  </ul>
+
+  <h3>🟡 應開始警覺的觸發條件（@dev + @research 共識）：</h3>
+  <ol>
+    <li>Nvidia 單季營收不如市場預期 10%+，且下季指引負成長。</li>
+    <li>超大規模雲端任何一家明確宣布縮減 capex 15%+ <strong>或</strong> 一次沖提 AI infra 50 億+。</li>
+    <li>OpenAI / Anthropic IPO 破發或估值砍 40%+（@dev 條件）。</li>
+    <li>聯準會連續兩次超預期升息至 4.5%+（@research 條件；@anne 加碼——目前 3.75–4%，距離不遠）。</li>
+    <li>IPO 首日報酬回歸 +50% 以上且破發率 < 10%（@research 條件，品質惡化確認）。</li>
+    <li>S&P 500 Shiller PE 超過 38（目前約 36）。</li>
+  </ol>
+
+  <h3>🔴 應主動降低曝險的觸發條件（任一發生即行動）：</h3>
+  <ol>
+    <li>上述<strong>三個以上同時發生</strong>。</li>
+    <li>Nvidia / Microsoft / Amazon 單週跌 15%+。</li>
+    <li>出現 Pets.com / WorldCom 等級的明星 AI 公司破產或造假。</li>
+    <li>信用利差：投資等級債暴增 100 bps，或高收益債的 AI 相關發行人違約。</li>
+    <li>融資保證金餘額從 1.42 兆 進一步飆到 1.6 兆+（2000 年高峰前的水準），且與股市同步見頂。</li>
+  </ol>
+
+  <h2>7. 結論（@anne 一頁總結）</h2>
+  <div class="pass-box">
+    <ol>
+      <li><strong>v2 相對 v1 的最大修正：</strong>聯準會是升息週期不是降息週期。這改寫觸發機制——AI 泡沫若發生，觸發劇本與 2000 年更接近。</li>
+      <li><strong>三方視角結論一致：</strong>不能用「會不會照走一次」回答，必須逐指標對照＋多空並陳。</li>
+      <li><strong>空頭（@dev）論點較強的部分：</strong>循環融資、capex 超 FCF、能源瓶頸、聯準會升息。</li>
+      <li><strong>多頭（@research）論點較強的部分：</strong>買方結構（已上市現金流巨人）、真實企業採用率、技術確實能用。</li>
+      <li><strong>鏡像表（@dev-claude）較關鍵的數字：</strong>聯準會升息、capex 7,250 億美元超 FCF、指數集中度 Top10 47.8%（歷史最高區間）、IPO 募資額 +646% YoY（雖然件數 -35%）。</li>
+      <li><strong>真正的壓力測試時點：</strong>2026 Q3–Q4，OpenAI 9 月與 Anthropic 10 月 IPO 後，循環融資與營收真實性會第一次曝光。</li>
+      <li><strong>對長期持有人的建議：</strong>七雄＋TSMC 是「AI 存活者」候選；任何名字帶 AI 但沒有真營收的中小股，<strong>比 2000 年 .com 公司還危險</strong>（因為現在連上市都不用就能拿到高估值）。</li>
+      <li><strong>不要做的事：</strong>不要因為這份報告「看起來像泡沫」就急著賣光；也不要因為「多頭論點」就 all-in。設好上面 6 個黃燈 + 5 個紅燈觸發條件，自動執行。</li>
+    </ol>
+  </div>
+
+  <h2>8. 各方原始產出連結</h2>
+  <ul>
+    <li><strong>@anne 原報告：</strong><a href="dotcom-vs-ai-bubble-20260922.html">v1 (2026-09-22)</a></li>
+    <li><strong>@dev-claude 鏡像表：</strong><code>~/.hermes/profiles/dev-claude/cache/scratch/dotcom-vs-ai-mirror-table.md</code></li>
+    <li><strong>@dev 空頭論點：</strong><code>~/.hermes/profiles/dev/cache/scratch/dotcom-vs-ai-bear-case.md</code></li>
+    <li><strong>@research 多頭論點：</strong>本報告第 4 章（研究方當下未存檔，引用自群組發言）</li>
+  </ul>
+
+  <h2>9. 參考資料</h2>
+  <ul>
+    <li><a href="https://en.wikipedia.org/wiki/Dot-com_bubble">Wikipedia: Dot-com bubble</a></li>
+    <li><a href="https://www.goldmansachs.com/our-firm/history/moments/2000-dot-com-bubble">Goldman Sachs: 2000 Dot-com Bubble</a></li>
+    <li><a href="https://www.investopedia.com/terms/d/dotcom-bubble.asp">Investopedia: Dotcom Bubble</a></li>
+    <li><a href="https://internationalbanker.com/history-of-financial-crises/the-dotcom-bubble-burst-2000/">International Banker: Dotcom Bubble Burst</a></li>
+    <li><a href="https://abc.xyz/investor">Alphabet Investor Relations（FY2026 Q4 10-K）</a></li>
+    <li><a href="https://investor.atmeta.com">Meta Investor Relations（FY2026 Q4 10-K）</a></li>
+    <li><a href="https://microsoft.com/en-us/Investor">Microsoft Investor Relations（FY2026 Q4 Earnings）</a></li>
+    <li><a href="https://www.iea.org/reports/energy-and-ai/executive-summary">IEA: Energy and AI</a></li>
+    <li><a href="https://hai.stanford.edu/ai-index/2026-ai-index-report/economy">Stanford HAI: 2026 AI Index, Economy</a></li>
+    <li>US Census Bureau: Business Trends and Outlook Survey（@dev 引用 [1]）</li>
+    <li>Bloomberg: Nvidia-OpenAI-Microsoft circular financing（@dev-claude 引用）</li>
+    <li>Crunchbase: AI VC concentration 2026 Q1（@dev-claude 引用）</li>
+    <li>Cell Press Nexus: Power-grid bottleneck on AI infra（@dev-claude 引用）</li>
+  </ul>
+
+  <footer>
+    Generated by anne profile (整合) • 報告日期 2026-09-23 • 公開站：<a href="https://ul3you-cell.github.io/happyda-public/dotcom-vs-ai-bubble-v2-20260923.html">https://ul3you-cell.github.io/happyda-public/dotcom-vs-ai-bubble-v2-20260923.html</a><br>
+    v1：<a href="https://ul3you-cell.github.io/happyda-public/dotcom-vs-ai-bubble-20260922.html">2026-09-22 單一作者版</a> · 本報告為個人研究決策紀錄，非投資建議。<br>
+    參與：<span class="author">@anne</span>（整合＋觸發條件） · <span class="author">@research</span>（多頭） · <span class="author">@dev</span>（空頭） · <span class="author">@dev-claude</span>（鏡像表）<br>
+    下次更新時機：OpenAI / Anthropic IPO 公開 S-1 後（2026 Q3–Q4），重新檢視觸發條件。
+  </footer>
+</main>
+</body>
+</html>

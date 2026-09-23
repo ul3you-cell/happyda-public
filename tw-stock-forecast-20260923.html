@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>台股 6 族群 × 10 檔精選 v3 — 2026-09-23</title>
+<style>
+  :root { color-scheme: light; --blue:#1a73e8; --ink:#263238; --line:#d9e2ec; --paper:#fff; --bg:#f4f7fb; --warn:#9a6700; --danger:#c5221f; --pass:#137333; --red:#c5221f; }
+  * { box-sizing: border-box; }
+  body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans TC",sans-serif; line-height:1.65; max-width:1180px; margin:0 auto; padding:32px; background:var(--bg); color:var(--ink); }
+  main { background:var(--paper); padding:32px; border-radius:14px; box-shadow:0 8px 30px rgba(31,55,80,.08); }
+  h1,h2,h3 { color:var(--blue); line-height:1.3; }
+  h2 { margin-top:2.2rem; border-bottom:2px solid #e8f0fe; padding-bottom:.35rem; }
+  h3 { margin-top:1.4rem; }
+  table { border-collapse:collapse; width:100%; margin:1rem 0; }
+  th,td { border:1px solid var(--line); padding:9px; text-align:left; vertical-align:top; font-size:.92rem; }
+  th { background:#e8f0fe; font-weight:600; }
+  code,pre { background:#f1f3f4; border-radius:6px; }
+  code { padding:.1rem .3rem; font-size:.9em; }
+  a { color:#0b57d0; overflow-wrap:anywhere; }
+  .tag { display:inline-block; background:var(--blue); color:#fff; border-radius:999px; padding:3px 10px; font-size:.78rem; vertical-align:middle; }
+  .notice { background:#fff3cd; border-left:5px solid #ffc107; padding:1rem; margin:1.5rem 0; }
+  .danger-box { background:#fce8e6; border-left:5px solid var(--danger); padding:1rem; margin:1.5rem 0; }
+  .info-box { background:#e8f0fe; border-left:5px solid var(--blue); padding:1rem; margin:1.5rem 0; }
+  .hypothesis { color:#9a6700; font-weight:600; }
+  .now-pass { color:var(--pass); font-weight:700; }
+  .now-warn { color:var(--warn); font-weight:700; }
+  .now-fail { color:var(--danger); font-weight:700; }
+  .small { font-size:.85rem; color:#555; }
+  .theme-word { color:var(--red); font-weight:600; }
+  .kept { color:var(--pass); font-weight:700; }
+  .swapped-out { color:var(--danger); font-weight:700; text-decoration:line-through; }
+  .swapped-in { color:var(--blue); font-weight:700; }
+  .matrix-card { display:grid; grid-template-columns: 90px 1fr 1fr 1fr 1fr; gap:0; margin:1rem 0; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+  .matrix-card > div { padding:10px 12px; border-bottom:1px solid var(--line); border-right:1px solid var(--line); font-size:.9rem; }
+  .matrix-card > div:last-child { border-right:none; }
+  .matrix-head { background:#1a73e8; color:#fff; font-weight:700; text-align:center; }
+  .matrix-group { background:#fdf3e7; font-weight:700; display:flex; align-items:center; }
+  footer { margin-top:2.5rem; color:#667085; font-size:.82rem; border-top:1px solid var(--line); padding-top:1rem; }
+  @media (max-width:900px) { .matrix-card { grid-template-columns: 1fr; } .matrix-card > div { border-right:none; } .matrix-group { justify-content:flex-start; } }
+  @media (max-width:700px) { body { padding:12px; } main { padding:18px; } table { display:block; overflow-x:auto; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>台股 6 族群 × 10 檔精選 v3 <span class="tag">2026-09-23 靜態快照</span></h1>
+  <p><strong>快照日期：</strong>2026-09-23（台股收盤）<br>
+     <strong>產生者：</strong>理專 anne（Hermes Agent）<br>
+     <strong>框架來源：</strong>使用者截圖六族群（面板／軟體／LED／光學鏡頭／連接器／封測）＋上輪 AI 主軸保留<br>
+     <strong>資料來源：</strong>yfinance（Yahoo Finance）、MoneyDJ、Goodinfo、官方 IR<br>
+     <strong>報告類型：</strong>個人決策紀錄，非投資建議</p>
+
+  <div class="danger-box">
+    <strong>⚠ 免責聲明（必讀）：</strong>
+    <ol>
+      <li>本報告<strong>僅為個人決策紀錄，非投資建議</strong>。</li>
+      <li>所有報價、殖利率、PE、PB、MA60 為 <strong>2026-09-22/23 收盤快照</strong>，<strong>會過時</strong>，不可直接用於實際下單。</li>
+      <li>所有觸發條件（含 RSI 門檻、MA 方向、連兩日站穩等量化規則）<strong>均為「假設」，未經歷史回測驗證</strong>。</li>
+      <li>進場與否、部位大小、加碼節奏<strong>由閱讀者自行判斷</strong>。</li>
+    </ol>
+  </div>
+
+  <div class="info-box"><strong>v3 核心結論</strong>：黃仁勳「AI 下一個機會是網路安全」核心論點——以 <strong>3029 零壹</strong>（PE 17、殖利率 4.55%）為核心受惠股；六族群全部補齊，每族群至少 1 檔代表；保留 AI 主軸 4 檔（廣達／台積電／聯發科／緯創）；上輪 LED／光鏡頭／軟體／連接器錯置或缺口已修正。</div>
+
+  <h2>1. 六族群「低位階轉型」矩陣</h2>
+  <p class="small">核心論點：資金由高位階 AI 概念股，轉向評價偏低但具備 AI／新技術題材連結的傳統族群。紅字為原圖強調的新題材關鍵字。</p>
+  <div class="matrix-card">
+    <div class="matrix-head">族群</div>
+    <div class="matrix-head">低位階基礎</div>
+    <div class="matrix-head">新題材</div>
+    <div class="matrix-head">產業利多</div>
+    <div class="matrix-head">需要驗證的指標</div>
+
+    <div class="matrix-group">面板</div>
+    <div>傳統面板仍屬景氣循環股，評價通常低於高階 AI 股</div>
+    <div><span class="theme-word">車用智慧座艙</span>、<span class="theme-word">Micro LED</span>、<span class="theme-word">FOPLP</span>、<span class="theme-word">CPO</span></div>
+    <div>友達積極發展車用與垂直場域，並展示 Micro LED CPO；群創布局 RDL、FOPLP 與矽光子</div>
+    <div>高毛利業務占比、非面板營收、FOPLP/CPO 是否進入量產</div>
+
+    <div class="matrix-group">軟體</div>
+    <div>多數本土 SI、資安與代理商，<span class="theme-word">估值低於硬體 AI 股</span></div>
+    <div><span class="theme-word">AI Agent 資安</span>、AI 治理、零信任</div>
+    <div><span class="theme-word">黃仁勳高喊 AI 下一個機會是網路安全</span>；AI 從回答問題進入代替企業執行任務，身分認證／權限控管／即時監控需求提高</div>
+    <div>經常性服務營收、資安訂單、AI 專案轉換率、毛利率</div>
+
+    <div class="matrix-group">LED</div>
+    <div>傳統背光與照明成長有限，族群曾長期沉寂</div>
+    <div><span class="theme-word">Micro LED</span>、<span class="theme-word">光感測</span>、<span class="theme-word">CPO</span>、<span class="theme-word">車用照明</span></div>
+    <div>富采、鼎元、鎂創將 Micro LED 技術延伸到 AI 資料中心短距高速傳輸；車用照明專案逐步接近量產</div>
+    <div>客戶認證、樣品轉量產、光通訊營收占比、車用專案 SOP</div>
+
+    <div class="matrix-group">光鏡頭</div>
+    <div>傳統手機鏡頭成長受成熟市場限制，部分個股位階相對低</div>
+    <div><span class="theme-word">AI 視覺</span>、智慧眼鏡、人形機器人、ADAS、<span class="theme-word">CPO 光學元件</span></div>
+    <div>AI 應用由算力轉向感知，光學鏡頭與感測模組成為人機互動、自駕與機器人關鍵零件</div>
+    <div>新客戶、新產品 ASP、非手機營收、CPO／車用出貨</div>
+
+    <div class="matrix-group">連接器</div>
+    <div>傳統連接器評價較穩定，過去多視為成熟零組件</div>
+    <div><span class="theme-word">1.6T 高速傳輸</span>、<span class="theme-word">AI 伺服器</span>、ASIC、Busbar、電源架構升級</div>
+    <div>AI 伺服器功耗與傳輸速率同步提高，連接器／線束／高速銅纜規格升級；貿聯已看到 1.6T 與電源業務機會</div>
+    <div>800G→1.6T 出貨、單機價值量、產能利用率、毛利率</div>
+
+    <div class="matrix-group">封測</div>
+    <div>相較晶圓代工與 AI 設計股，後段封測過去評價較低</div>
+    <div><span class="theme-word">CoWoS</span>、<span class="theme-word">HBM</span>、Chiplet、<span class="theme-word">CPO</span>、<span class="theme-word">FOPLP</span>、<span class="theme-word">先進測試</span></div>
+    <div>AI 晶片尺寸放大、HBM 堆疊與異質整合使封裝成為瓶頸，先進封測資本支出大幅增加</div>
+    <div>先進封裝營收、產能爬坡、客戶組合、資本支出轉換成營收的速度</div>
+  </div>
+
+  <h2>2. v3 十檔交叉評估表</h2>
+  <p class="small">六族群 × 10 檔，每族群至少 1 檔代表；保留 AI 主軸 4 檔（廣達／台積電／聯發科／緯創）。報價與 MA60 取自 yfinance 2026-09-22 收盤；觸發價為假設，待回測。</p>
+  <table>
+    <thead><tr><th>#</th><th>族群</th><th>代號</th><th>名稱</th><th>新題材對應</th><th>需要驗證的指標</th><th>建議動作</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>AI 伺服器代工</td><td><code>2382.TW</code></td><td>廣達</td><td>Blackwell 架構 AI 伺服器組裝（NVIDIA GB200 NVL72 主要代工）</td><td>GB200 出貨時程、單機價值量、毛利率</td><td><span class="kept">保留</span></td></tr>
+      <tr><td>2</td><td>晶圓代工</td><td><code>2330.TW</code></td><td>台積電</td><td>7／3／2nm 先進製程獨佔、CoWoS 為 AI 出貨瓶頸</td><td>CoWoS 產能爬坡、3nm／2nm 製程進度</td><td><span class="kept">保留</span></td></tr>
+      <tr><td>3</td><td>IC 設計</td><td><code>2454.TW</code></td><td>聯發科</td><td>AI 手機＋車用座艙雙引擎</td><td>Dimensity Auto 客戶、車用晶片 ASP</td><td><span class="kept">保留</span></td></tr>
+      <tr><td>4</td><td>軟體／資安</td><td><code>3029.TW</code></td><td>零壹</td><td>黃仁勳「AI 下一個機會是網路安全」；代理 Palo Alto／CrowdStrike／SentinelOne</td><td>經常性服務營收、AI 專案轉換率、毛利率</td><td><span class="swapped-in">新增</span></td></tr>
+      <tr><td>5</td><td>面板</td><td><code>3481.TW</code></td><td>群創</td><td>FOPLP 扇出面板級封裝（與日月光／台積電共創）</td><td>非面板營收占比、FOPLP 量產時程</td><td><span class="swapped-in">替換新增</span></td></tr>
+      <tr><td>6</td><td>LED</td><td><code>3714.TW</code></td><td>富采</td><td>Micro LED 量產載板（Apple Watch／Vision Pro 供應鏈）</td><td>客戶認證、樣品轉量產、CPO 光通訊占比</td><td><span class="swapped-in">替換新增</span></td></tr>
+      <tr><td>7</td><td>光學鏡頭</td><td><code>3406.TW</code></td><td>玉晶光</td><td>Apple Vision Pro／AR／車用 ADAS 鏡頭主力</td><td>非手機營收、CPO 出貨、車用 ASP</td><td><span class="swapped-in">替換新增</span></td></tr>
+      <tr><td>8</td><td>連接器</td><td><code>3533.TW</code></td><td>嘉澤</td><td>AI 伺服器 1.6T 高階連接器（NVIDIA GB200／Blackwell 主力供應商）</td><td>1.6T 出貨時程、單機價值量、產能利用率</td><td><span class="swapped-in">替換新增</span></td></tr>
+      <tr><td>9</td><td>伺服器 ODM</td><td><code>3231.TW</code></td><td>緯創</td><td>AI 加速卡 ODM 設計價值提升（NVIDIA HGX 參考設計 ODM）</td><td>HGX 出貨占比、AI 軟體營收</td><td><span class="kept">保留</span></td></tr>
+      <tr><td>10</td><td>封測</td><td><code>2449.TW</code></td><td>京元電</td><td>CoWoS／HBM 測試主力（台積電與 NVIDIA 測試夥伴）</td><td>先進封裝營收、產能爬坡</td><td><span class="swapped-in">替換新增</span></td></tr>
+    </tbody>
+  </table>
+  <p class="small">統計：<span class="kept">保留 4 檔</span>（AI 主軸）＋<span class="swapped-in">新增／替換 6 檔</span>（完成六族群覆蓋：面板／軟體／LED／光鏡頭／連接器／封測）。</p>
+
+  <h2>3. 上輪 10 檔 → v3 對照表</h2>
+  <p class="small">上輪基準為 <code>tw-stock-forecast-20260918.html</code>（10 檔精選簡報）＋ <code>holdings_baseline.json</code> 觀察清單（10 檔，含核心／衛星層）。本表呈現 v3 對上輪的<span class="kept">保留</span>／<span class="swapped-out">替換移除</span>／<span class="swapped-in">新增</span>／刪除處置。</p>
+  <table>
+    <thead><tr><th>代號</th><th>名稱</th><th>上輪族群 / 層</th><th>v3 處置</th><th>異動原因</th></tr></thead>
+    <tbody>
+      <tr><td><code>2382</code></td><td>廣達</td><td>AI 伺服器代工／satellite</td><td class="kept">保留</td><td>上輪 AI 主軸之一，PE 15.08／殖利率 4.56% 為 AI 鏈最便宜</td></tr>
+      <tr><td><code>2330</code></td><td>台積電</td><td>晶圓代工／AI 主軸</td><td class="kept">保留</td><td>先進製程獨佔不可取代</td></tr>
+      <tr><td><code>2454</code></td><td>聯發科</td><td>IC 設計／satellite</td><td class="kept">保留</td><td>AI 手機＋車用雙引擎，PE 85.46 已反映</td></tr>
+      <tr><td><code>3231</code></td><td>緯創</td><td>伺服器 ODM／satellite</td><td class="kept">保留</td><td>AI ODM 中估值最便宜（PE 14.64、殖利率 3.05%）</td></tr>
+      <tr><td><code>2321</code></td><td>日月光</td><td>上輪 v2 封測／OSAT</td><td><span class="swapped-out">替換移除</span></td><td>封裝為主，非 HBM／CoWoS 測試瓶頸解方</td></tr>
+      <tr><td><code>2409</code></td><td>友達</td><td>面板 (v2)</td><td><span class="swapped-out">替換移除</span></td><td>FOPLP 進度落後群創</td></tr>
+      <tr><td><code>3526</code></td><td>瑞儀</td><td>光學 (v2) — <strong>實為背光模組</strong></td><td><span class="swapped-out">替換移除</span></td><td>光學族群分類錯誤，瑞儀為背光模組廠非鏡頭</td></tr>
+      <tr><td><code>2308</code></td><td>台達電</td><td>v2 連接器 — <strong>實為電源管理</strong></td><td><span class="swapped-out">替換移除</span></td><td>族群分類錯誤，台達電為電源大廠非連接器</td></tr>
+      <tr><td><code>2341</code></td><td>旺宏</td><td>v2 LED — <strong>實為 NOR Flash</strong></td><td><span class="swapped-out">替換移除</span></td><td>族群分類錯誤，旺宏為記憶體非 LED</td></tr>
+      <tr><td><code>5347</code></td><td>上緯投控</td><td>v2 新能源材料</td><td><span class="swapped-out">刪除</span></td><td>六族群框架無對應族群、與 AI 主題關聯弱</td></tr>
+      <tr><td><code>3029</code></td><td>零壹</td><td>—（上輪缺軟體／資安）</td><td><span class="swapped-in">新增</span></td><td>補軟體／資安缺口，呼應黃仁勳核心論點</td></tr>
+      <tr><td><code>3481</code></td><td>群創</td><td>—</td><td><span class="swapped-in">新增（替換 2409）</span></td><td>FOPLP 共創領導者</td></tr>
+      <tr><td><code>3714</code></td><td>富采</td><td>—</td><td><span class="swapped-in">新增（替換 2341）</span></td><td>Micro LED 量產載板</td></tr>
+      <tr><td><code>3406</code></td><td>玉晶光</td><td>—</td><td><span class="swapped-in">新增（替換 3526）</span></td><td>Vision Pro 鏡頭主力</td></tr>
+      <tr><td><code>3533</code></td><td>嘉澤</td><td>—</td><td><span class="swapped-in">新增（替換 2308）</span></td><td>1.6T 高階連接器</td></tr>
+      <tr><td><code>2449</code></td><td>京元電</td><td>—</td><td><span class="swapped-in">新增（替換 2321）</span></td><td>CoWoS／HBM 測試</td></tr>
+    </tbody>
+  </table>
+  <p class="small"><strong>上輪錯置／缺口修正摘要</strong>：
+    <ul>
+      <li><span class="theme-word">LED</span>：上輪 2341 旺宏是 NOR Flash → 改 3714 富采（Micro LED 量產）</li>
+      <li><span class="theme-word">光鏡頭</span>：上輪 3526 瑞儀是背光模組 → 改 3406 玉晶光（Vision Pro 鏡頭）</li>
+      <li><span class="theme-word">連接器</span>：上輪 2308 台達電是電源管理 → 改 3533 嘉澤（1.6T 連接器）</li>
+      <li><span class="theme-word">軟體／資安</span>：上輪完全缺 → 新增 3029 零壹（黃仁勳核心論點）</li>
+      <li><span class="theme-word">面板</span>：2409 友達（FOPLP 進度落後） → 3481 群創（FOPLP 共創）</li>
+      <li><span class="theme-word">封測</span>：2321 日月光（封裝為主） → 2449 京元電（HBM／CoWoS 測試瓶頸）</li>
+    </ul>
+  </p>
+
+  <h2>4. 進場觸發條件快照</h2>
+  <p class="small">資料來源：yfinance 2026-09-22 收盤。格式沿用既有觀察清單（收盤／MA60／對 MA60 偏離／入場區間／判斷）。<strong>觸發價為快照日記錄假設，待回測驗證</strong>。</p>
+  <table>
+    <thead><tr><th>代號</th><th>名稱</th><th>層</th><th>收盤</th><th>MA60</th><th>對 MA60 偏離</th><th>入場區間</th><th>判斷</th></tr></thead>
+    <tbody>
+      <tr><td><code>2382</code></td><td>廣達</td><td>satellite</td><td>341.0</td><td>334.9</td><td class="now-pass">+1.82%</td><td>300–335</td><td class="now-pass">✅ 站穩區間上緣</td></tr>
+      <tr><td><code>2330</code></td><td>台積電</td><td>core</td><td>2495.0</td><td>2400.8</td><td class="now-pass">+3.93%</td><td>2200–2400</td><td class="now-pass">✅ 多頭排列</td></tr>
+      <tr><td><code>2454</code></td><td>聯發科</td><td>satellite</td><td>5180.0</td><td>4060.3</td><td class="now-fail">+27.58%</td><td>3500–4010</td><td class="now-fail">🚫 離 MA60 太遠</td></tr>
+      <tr><td><code>3029</code></td><td>零壹</td><td>satellite</td><td>119.0</td><td>109.0</td><td class="now-pass">+9.15%</td><td>100–110</td><td class="now-warn">⚠ 站穩季線，偏離加大</td></tr>
+      <tr><td><code>3481</code></td><td>群創</td><td>core</td><td>50.2</td><td>51.2</td><td class="now-pass">-1.93%</td><td>45–52</td><td class="now-pass">✅ 接近區間下緣</td></tr>
+      <tr><td><code>3714</code></td><td>富采</td><td>core</td><td>68.0</td><td>59.2</td><td class="now-warn">+14.87%</td><td>55–62</td><td class="now-warn">⚠ 偏高，待回測</td></tr>
+      <tr><td><code>3406</code></td><td>玉晶光</td><td>core</td><td>912.0</td><td>714.1</td><td class="now-fail">+27.71%</td><td>650–720</td><td class="now-fail">🚫 離 MA60 太遠</td></tr>
+      <tr><td><code>3533</code></td><td>嘉澤</td><td>satellite</td><td>1695.0</td><td>1803.9</td><td class="now-pass">-6.04%</td><td>1500–1785</td><td class="now-pass">✅ 落於區間</td></tr>
+      <tr><td><code>3231</code></td><td>緯創</td><td>satellite</td><td>180.5</td><td>175.0</td><td class="now-pass">+3.13%</td><td>150–175</td><td class="now-pass">✅ 站穩季線</td></tr>
+      <tr><td><code>2449</code></td><td>京元電</td><td>core</td><td>305.0</td><td>265.1</td><td class="now-warn">+15.03%</td><td>240–270</td><td class="now-warn">⚠ 偏高，動能強</td></tr>
+    </tbody>
+  </table>
+  <div class="info-box"><strong>判斷符號說明：</strong>
+    <code class="now-pass">✅ 進場區間內</code>／<code class="now-warn">⚠ 接近區間或偏高</code>／<code class="now-fail">🚫 離 MA60 太遠</code>
+  </div>
+
+  <h2>5. 風險提醒（v3 新增）</h2>
+  <ol class="small">
+    <li><strong>技術面偏弱</strong>：2449 京元電 MA60 上 +15% 偏高；3481 群創略低於 MA60；3533 嘉澤短期 -6% 跌破季線。</li>
+    <li><strong>估值溢價</strong>：2454 聯發科 PB 19.49、3406 玉晶光強勢 +27.71%，兩檔離 MA60 過遠，追價風險高。</li>
+    <li><strong>題材尚未落地</strong>：富采 3714 仍處轉型虧損期（PE N/A）；群創 FOPLP 量產時程未明；嘉澤 1.6T 出貨與玉晶光 CPO 出貨皆需觀察。</li>
+    <li><strong>全部觸發條件未經歷史回測</strong>，僅為個人決策紀錄用。</li>
+  </ol>
+
+  <footer>
+    Generated by anne profile • 快照日期 2026-09-23 • 公開站：<a href="https://ul3you-cell.github.io/happyda-public/tw-stock-forecast-20260923.html">https://ul3you-cell.github.io/happyda-public/tw-stock-forecast-20260923.html</a><br>
+    框架來源：使用者截圖六族群（2026-09-23）＋ AI 主軸保留。<br>
+    研究執行：research（t_a7c9656f, 67s）｜HTML 模板：dev-claude（t_bd2210e5）｜合成推送：anne（本檔）。<br>
+    本報告為靜態快照，不會自動更新；下次更新預計 2026-09-25（每週五 18:00 自動排程）。
+  </footer>
+</main>
+</body>
+</html>

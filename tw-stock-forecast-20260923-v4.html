@@ -62,7 +62,14 @@
 <div class="stock"><h3>3406 玉晶光｜中：高階光學與 XR／終端需求</h3><p><span class="label">供應鏈關鍵性：</span>高階光學鏡頭可受 XR、手機與車用規格升級帶動；是否因 Vision Pro 放量而受惠，本輪沒有銷量驗證，明確標為未證實。</p><p><span class="label">技術含量／競爭：</span>鏡頭設計與製程具有技術門檻，但與大立光等台廠競爭；日韓是否無顯著切入，未完成可靠可比驗證，不下結論。</p><p><span class="label">來源：</span><a href="https://www.gseo.com/tw/investor-relations">玉晶光官方投資人專區</a>；<a href="https://www.moneydj.com/KMDJ/Wiki/WikiViewer.aspx?keyid=3406">MoneyDJ 公司頁</a>；<a href="https://www.twse.com.tw/exchangeReport/STOCK_DAY?stockNo=3406">TWSE 2026-09-23 價格</a>。</p></div>
 <div class="stock"><h3>2408 南亞科｜中：DRAM／HBM 研發與量產待驗證</h3><p><span class="label">供應鏈關鍵性：</span>高頻寬記憶體是 AI GPU 系統的重要零件；但不能把一般 DRAM 營收自動等同 HBM 成功。</p><p><span class="label">技術含量／競爭：</span>DRAM 製程技術密集，Samsung、SK hynix 等韓系業者是全球 HBM 主導者。南亞科的 HBM 量產進度及「第三梯」定位未於本輪以完整市場資料證實，僅列為待驗證觀察。</p><p><span class="label">來源：</span><a href="https://www.nanya.com/">南亞科官方網站／IR</a>；<a href="https://www.moneydj.com/KMDJ/Wiki/WikiViewer.aspx?keyid=2408">MoneyDJ 公司頁</a>；<a href="https://www.twse.com.tw/exchangeReport/STOCK_DAY?stockNo=2408">TWSE 2026-09-23 價格</a>。</p></div>
 
-<h2>5. v3 ↔ v4：13 檔完整處置與條件變更</h2>
+<h2>5. 上游傳導候選池：把「同產業景氣股」與「真正受益上游爆發」機械化區分</h2>
+<div class="notice"><strong>狀態機規則：</strong>三項可查核欄位（需求來源／受益產品營收占比／訂單或資本支出證據）全通過 → <strong>正式池</strong>；通過 1–2 項 → <strong>觀察</strong>；任一項被明確否證（揭露後占比 &lt; 20% 或需求鏈證偽）→ <strong>下架</strong>，不保留在觀察池洗名單。「最大客戶占比＋客戶屬上游爆發鏈」僅為佐證，不可取代受益產品營收占比 ≥ 20% 的門檻。狀態一律由 <code>validate()</code>（<code>scripts/research_pipeline/upstream_spillover.py</code>）裁定，不得由前端字面寫死；標的名單由 @research／@anne 持續餵入。</div>
+<table><thead><tr><th>標的</th><th>需求來源</th><th>受益產品營收占比</th><th>訂單／資本支出證據</th><th>狀態</th></tr></thead><tbody>
+<tr><td>3680 家登</td><td>EUV 光罩傳送盒（FOUP/Pod）已獲 ASML 認證；受 2nm 投片與先進封裝載具需求帶動</td><td>未揭露</td><td>ASML 認證公告；EUV 載具產品線持續放量（待產品別營收占比核對）</td><td class="down">觀察<br><span class="small">缺受益產品營收占比</span></td></tr>
+<tr><td>1609 大亞</td><td>資料中心／AI 機房用電需求（尚未指認具體上游爆發節點，如 CoWoS/HBM/矽光子/2nm）</td><td>未揭露</td><td>無（尚未公告對應資料中心用電之擴產、長約或 design-win）</td><td class="down">觀察<br><span class="small">缺受益產品營收占比；需補上游節點定義；缺訂單／資本支出證據</span></td></tr>
+</tbody></table>
+
+<h2>6. v3 ↔ v4：13 檔完整處置與條件變更</h2>
 <table><thead><tr><th>動作</th><th>v3 標的</th><th>v4 處置</th><th>理由</th></tr></thead><tbody>
 <tr><td>保留／升級</td><td>2382 廣達</td><td>下一輪研究候選</td><td>營收三高通過＋AI 深度高。</td></tr>
 <tr><td>保留</td><td>3029 零壹</td><td>觀察候選</td><td>營收三高通過；AI 屬代理／整合角色。</td></tr>

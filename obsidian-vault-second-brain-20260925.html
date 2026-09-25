@@ -121,7 +121,8 @@
 
   <h2>仍需誠實面對的缺口</h2>
   <ul>
-    <li><strong>索引欄位還不完整：</strong>部分既有條目缺少明確的 <code>interest_signal</code> 或 <code>claim</code>，目前只能輔以路徑、主題與近期性判讀；這會降低自動推薦的精準度。</li>
+    <li><strong>索引欄位缺口已縮小，但仍有剩餘：</strong>2026-09-26 audit 顯示原始缺口 <code>487 → 120</code>；<code>type: source</code> 共 <code>411</code> 筆，已標 <code>interest_signal</code> 者 <code>287</code>（69.8%），仍有 <code>124</code> 筆待處理。</li>
+    <li><strong>3 個系統檔誤寫已修復並完成 SHA-256 校驗：</strong><code>CLAUDE.md</code>、<code>OPENCLAW-VAULT-AGENT.md</code>、<code>vault-cron-prompt.md</code> 的壞 claim（原始 frontmatter 字串）已清除，set 為 <code>claim: ""</code>；備份與 SHA-256 manifest 保存於 <code>audit-backup-2026-09-25/</code> 目錄。</li>
     <li><strong>每週探索先以手動產物驗品質：</strong>目前操作規格保留了自動排程，但尚不應把「有規格」誤稱為「已持續自動運作」。</li>
     <li><strong>公開報告與私人記憶必須分開：</strong>本頁只交代架構、規則與可驗證狀態；不公開 Vault 原始內容、私人檔案位置或敏感資訊。</li>
   </ul>

@@ -24,6 +24,21 @@
     th, td { border:1px solid var(--line); text-align:left; vertical-align:top; padding:.75rem; }
     th { background:var(--soft); }
     code { background:#f0f3f7; padding:.1em .3em; border-radius:4px; }
+    .flow-wrap { border:1px solid var(--line); border-radius:14px; background:#fbfdff; padding:18px; overflow-x:auto; }
+    .flow-wrap svg { display:block; width:100%; min-width:760px; height:auto; }
+    .flow-node rect { fill:#fff; stroke:var(--line); stroke-width:1.6; }
+    .flow-node.hot rect { fill:var(--soft); stroke:var(--blue); stroke-width:2; }
+    .flow-node.ok rect { fill:var(--good); stroke:var(--teal); }
+    .flow-node.end rect { fill:#f4f6f8; }
+    .flow-node text { fill:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",sans-serif; font-size:14px; font-weight:650; pointer-events:none; }
+    .flow-node .sub { fill:var(--muted); font-size:11px; font-weight:400; }
+    .flow-edge { fill:none; stroke:#74839a; stroke-width:1.6; marker-end:url(#arrow); }
+    .flow-edge.yes { stroke:var(--teal); marker-end:url(#arrow-yes); }
+    .flow-edge.no { stroke:#a15a4a; stroke-dasharray:5 5; marker-end:url(#arrow-no); }
+    .flow-label { fill:var(--muted); font-family:ui-monospace,"SF Mono",Menlo,monospace; font-size:11px; }
+    .flow-gate { fill:#fff7ed; stroke:#c97331; stroke-width:1.6; }
+    .flow-gate-text { fill:#744210; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",sans-serif; font-size:12px; font-weight:700; }
+    .flow-note { color:var(--muted); font-size:.92rem; margin:.8rem 0 0; }
     footer { border-top:1px solid var(--line); color:var(--muted); font-size:.9rem; margin-top:2.5rem; padding-top:1rem; }
     @media (max-width:700px) { body { padding:12px; } main { padding:22px; } th, td { padding:.55rem; } }
   </style>
@@ -44,6 +59,46 @@
     <div class="card"><strong>可追溯</strong>每個非顯而易見的判斷要附來源筆記；過時或重複資料先提出 review，不靜默刪除。</div>
     <div class="card"><strong>每週、小量</strong>以每週一次的興趣探索取代大量日報，提供新觀點、反方觀點與一個 15 分鐘可消化的選項。</div>
   </div>
+
+  <h2>我們實際怎麼使用 Vault</h2>
+  <p>下面是日常工作的實際路徑：只有問題真的涉及偏好、歷史決定、研究線索或既有做法時才查 Vault；不是每一句話都把整個 Vault 讀進來。</p>
+  <div class="flow-wrap" role="img" aria-label="Obsidian Vault Second Brain 使用流程圖：使用者提出問題，判斷是否需要 Vault 脈絡；需要時讀取輕量索引、再讀一到三份精確筆記，完成回答或工作。若產出可重複使用的經驗，先寫到輸出區，重建索引並交由審核決定是否升為長期知識。">
+    <svg viewBox="0 0 900 890" aria-hidden="true">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M2 1 L8 5 L2 9" fill="none" stroke="#74839a" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></marker>
+        <marker id="arrow-yes" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M2 1 L8 5 L2 9" fill="none" stroke="#067d68" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></marker>
+        <marker id="arrow-no" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M2 1 L8 5 L2 9" fill="none" stroke="#a15a4a" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></marker>
+      </defs>
+
+      <text class="flow-label" x="450" y="24" text-anchor="middle">日常對話／工作流程</text>
+      <path class="flow-edge" d="M450 95 L450 125"/>
+      <path class="flow-edge yes" d="M450 199 L450 235"/>
+      <path class="flow-edge" d="M450 305 L450 340"/>
+      <path class="flow-edge" d="M450 410 L450 445"/>
+      <path class="flow-edge" d="M450 519 L450 560"/>
+      <path class="flow-edge yes" d="M450 634 L450 670"/>
+      <path class="flow-edge yes" d="M450 740 L450 775"/>
+      <path class="flow-edge no" d="M520 162 C710 162 720 285 700 330"/>
+      <path class="flow-edge no" d="M520 597 C720 597 720 670 700 700"/>
+      <text class="flow-label" x="468" y="218" fill="#067d68">需要</text>
+      <text class="flow-label" x="635" y="196" fill="#a15a4a">不需要</text>
+      <text class="flow-label" x="468" y="653" fill="#067d68">是</text>
+      <text class="flow-label" x="638" y="633" fill="#a15a4a">否</text>
+
+      <g class="flow-node hot"><rect x="310" y="40" width="280" height="55" rx="12"/><text x="450" y="65" text-anchor="middle">使用者提問、交付材料或要做決定</text><text class="sub" x="450" y="83" text-anchor="middle">例如：偏好、以前怎麼做、研究方向</text></g>
+      <path class="flow-gate" d="M450 125 L520 162 L450 199 L380 162 Z"/><text class="flow-gate-text" x="450" y="158" text-anchor="middle">需要 Vault 脈絡？</text><text class="flow-gate-text" x="450" y="174" text-anchor="middle">（不是一律要查）</text>
+      <g class="flow-node ok"><rect x="290" y="235" width="320" height="70" rx="12"/><text x="450" y="264" text-anchor="middle">先讀輕量索引／興趣快照</text><text class="sub" x="450" y="285" text-anchor="middle">用來找方向，不把整個 Vault 塞進對話</text></g>
+      <g class="flow-node"><rect x="290" y="340" width="320" height="70" rx="12"/><text x="450" y="369" text-anchor="middle">再讀 1–3 份真正相關的筆記</text><text class="sub" x="450" y="390" text-anchor="middle">索引只是地圖；原始筆記才是證據</text></g>
+      <g class="flow-node hot"><rect x="290" y="445" width="320" height="74" rx="12"/><text x="450" y="474" text-anchor="middle">完成回答或執行工作，附來源依據</text><text class="sub" x="450" y="496" text-anchor="middle">分清楚「已驗證」與「仍不知道」</text></g>
+      <path class="flow-gate" d="M450 560 L520 597 L450 634 L380 597 Z"/>
+      <text class="flow-gate-text" x="450" y="593" text-anchor="middle">這次是否留下可重複</text><text class="flow-gate-text" x="450" y="609" text-anchor="middle">使用的經驗／成果？</text>
+      <g class="flow-node ok"><rect x="290" y="670" width="320" height="70" rx="12"/><text x="450" y="699" text-anchor="middle">先寫到輸出區，供人審核</text><text class="sub" x="450" y="720" text-anchor="middle">lesson、review、研究草稿或連結建議</text></g>
+      <g class="flow-node ok"><rect x="290" y="775" width="320" height="70" rx="12"/><text x="450" y="804" text-anchor="middle">重建索引；由 curator 決定是否升級</text><text class="sub" x="450" y="825" text-anchor="middle">不直接把未審核內容寫成永久知識</text></g>
+      <g class="flow-node end"><rect x="650" y="300" width="190" height="60" rx="12"/><text x="745" y="326" text-anchor="middle">一般工作流程</text><text class="sub" x="745" y="345" text-anchor="middle">不強行加入 Vault</text></g>
+      <g class="flow-node end"><rect x="650" y="670" width="190" height="60" rx="12"/><text x="745" y="696" text-anchor="middle">本次對話結束</text><text class="sub" x="745" y="715" text-anchor="middle">不需要留存也沒關係</text></g>
+    </svg>
+  </div>
+  <p class="flow-note">補充：使用者丟入的新文章、PDF 或半成品想法，會先放在原始收件區；每週探索才從這些材料中找出少量、可追溯的新觀點。這和「回答問題前查索引」是兩條互補流程。</p>
 
   <h2>已落地的能力</h2>
   <table>

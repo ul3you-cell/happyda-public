@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Obsidian Vault Second Brain 改善報告 — 2026-09-25</title>
+  <style>
+    :root { --ink:#172033; --muted:#5f6b7a; --paper:#fff; --bg:#f4f7fb; --blue:#1769aa; --teal:#067d68; --line:#d9e2ec; --soft:#edf5fc; --good:#e9f7ef; }
+    * { box-sizing:border-box; }
+    body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans TC",sans-serif; line-height:1.75; max-width:980px; margin:0 auto; padding:32px; color:var(--ink); background:var(--bg); }
+    main { background:var(--paper); padding:42px; border-radius:16px; box-shadow:0 8px 30px rgba(31,55,80,.08); }
+    h1 { margin:0; color:var(--blue); font-size:clamp(1.75rem,4vw,2.45rem); line-height:1.25; }
+    h2 { color:var(--blue); margin:2.25rem 0 .8rem; padding-bottom:.35rem; border-bottom:2px solid var(--soft); }
+    h3 { margin:1.3rem 0 .3rem; font-size:1.1rem; }
+    p, li { max-width:76ch; }
+    a { color:#075ca8; overflow-wrap:anywhere; }
+    .meta { color:var(--muted); margin:.55rem 0 1.35rem; }
+    .lead { font-size:1.15rem; padding:1rem 1.2rem; background:var(--soft); border-left:5px solid var(--blue); border-radius:0 8px 8px 0; }
+    .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:14px; margin:1.1rem 0; }
+    .card { border:1px solid var(--line); border-radius:12px; padding:16px; }
+    .card strong { display:block; color:var(--teal); margin-bottom:.25rem; }
+    .status { display:inline-block; margin-top:.6rem; padding:2px 9px; background:var(--good); color:#17663b; border-radius:999px; font-size:.82rem; font-weight:700; }
+    table { border-collapse:collapse; width:100%; margin:1rem 0; }
+    th, td { border:1px solid var(--line); text-align:left; vertical-align:top; padding:.75rem; }
+    th { background:var(--soft); }
+    code { background:#f0f3f7; padding:.1em .3em; border-radius:4px; }
+    footer { border-top:1px solid var(--line); color:var(--muted); font-size:.9rem; margin-top:2.5rem; padding-top:1rem; }
+    @media (max-width:700px) { body { padding:12px; } main { padding:22px; } th, td { padding:.55rem; } }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Obsidian Vault Second Brain 改善報告</h1>
+  <p class="meta">發布：2026-09-25｜範圍：Obsidian Vault 作為 AI agent 的可讀、可追溯記憶層</p>
+
+  <p class="lead"><strong>結論：</strong>Vault 的定位、讀取規則、輸出邊界、索引與每週探索流程都已有可執行的規則與實際產物；缺的是一份公開、可讀的交付報告。這一頁補上交付，不納入任何原始筆記、私人路徑或敏感內容。</p>
+
+  <h2>這次改善的目標</h2>
+  <p>不是把 Obsidian 變成每天塞資訊的摘要箱，而是讓 agent 在需要個人脈絡時，能先找得到使用者的興趣、過往決定、專案線索與已驗證的操作經驗；回答後，也能留下可回查的輸出。</p>
+
+  <div class="grid">
+    <div class="card"><strong>先查再答</strong>先用輕量索引定位，再讀真正相關的筆記；不把整個 Vault 一次塞進對話。</div>
+    <div class="card"><strong>輸出先審核</strong>agent 的新內容先寫到專用輸出區，不直接改寫長期知識或專案真相。</div>
+    <div class="card"><strong>可追溯</strong>每個非顯而易見的判斷要附來源筆記；過時或重複資料先提出 review，不靜默刪除。</div>
+    <div class="card"><strong>每週、小量</strong>以每週一次的興趣探索取代大量日報，提供新觀點、反方觀點與一個 15 分鐘可消化的選項。</div>
+  </div>
+
+  <h2>已落地的能力</h2>
+  <table>
+    <thead><tr><th>能力</th><th>實作方式</th><th>已驗證的證據</th></tr></thead>
+    <tbody>
+      <tr><td>Agent 可讀的共同規格</td><td>Vault 有一份短版 steering note 與一份完整操作說明：定義讀取順序、可寫區、禁止直接改動的區域，以及每個輸出的來源引用規則。</td><td>操作規格明確把 Vault 定位為「AI agent brain / interest graph」，並指定只在輸出區新增草稿。</td></tr>
+      <tr><td>輕量索引與興趣快照</td><td>索引提供檔案、標題、主題、摘要等定位資訊；興趣快照顯示近期活動與主題，供 agent 在回答前縮小範圍。</td><td>2026-09-25 的快照已列出近期 curation、weekly scout、Hermes 操作知識及主題訊號。</td></tr>
+      <tr><td>主動取用、但有上限</td><td>對偏好、歷史決策、研究方向與 Vault 工作流程，agent 要先取用索引；每次只讀一份地圖檔與至多三份相關原始筆記。</td><td>這條規則已記錄為 active operating loop，避免「有 Vault 卻只在被提醒時才查」與上下文膨脹兩種問題。</td></tr>
+      <tr><td>每週興趣探索</td><td>從 Vault 的實際訊號找 1 個興趣主線、3 個值得注意的新觀點、1 個反方視角、3 個推薦材料與 1 個 15 分鐘選項。</td><td>已有 2026-09-21 的手動 weekly-interest-scout 產物；它明確標出這不是新建或修改排程。</td></tr>
+      <tr><td>角色分工與可回查性</td><td>一般 agent 可產出草稿、review 與連結建議；長期 wiki 知識的 promote 交由 curator 決定。</td><td>操作規格與 active operating loop 均保留「先 review、再 promote」的分界。</td></tr>
+    </tbody>
+  </table>
+
+  <h2>目前看到的效果</h2>
+  <ul>
+    <li><strong>Vault 不再只是倉庫：</strong>近期索引同時包含研究、agent 操作教訓、curation 與週期性輸出，因此後續工作可以連回「之前為何這樣做」。</li>
+    <li><strong>個人化有可檢查的來源：</strong>不是憑對話印象猜興趣；推薦或判斷需要能回到具體筆記核對。</li>
+    <li><strong>降低錯誤擴散：</strong>長期知識不由一般流程直接覆寫；過時內容以 review 提出，保留原始脈絡與更正空間。</li>
+  </ul>
+
+  <h2>仍需誠實面對的缺口</h2>
+  <ul>
+    <li><strong>索引欄位還不完整：</strong>部分既有條目缺少明確的 <code>interest_signal</code> 或 <code>claim</code>，目前只能輔以路徑、主題與近期性判讀；這會降低自動推薦的精準度。</li>
+    <li><strong>每週探索先以手動產物驗品質：</strong>目前操作規格保留了自動排程，但尚不應把「有規格」誤稱為「已持續自動運作」。</li>
+    <li><strong>公開報告與私人記憶必須分開：</strong>本頁只交代架構、規則與可驗證狀態；不公開 Vault 原始內容、私人檔案位置或敏感資訊。</li>
+  </ul>
+
+  <h2>接下來怎樣才算真正有用</h2>
+  <ol>
+    <li>每次涉及偏好、既有決策或 Vault 工作流程的問題，先做小範圍檢索，再引用實際筆記回答。</li>
+    <li>新產出的 lesson、review 或研究草稿，重建索引後確認可被找到。</li>
+    <li>先累積並檢查 1–2 次每週興趣探索的品質，再決定是否啟用固定自動排程。</li>
+    <li>由 curator 審核要不要把草稿提升為長期 wiki 知識，避免未驗證內容變成「永久記憶」。</li>
+  </ol>
+
+  <h2>本頁驗證紀錄</h2>
+  <ul>
+    <li>GitHub Pages 設定：由 <code>main</code> 分支根目錄發布，GitHub 回報狀態 <code>built</code>。</li>
+    <li>公開首頁在發布前回應 HTTP <code>200</code>。</li>
+    <li>本報告的內容依據：Vault steering note、完整 Vault agent 操作說明、active operating loop、2026-09-25 興趣快照，以及 2026-09-21 手動 weekly-interest-scout 產物。</li>
+  </ul>
+
+  <footer>
+    <a href="index.html">← 回公開報告索引</a><br>
+    本頁為系統改善交付紀錄；不構成投資、醫療、法律或其他專業建議。
+  </footer>
+</main>
+</body>
+</html>

@@ -1,8 +1,9 @@
 // 真實執行儀表板 HTML 內「原封不動」的過濾純函式（PURE_FILTER_START..END 區塊），
-// 針對使用者這輪回報的兩個問題驗證：
+// 針對使用者這輪回報的三個問題驗證：
 //   #5「官方確認無此池，為何列出來」 -> hideNonLive 必須把 status!=='live' 全部濾掉
 //   #4「沒有 APR 是壞掉還是沒交易量，沒有就別顯示」 -> hideNoApr 必須把
 //       fee_apr_7d_pct 為 null/undefined 的列全部濾掉
+//   #4 延伸「太小的池子也不敢放」 -> minTvlUsd 必須排除 TVL 低於門檻或無 TVL 的列
 // 同時驗證：從不默默丟資料——filterRowsPure 一定要能算出 hiddenCount，且
 // visible.length + hiddenCount === 原始筆數，供 UI 誠實顯示「隱藏了幾筆」。
 //
@@ -84,5 +85,25 @@ function check(label, cond) {
   check("過濾不修改任何列的原始內容", mutated.length === 0);
 }
 
-console.log(`\n總計檢查：5 組，失敗：${failures}`);
+// 6. minTvlUsd=1,000,000 -> 所有可見列都必須有 TVL 且至少一百萬美元
+{
+  const { visible, hiddenCount } = filterRowsPure(rows, {
+    hideNonLive: true,
+    hideNoApr: true,
+    minTvlUsd: 1_000_000,
+  });
+  const leaked = visible.filter(r => !Number.isFinite(Number(r.tvl_usd)) || Number(r.tvl_usd) < 1_000_000);
+  check("最低 TVL $1M 後不顯示小池或無 TVL 的列", leaked.length === 0);
+  check("TVL 過濾後 visible+hidden 仍等於原始總筆數", visible.length + hiddenCount === rows.length);
+}
+
+// 7. minTvlUsd=0 表示不套用 TVL 門檻，向後相容並可讓使用者看回全部
+{
+  const unfiltered = filterRowsPure(rows, { hideNonLive: false, hideNoApr: false, minTvlUsd: 0 });
+  check("最低 TVL 關閉時不濾掉任何列", unfiltered.visible.length === rows.length && unfiltered.hiddenCount === 0);
+}
+
+check("頁面提供最低 TVL 選單且預設 $1M", /id="filter-min-tvl"[\s\S]*?<option value="1000000" selected>/.test(html));
+
+console.log(`\n總計檢查：8 組，失敗：${failures}`);
 process.exit(failures > 0 ? 1 : 0);

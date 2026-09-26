@@ -18,9 +18,7 @@
   .b-live { background:var(--live); } .b-fixture { background:var(--fixture); color:#3c2f00; }
   .b-pending { background:var(--pending); } .b-not_found, .b-empty_response { background:var(--nf); }
   .b-error, .b-untrusted_token { background:var(--bad); }
-  .summary-cards { display:flex; gap:10px; flex-wrap:wrap; margin:12px 0 4px; }
-  .card { background:#f4f7fb; border:1px solid var(--line); border-radius:10px; padding:8px 14px; font-size:.82rem; }
-  .card b { font-size:1.1rem; display:block; color:var(--blue); }
+
   .disclaimer { background:#fff8e1; border:1px solid #f2d98a; border-radius:10px; padding:12px 16px; font-size:.85rem; margin:14px 0; }
   .disclaimer ul { margin:.4rem 0 0; padding-left:1.2rem; }
   table { border-collapse: collapse; width:100%; font-size:.82rem; margin-top:10px; }
@@ -46,6 +44,7 @@
   .filter-toggle { margin:6px 0 14px; padding:8px 12px; border:1px solid var(--line); border-radius:8px;
                      background:#fbfcfe; font-size:.85rem; }
   .filter-toggle label { display:block; margin:4px 0; cursor:pointer; }
+  .filter-toggle select { margin-left:6px; padding:3px 7px; border:1px solid var(--line); border-radius:5px; background:#fff; }
   .filter-note { margin:6px 0 0; color:#667085; font-size:.8rem; }
   .wallet-box { margin:14px 0; padding:12px 14px; border:1px dashed var(--line); border-radius:8px; background:#fbfcfe; }
   .wallet-note { font-size:.82rem; color:#556; margin:6px 0 10px; }
@@ -67,15 +66,6 @@
   <p class="meta">產生時間（UTC）：2026-09-26T09:40:45.562880+00:00 ｜ 資料來源：Uniswap Liquidity API＋The Graph v3 subgraph ｜
     任務卡 t_bf8f4d3e（委託 @anne，執行 dev-claude）｜ 上游研究 t_6b258dd1</p>
 
-  <div class="summary-cards">
-    <div class="card"><b>230</b>目標池位總數</div>
-    <div class="card"><b>197</b>即時資料</div>
-    <div class="card"><b>0</b>離線 fixture</div>
-    <div class="card"><b>0</b>尚未擷取</div>
-    <div class="card"><b>33</b>已查詢．目前無此池</div>
-    <div class="card"><b>0</b>官方確認無此池</div>
-    <div class="card"><b>0</b>⚠️ 白名單警示</div>
-  </div>
 
   <div class="disclaimer">
     <strong>資料限制與免責聲明（發布前必讀）：</strong>
@@ -90,7 +80,7 @@
         <strong>不等於你的個人收益</strong>，也不含代幣漲跌與無常損失（Impermanent Loss）。小 TVL 池的年化數字可能極端，需特別審慎。</li>
       <li>本頁<strong>尚未顯示個別錢包 LP 部位、每日 delta 或個人 APR</strong>；這些功能需要另接
         Uniswap v3 NFT 的唯讀 RPC 快照與本機歷史資料庫，目前仍在建置中。</li>
-      <li>Active range／tick 邊界僅反映 <code>currentTick</code> 快照當下狀態，會隨市場變動；本頁不做即時輪詢。</li>
+
       <li>「⚠️ token 不在白名單」列代表官方回應內含本專案 <code>config/pools_targets.json</code> 未預先驗證的合約位址，
         已停用數值顯示，需人工複核（防止假幣/釣魚合約誤植）。</li>
     </ul>
@@ -122,6 +112,15 @@
     <label><input type="checkbox" id="filter-hide-no-apr" checked>
       只顯示已能算出 7d Fee APR 的池子（隱藏歷史資料不足 7 天的池子——不是壞掉，只是那個池子近期
       poolDayData 天數還不夠，等天數累積到 7 天就會自動出現）</label>
+    <label>最低 TVL：
+      <select id="filter-min-tvl">
+        <option value="0">不限</option>
+        <option value="100000">$100K</option>
+        <option value="1000000" selected>$1M（預設）</option>
+        <option value="10000000">$10M</option>
+      </select>
+      （小池較容易出現滑價、流動性撤出與 APR 失真；預設不顯示低於 $1M 的池子）
+    </label>
     <p class="filter-note" id="filter-note"></p>
   </div>
   <div class="table-wrap">
@@ -192,9 +191,11 @@
   function filterRowsPure(rows, opts) {
     const hideNonLive = !!(opts && opts.hideNonLive);
     const hideNoApr = !!(opts && opts.hideNoApr);
+    const minTvlUsd = Math.max(0, Number(opts && opts.minTvlUsd) || 0);
     const visible = rows.filter(r => {
       if (hideNonLive && r.status !== 'live') return false;
       if (hideNoApr && (r.fee_apr_7d_pct === null || r.fee_apr_7d_pct === undefined)) return false;
+      if (minTvlUsd > 0 && (!Number.isFinite(Number(r.tvl_usd)) || Number(r.tvl_usd) < minTvlUsd)) return false;
       return true;
     });
     return { visible: visible, hiddenCount: rows.length - visible.length };
@@ -255,17 +256,19 @@
     let currentSorted = rows;
     const hideNonLiveCb = document.getElementById('filter-hide-nonlive');
     const hideNoAprCb = document.getElementById('filter-hide-no-apr');
+    const minTvlSelect = document.getElementById('filter-min-tvl');
     const filterNote = document.getElementById('filter-note');
 
     function getFilteredRows() {
       const opts = {
         hideNonLive: hideNonLiveCb ? hideNonLiveCb.checked : false,
         hideNoApr: hideNoAprCb ? hideNoAprCb.checked : false,
+        minTvlUsd: minTvlSelect ? Number(minTvlSelect.value) : 0,
       };
       const { visible, hiddenCount } = filterRowsPure(rows, opts);
       if (filterNote) {
         filterNote.textContent = hiddenCount > 0
-          ? ('目前隱藏 ' + hiddenCount + ' 筆（共 ' + rows.length + ' 筆目標池位／查詢）；取消勾選上方選項可看到全部。')
+          ? ('目前隱藏 ' + hiddenCount + ' 筆（共 ' + rows.length + ' 筆原始候選）；可取消勾選或調整最低 TVL。')
           : '目前沒有列被上方選項隱藏。';
       }
       return visible;
@@ -357,6 +360,7 @@
 
     if (hideNonLiveCb) hideNonLiveCb.addEventListener('change', applySort);
     if (hideNoAprCb) hideNoAprCb.addEventListener('change', applySort);
+    if (minTvlSelect) minTvlSelect.addEventListener('change', applySort);
 
     document.querySelectorAll('#pool-table thead th').forEach(th => {
       th.addEventListener('click', () => {

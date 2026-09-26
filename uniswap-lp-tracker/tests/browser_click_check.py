@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""對已發布的儀表板做「真實瀏覽器」14 個欄位 x 正/反向點擊排序驗證。
+"""對已發布的儀表板做「真實瀏覽器」12 個欄位 x 正/反向點擊排序驗證。
 
 背景：本機 Hermes browser_navigate 工具因 macOS TCC 權限問題無法快照
 Chrome profile（讀 ~/Library/Application Support/Google/Chrome/Default 會
@@ -307,6 +307,56 @@ def main() -> int:
             print(f"頁面載入完成，總列數（來自 #total-count）：{total_rows}（每頁分頁 25 筆）")
 
             failures = 0
+            filter_state = session.evaluate("""
+              (() => {
+                const rows = JSON.parse(document.getElementById('pool-data').textContent);
+                const select = document.getElementById('filter-min-tvl');
+                const expected1m = rows.filter(r => r.status === 'live'
+                  && r.fee_apr_7d_pct !== null && r.fee_apr_7d_pct !== undefined
+                  && Number.isFinite(Number(r.tvl_usd)) && Number(r.tvl_usd) >= 1000000).length;
+                return { selected: select.value, expected1m,
+                  actual1m: Number(document.getElementById('total-count').textContent) };
+              })()
+            """)
+            if not isinstance(filter_state, dict):
+                raise RuntimeError("最低 TVL 預設狀態驗證未回傳物件")
+            filter_ok = (
+                filter_state["selected"] == "1000000"
+                and filter_state["actual1m"] == filter_state["expected1m"]
+            )
+            print(
+                ("OK  " if filter_ok else "FAIL")
+                + f" [預設最低 TVL $1M] actual={filter_state['actual1m']} "
+                  f"expected={filter_state['expected1m']} selected={filter_state['selected']}"
+            )
+            if not filter_ok:
+                failures += 1
+
+            filter_100k = session.evaluate("""
+              (() => {
+                const rows = JSON.parse(document.getElementById('pool-data').textContent);
+                const select = document.getElementById('filter-min-tvl');
+                select.value = '100000';
+                select.dispatchEvent(new Event('change', {bubbles: true}));
+                const expected = rows.filter(r => r.status === 'live'
+                  && r.fee_apr_7d_pct !== null && r.fee_apr_7d_pct !== undefined
+                  && Number.isFinite(Number(r.tvl_usd)) && Number(r.tvl_usd) >= 100000).length;
+                const actual = Number(document.getElementById('total-count').textContent);
+                select.value = '1000000';
+                select.dispatchEvent(new Event('change', {bubbles: true}));
+                return {expected, actual};
+              })()
+            """)
+            if not isinstance(filter_100k, dict):
+                raise RuntimeError("最低 TVL $100K 切換驗證未回傳物件")
+            filter_100k_ok = filter_100k["actual"] == filter_100k["expected"]
+            print(
+                ("OK  " if filter_100k_ok else "FAIL")
+                + f" [切換最低 TVL $100K] actual={filter_100k['actual']} expected={filter_100k['expected']}"
+            )
+            if not filter_100k_ok:
+                failures += 1
+
             for idx, col_key in enumerate(COLUMNS):
                 for _ in range(2):  # 第一次點=正向，第二次點同一欄=反向
                     session.click_header(idx)

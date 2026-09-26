@@ -79,8 +79,9 @@
       <li>官方 Uniswap Liquidity API <code>/lp/pool_info</code> 本身<strong>不提供</strong> USD TVL、成交量或 fee APR；
         本頁已用 The Graph v3 subgraph 補上 <strong>Ethereum v3 池</strong>的 TVL、24h／7d 成交量與池子級 fee APR，
         其他鏈或資料不足的列維持「—」，<strong>絕不造數</strong>。</li>
-      <li>「Liquidity」欄為官方回傳的 <code>poolLiquidity</code> 原始流動性單位（v3/v4 concentrated liquidity L 值），
-        <strong>不是 USD TVL</strong>，不同 token pair 之間不可直接比較大小。</li>
+      <li>官方回傳的 <code>poolLiquidity</code> 是 Uniswap v3 集中流動性的數學參數 L，會同時受 token 數量、
+        價格區間與目前價格影響；它<strong>不是幣的顆數，也不是 USD</strong>，不同池之間不能直接比較大小，
+        因此本頁不顯示該欄，判斷池子大小請直接看 TVL。</li>
       <li>目前顯示的是<strong>池子級 fee APR</strong>：以完整日 fees 與池子 TVL 年化推算，非保證報酬；
         <strong>不等於你的個人收益</strong>，也不含代幣漲跌與無常損失（Impermanent Loss）。小 TVL 池的年化數字可能極端，需特別審慎。</li>
       <li>本頁<strong>尚未顯示個別錢包 LP 部位、每日 delta 或個人 APR</strong>；這些功能需要另接
@@ -120,13 +121,11 @@
         <th data-key="protocol" data-type="text" aria-sort="none">協定</th>
         <th data-key="pair_label" data-type="text" aria-sort="none">Token Pair</th>
         <th data-key="fee_tier_pct" data-type="num" aria-sort="none">Fee Tier</th>
-        <th data-key="pool_liquidity_raw" data-type="bigint" aria-sort="none">Liquidity（raw，非 USD）</th>
         <th data-key="tvl_usd" data-type="num" aria-sort="none">TVL (USD)</th>
         <th data-key="volume_24h_usd" data-type="num" aria-sort="none">24h Volume</th>
         <th data-key="volume_7d_usd" data-type="num" aria-sort="none">7d Volume</th>
         <th data-key="fee_apr_24h_pct" data-type="num" aria-sort="none">Fee APR 24h</th>
         <th data-key="fee_apr_7d_pct" data-type="num" aria-sort="none">Fee APR 7d</th>
-        <th data-key="current_tick" data-type="num" aria-sort="none">Current Tick</th>
         <th data-key="status" data-type="text" aria-sort="none">狀態</th>
         <th data-key="snapshot_time" data-type="date" aria-sort="none">快照時間</th>
         <th data-key="source" data-type="text" aria-sort="none">來源</th>
@@ -175,6 +174,28 @@
   }
   /* PURE_SORT_END */
 
+  /* PURE_FORMAT_START -- USD 顯示格式純函式，供 tests/ 直接抽取驗證 */
+  function trimFixed(value) {
+    return value.toFixed(2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1');
+  }
+
+  function formatUsdCompact(value) {
+    if (value === null || value === undefined || value === '') return null;
+    const n = Number(value);
+    if (!Number.isFinite(n)) return null;
+    if (n === 0) return '$0';
+    const abs = Math.abs(n);
+    if (abs < 0.01) return n > 0 ? '<$0.01' : '>-$0.01';
+    const units = [
+      [1e12, 'T'], [1e9, 'B'], [1e6, 'M'], [1e3, 'K']
+    ];
+    for (const [divisor, suffix] of units) {
+      if (abs >= divisor) return '$' + trimFixed(n / divisor) + suffix;
+    }
+    return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  /* PURE_FORMAT_END */
+
   (function() {
     const rows = JSON.parse(document.getElementById('pool-data').textContent);
     const tbody = document.querySelector('#pool-table tbody');
@@ -185,6 +206,11 @@
       let v = row[key];
       if (key === 'fee_tier_pct') {
         return (v === null || v === undefined) ? null : (v.toFixed(2) + '%');
+      }
+      if (key === 'tvl_usd' || key === 'volume_24h_usd' || key === 'volume_7d_usd') {
+        if (v === null || v === undefined) return null;
+        const exact = '$' + Number(v).toLocaleString('en-US', { maximumFractionDigits: 6 });
+        return '<span title="精確值：' + exact + '">' + formatUsdCompact(v) + '</span>';
       }
       if (key === 'status') {
         const label = statusLabels[v] || v;
@@ -208,15 +234,15 @@
       const frag = document.createDocumentFragment();
       for (const row of pageData) {
         const tr = document.createElement('tr');
-        const cols = ['chain_name','protocol','pair_label','fee_tier_pct','pool_liquidity_raw','tvl_usd',
-                      'volume_24h_usd','volume_7d_usd','fee_apr_24h_pct','fee_apr_7d_pct','current_tick',
+        const cols = ['chain_name','protocol','pair_label','fee_tier_pct','tvl_usd',
+                      'volume_24h_usd','volume_7d_usd','fee_apr_24h_pct','fee_apr_7d_pct',
                       'status','snapshot_time','source'];
         for (const key of cols) {
           const th = document.querySelector('th[data-key="' + key + '"]');
           const type = th ? th.dataset.type : 'text';
           const td = document.createElement('td');
           if (type === 'num' || type === 'bigint') td.classList.add('num');
-          if (key === 'pool_liquidity_raw') td.classList.add('mono');
+
           const rendered = fmtCell(row, key, type);
           if (rendered === null || rendered === undefined || rendered === '') {
             td.innerHTML = '<span class="null">—</span>';

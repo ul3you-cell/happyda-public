@@ -31,15 +31,48 @@ if (!dataMatch) {
 }
 const rows = JSON.parse(dataMatch[1]);
 
+// 顯示需求：raw Liquidity 與 Current Tick 對一般使用者沒有可比較意義，
+// 不應出現在可見表格；USD 欄位必須用 K/M/B 簡寫，但底層仍保留原數值排序。
+for (const hiddenKey of ["pool_liquidity_raw", "current_tick"]) {
+  if (html.includes(`<th data-key="${hiddenKey}"`)) {
+    console.error(`FAIL: ${hiddenKey} 不應出現在可見表頭`);
+    process.exit(1);
+  }
+}
+
+const formatMatch = html.match(/\/\* PURE_FORMAT_START[\s\S]*?PURE_FORMAT_END \*\//);
+if (!formatMatch) {
+  console.error("FAIL: 找不到 PURE_FORMAT_START/END 區塊");
+  process.exit(1);
+}
+const formatSandbox = new Function(formatMatch[0] + "\nreturn { formatUsdCompact };");
+const { formatUsdCompact } = formatSandbox();
+const formatCases = [
+  [0, "$0"],
+  [12.34, "$12.34"],
+  [999.99, "$999.99"],
+  [1_000, "$1K"],
+  [100_000, "$100K"],
+  [1_000_000, "$1M"],
+  [1_000_000_000, "$1B"],
+];
+for (const [input, expected] of formatCases) {
+  const actual = formatUsdCompact(input);
+  if (actual !== expected) {
+    console.error(`FAIL: formatUsdCompact(${input}) = ${actual}, expected ${expected}`);
+    process.exit(1);
+  }
+}
+
 // eval 出 compareValues / sortRowsPure（沙盒內 Function 建構，避免污染全域）
 const sandbox = new Function(pureMatch[0] + "\nreturn { compareValues, sortRowsPure };");
 const { sortRowsPure } = sandbox();
 
 const columns = [
   ["chain_name", "text"], ["protocol", "text"], ["pair_label", "text"],
-  ["fee_tier_pct", "num"], ["pool_liquidity_raw", "bigint"], ["tvl_usd", "num"],
+  ["fee_tier_pct", "num"], ["tvl_usd", "num"],
   ["volume_24h_usd", "num"], ["volume_7d_usd", "num"], ["fee_apr_24h_pct", "num"],
-  ["fee_apr_7d_pct", "num"], ["current_tick", "num"], ["status", "text"],
+  ["fee_apr_7d_pct", "num"], ["status", "text"],
   ["snapshot_time", "date"], ["source", "text"],
 ];
 

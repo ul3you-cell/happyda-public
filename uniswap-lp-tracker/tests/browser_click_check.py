@@ -42,9 +42,9 @@ CHROME_BIN = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 DEBUG_PORT = 9333
 
 COLUMNS = [
-    "chain_name", "protocol", "pair_label", "fee_tier_pct", "pool_liquidity_raw",
-    "tvl_usd", "volume_24h_usd", "volume_7d_usd", "fee_apr_24h_pct", "fee_apr_7d_pct",
-    "current_tick", "status", "snapshot_time", "source",
+    "chain_name", "protocol", "pair_label", "fee_tier_pct", "tvl_usd",
+    "volume_24h_usd", "volume_7d_usd", "fee_apr_24h_pct", "fee_apr_7d_pct",
+    "status", "snapshot_time", "source",
 ]
 
 

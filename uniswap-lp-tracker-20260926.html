@@ -43,6 +43,10 @@
   .pager-btn { font-size:.8rem; padding:5px 12px; border-radius:6px; border:1px solid var(--line);
                 background:#fff; color:var(--ink); cursor:pointer; }
   .pager-btn:disabled { cursor:not-allowed; opacity:.45; }
+  .filter-toggle { margin:6px 0 14px; padding:8px 12px; border:1px solid var(--line); border-radius:8px;
+                     background:#fbfcfe; font-size:.85rem; }
+  .filter-toggle label { display:block; margin:4px 0; cursor:pointer; }
+  .filter-note { margin:6px 0 0; color:#667085; font-size:.8rem; }
   .wallet-box { margin:14px 0; padding:12px 14px; border:1px dashed var(--line); border-radius:8px; background:#fbfcfe; }
   .wallet-note { font-size:.82rem; color:#556; margin:6px 0 10px; }
   .wallet-input-row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
@@ -112,6 +116,14 @@
       title="錢包 NFT RPC 快照與本機歷史資料庫尚未接通，因此暫無可排序的個人 APR">
       依錢包 APR 排序（功能建置中）</button>
   </div>
+  <div class="filter-toggle" id="filter-toggle">
+    <label><input type="checkbox" id="filter-hide-nonlive" checked>
+      只顯示即時可用的池子（隱藏「已查詢．目前無此池」／「尚未擷取」／「查詢錯誤」等狀態）</label>
+    <label><input type="checkbox" id="filter-hide-no-apr" checked>
+      只顯示已能算出 7d Fee APR 的池子（隱藏歷史資料不足 7 天的池子——不是壞掉，只是那個池子近期
+      poolDayData 天數還不夠，等天數累積到 7 天就會自動出現）</label>
+    <p class="filter-note" id="filter-note"></p>
+  </div>
   <div class="table-wrap">
   <table id="pool-table" aria-describedby="footer-count">
     <caption>共 230 筆目標池位／查詢。狀態徽章：live=即時、fixture=離線驗證、pending=尚未擷取、not_found=官方確認無此池。</caption>
@@ -174,6 +186,21 @@
   }
   /* PURE_SORT_END */
 
+  /* PURE_FILTER_START -- 純函式，無 DOM 依賴，供 tests/ 以 Node.js 直接抽取執行驗證。
+     不刪資料、不改資料，只回傳「哪些列在目前的顯示偏好下該出現」；被過濾掉的列數量
+     一律要能被呼叫端算出來顯示給使用者看，不能默默消失（見 opts 回傳的 count）。 */
+  function filterRowsPure(rows, opts) {
+    const hideNonLive = !!(opts && opts.hideNonLive);
+    const hideNoApr = !!(opts && opts.hideNoApr);
+    const visible = rows.filter(r => {
+      if (hideNonLive && r.status !== 'live') return false;
+      if (hideNoApr && (r.fee_apr_7d_pct === null || r.fee_apr_7d_pct === undefined)) return false;
+      return true;
+    });
+    return { visible: visible, hiddenCount: rows.length - visible.length };
+  }
+  /* PURE_FILTER_END */
+
   /* PURE_FORMAT_START -- USD 顯示格式純函式，供 tests/ 直接抽取驗證 */
   function trimFixed(value) {
     return value.toFixed(2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1');
@@ -226,6 +253,23 @@
     const PAGE_SIZE = 25;
     let currentPage = 1;
     let currentSorted = rows;
+    const hideNonLiveCb = document.getElementById('filter-hide-nonlive');
+    const hideNoAprCb = document.getElementById('filter-hide-no-apr');
+    const filterNote = document.getElementById('filter-note');
+
+    function getFilteredRows() {
+      const opts = {
+        hideNonLive: hideNonLiveCb ? hideNonLiveCb.checked : false,
+        hideNoApr: hideNoAprCb ? hideNoAprCb.checked : false,
+      };
+      const { visible, hiddenCount } = filterRowsPure(rows, opts);
+      if (filterNote) {
+        filterNote.textContent = hiddenCount > 0
+          ? ('目前隱藏 ' + hiddenCount + ' 筆（共 ' + rows.length + ' 筆目標池位／查詢）；取消勾選上方選項可看到全部。')
+          : '目前沒有列被上方選項隱藏。';
+      }
+      return visible;
+    }
 
     function renderRows(data) {
       tbody.innerHTML = '';
@@ -255,7 +299,7 @@
       }
       tbody.appendChild(frag);
       document.getElementById('visible-count').textContent = pageData.length;
-      document.getElementById('total-count').textContent = rows.length;
+      document.getElementById('total-count').textContent = data.length;
       renderPager(data.length);
     }
 
@@ -300,15 +344,19 @@
     }
 
     function applySort() {
-      if (!sortState.key) { currentSorted = rows.slice(); }
+      const filtered = getFilteredRows();
+      if (!sortState.key) { currentSorted = filtered.slice(); }
       else {
         const th = document.querySelector('th[data-key="' + sortState.key + '"]');
         const type = th.dataset.type;
-        currentSorted = sortRowsPure(rows, sortState.key, sortState.dir, type);
+        currentSorted = sortRowsPure(filtered, sortState.key, sortState.dir, type);
       }
       currentPage = 1;
       renderRows(currentSorted);
     }
+
+    if (hideNonLiveCb) hideNonLiveCb.addEventListener('change', applySort);
+    if (hideNoAprCb) hideNoAprCb.addEventListener('change', applySort);
 
     document.querySelectorAll('#pool-table thead th').forEach(th => {
       th.addEventListener('click', () => {

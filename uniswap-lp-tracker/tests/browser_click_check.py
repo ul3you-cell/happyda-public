@@ -357,6 +357,23 @@ def main() -> int:
             if not filter_100k_ok:
                 failures += 1
 
+            apr_format = session.evaluate("""
+              (() => {
+                const cells = Array.from(document.querySelectorAll('#pool-table tbody tr'))
+                  .flatMap(row => [row.cells[7].textContent.trim(), row.cells[8].textContent.trim()]);
+                return { count: cells.length, allPercent: cells.length > 0 && cells.every(v => /^-?\\d+(?:\\.\\d+)?%$/.test(v)) };
+              })()
+            """)
+            if not isinstance(apr_format, dict):
+                raise RuntimeError("APR 百分比格式驗證未回傳物件")
+            apr_format_ok = bool(apr_format["allPercent"])
+            print(
+                ("OK  " if apr_format_ok else "FAIL")
+                + f" [APR 百分比格式] checked={apr_format['count']} all_percent={apr_format['allPercent']}"
+            )
+            if not apr_format_ok:
+                failures += 1
+
             for idx, col_key in enumerate(COLUMNS):
                 for _ in range(2):  # 第一次點=正向，第二次點同一欄=反向
                     session.click_header(idx)

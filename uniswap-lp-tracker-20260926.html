@@ -125,7 +125,7 @@
   </div>
   <div class="table-wrap">
   <table id="pool-table" aria-describedby="footer-count">
-    <caption>共 230 筆目標池位／查詢。狀態徽章：live=即時、fixture=離線驗證、pending=尚未擷取、not_found=官方確認無此池。</caption>
+    <caption>符合上方條件的 Uniswap 池子</caption>
     <thead>
       <tr>
         <th data-key="chain_name" data-type="text" aria-sort="none">鏈</th>
@@ -235,6 +235,9 @@
       if (key === 'fee_tier_pct') {
         return (v === null || v === undefined) ? null : (v.toFixed(2) + '%');
       }
+      if (key === 'fee_apr_24h_pct' || key === 'fee_apr_7d_pct') {
+        return (v === null || v === undefined) ? null : (trimFixed(Number(v)) + '%');
+      }
       if (key === 'tvl_usd' || key === 'volume_24h_usd' || key === 'volume_7d_usd') {
         if (v === null || v === undefined) return null;
         const exact = '$' + Number(v).toLocaleString('en-US', { maximumFractionDigits: 6 });
@@ -268,8 +271,8 @@
       const { visible, hiddenCount } = filterRowsPure(rows, opts);
       if (filterNote) {
         filterNote.textContent = hiddenCount > 0
-          ? ('目前隱藏 ' + hiddenCount + ' 筆（共 ' + rows.length + ' 筆原始候選）；可取消勾選或調整最低 TVL。')
-          : '目前沒有列被上方選項隱藏。';
+          ? '篩選已套用；下表只顯示符合條件的池子。需要擴大候選時，可取消勾選或調整最低 TVL。'
+          : '目前顯示所有原始候選。';
       }
       return visible;
     }

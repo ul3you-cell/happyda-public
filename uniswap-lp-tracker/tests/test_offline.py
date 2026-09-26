@@ -28,6 +28,7 @@ import graph_gateway_check  # noqa: E402
 import normalize  # noqa: E402
 import run_daily_update  # noqa: E402
 import wallet_apr_calc  # noqa: E402
+import wallet_rpc_client  # noqa: E402
 import wallet_snapshot_store  # noqa: E402
 
 
@@ -812,6 +813,190 @@ class TestWalletTrackingEndToEnd(unittest.TestCase):
         self.assertIsNone(result["fee_apr_7d_pct"])
         self.assertIn("尚不足計算", result["note"])
         conn.close()
+
+
+def _encode_signed_word(value: int) -> str:
+    """測試用 helper：把一個有號整數編碼成 ABI 全 32-byte 二補數延伸格式
+    （production 模組不需要「編碼」有號整數，因為 tick 只出現在 positions()
+    的回傳值裡，不是這三個呼叫的輸入參數；這裡只是為了組出跟真實鏈上
+    returndata 結構一致的假 fixture 給 decode 測試用）。"""
+    return format(value % (2**256), "x").rjust(64, "0")
+
+
+class TestWalletRpcClient(unittest.TestCase):
+    """驗證 Research spec Endpoint 1（balanceOf + tokenOfOwnerByIndex 列舉
+    tokenId）與 Endpoint 2（positions() 拿部位詳細）的 ABI 編碼/解碼與
+    eth_call 呼叫邏輯，全程不打真實 RPC（用 http_post 注入假實作）。"""
+
+    WALLET = "0x1234567890123456789012345678901234567890"
+    POSITION_MANAGER = wallet_rpc_client.POSITION_MANAGER_ADDRESS_BY_CHAIN[1]
+
+    # ---- calldata 編碼：跟手算的 selector + 32-byte slot 逐字比對 ----
+
+    def test_calldata_balance_of_matches_hand_computed_hex(self):
+        calldata = wallet_rpc_client.calldata_balance_of(self.WALLET)
+        expected = (
+            "0x70a08231"
+            + "0" * 24
+            + "1234567890123456789012345678901234567890"
+        )
+        self.assertEqual(calldata, expected)
+
+    def test_calldata_token_of_owner_by_index_matches_hand_computed_hex(self):
+        calldata = wallet_rpc_client.calldata_token_of_owner_by_index(self.WALLET, 5)
+        expected = (
+            "0x2f745c59"
+            + "0" * 24
+            + "1234567890123456789012345678901234567890"
+            + "0" * 63 + "5"
+        )
+        self.assertEqual(calldata, expected)
+
+    def test_calldata_positions_matches_hand_computed_hex(self):
+        calldata = wallet_rpc_client.calldata_positions(123456)
+        expected = "0x99fbab88" + format(123456, "x").rjust(64, "0")
+        self.assertEqual(calldata, expected)
+
+    def test_invalid_address_rejected(self):
+        with self.assertRaises(ValueError):
+            wallet_rpc_client.calldata_balance_of("not-an-address")
+        with self.assertRaises(ValueError):
+            wallet_rpc_client.calldata_balance_of("0x123")  # 太短
+
+    # ---- decode：正負號、address 截取都要對 ----
+
+    def test_decode_int_word_handles_negative_tick_two_complement(self):
+        # -887272 是 Uniswap v3 常見的「全範圍」tickLower 實際值。
+        word = _encode_signed_word(-887272)
+        self.assertEqual(wallet_rpc_client.decode_int_word(word), -887272)
+
+    def test_decode_int_word_handles_positive_tick(self):
+        word = _encode_signed_word(67330)
+        self.assertEqual(wallet_rpc_client.decode_int_word(word), 67330)
+
+    def test_decode_address_word_extracts_last_20_bytes(self):
+        word = wallet_rpc_client.encode_address_arg(self.WALLET)
+        self.assertEqual(wallet_rpc_client.decode_address_word(word), self.WALLET.lower())
+
+    def test_decode_positions_result_round_trips_all_twelve_fields(self):
+        # 手工組出跟真實 positions() returndata 結構一致的 12 個 32-byte slot，
+        # 用已知欄位值 round-trip：encode 已知值 -> 組成 returndata -> decode
+        # -> 應該精確拿回同一組值。
+        token0 = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48"  # USDC
+        token1 = "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2"  # WETH
+        operator = "0x0000000000000000000000000000000000000000"
+        words = [
+            wallet_rpc_client.encode_uint_arg(7),  # nonce
+            wallet_rpc_client.encode_address_arg(operator) if operator != "0x0000000000000000000000000000000000000000" else "0" * 64,
+            wallet_rpc_client.encode_address_arg(token0),
+            wallet_rpc_client.encode_address_arg(token1),
+            wallet_rpc_client.encode_uint_arg(500),  # fee 0.05%
+            _encode_signed_word(-887272),  # tickLower
+            _encode_signed_word(887272),   # tickUpper
+            wallet_rpc_client.encode_uint_arg(3101077966183711),  # liquidity
+            wallet_rpc_client.encode_uint_arg(123456789012345678901234567890),
+            wallet_rpc_client.encode_uint_arg(987654321098765432109876543210),
+            wallet_rpc_client.encode_uint_arg(1000000),  # tokensOwed0
+            wallet_rpc_client.encode_uint_arg(2000000),  # tokensOwed1
+        ]
+        result_hex = "0x" + "".join(words)
+        decoded = wallet_rpc_client.decode_positions_result(result_hex)
+        self.assertEqual(decoded["nonce"], 7)
+        self.assertEqual(decoded["token0"], token0.lower())
+        self.assertEqual(decoded["token1"], token1.lower())
+        self.assertEqual(decoded["fee"], 500)
+        self.assertEqual(decoded["tick_lower"], -887272)
+        self.assertEqual(decoded["tick_upper"], 887272)
+        self.assertEqual(decoded["liquidity"], 3101077966183711)
+        self.assertEqual(decoded["tokens_owed_0"], 1000000)
+        self.assertEqual(decoded["tokens_owed_1"], 2000000)
+
+    def test_decode_positions_result_wrong_word_count_raises(self):
+        with self.assertRaises(ValueError):
+            wallet_rpc_client.decode_positions_result("0x" + "00" * 32)  # 只有 1 個 word
+
+    # ---- eth_call / 高層函式：用假的 http_post 注入，不打真實網路 ----
+
+    def test_eth_call_sends_correct_json_rpc_payload(self):
+        captured = {}
+
+        def fake_post(rpc_url, payload):
+            captured["rpc_url"] = rpc_url
+            captured["payload"] = payload
+            return {"jsonrpc": "2.0", "id": 1, "result": "0x" + "00" * 32}
+
+        result = wallet_rpc_client.eth_call(
+            "https://example-rpc.test/v1/secret-key-abc", self.POSITION_MANAGER,
+            "0x70a08231" + "0" * 64, http_post=fake_post,
+        )
+        self.assertEqual(result, "0x" + "00" * 32)
+        self.assertEqual(captured["payload"]["method"], "eth_call")
+        self.assertEqual(captured["payload"]["params"][0]["to"], self.POSITION_MANAGER)
+        self.assertEqual(captured["payload"]["params"][1], "latest")
+
+    def test_eth_call_raises_on_json_rpc_error_and_redacts_url(self):
+        def fake_post(rpc_url, payload):
+            return {"jsonrpc": "2.0", "id": 1, "error": {"code": -32000, "message": "execution reverted"}}
+
+        with self.assertRaises(wallet_rpc_client.WalletRpcError) as ctx:
+            wallet_rpc_client.eth_call(
+                "https://example-rpc.test/v1/secret-key-abc", self.POSITION_MANAGER,
+                "0x70a08231", http_post=fake_post,
+            )
+        self.assertNotIn("secret-key-abc", str(ctx.exception))
+
+    def test_list_wallet_token_ids_calls_balance_then_loops_index(self):
+        calls = []
+
+        def fake_post(rpc_url, payload):
+            calls.append(payload["params"][0]["data"])
+            data = payload["params"][0]["data"]
+            if data.startswith("0x" + wallet_rpc_client.SELECTOR_BALANCE_OF):
+                return {"result": "0x" + wallet_rpc_client.encode_uint_arg(3)}
+            # tokenOfOwnerByIndex：依 index 回不同 tokenId，讓測試能分辨呼叫順序
+            index = int(data[-64:], 16)
+            return {"result": "0x" + wallet_rpc_client.encode_uint_arg(1000 + index)}
+
+        token_ids = wallet_rpc_client.list_wallet_token_ids(
+            "https://example-rpc.test/v1/secret", self.WALLET, http_post=fake_post,
+        )
+        self.assertEqual(token_ids, [1000, 1001, 1002])
+        self.assertEqual(len(calls), 4)  # 1 次 balanceOf + 3 次 tokenOfOwnerByIndex
+
+    def test_list_wallet_token_ids_unsupported_chain_does_not_guess_address(self):
+        with self.assertRaises(wallet_rpc_client.WalletRpcError) as ctx:
+            wallet_rpc_client.list_wallet_token_ids(
+                "https://example-rpc.test/v1/secret", self.WALLET, chain_id=42161,
+                http_post=lambda url, payload: {"result": "0x" + "00" * 32},
+            )
+        self.assertIn("42161", str(ctx.exception))
+
+    def test_get_position_attaches_token_id_and_chain_id(self):
+        words = [wallet_rpc_client.encode_uint_arg(0)] * 12
+        result_hex = "0x" + "".join(words)
+
+        def fake_post(rpc_url, payload):
+            return {"result": result_hex}
+
+        position = wallet_rpc_client.get_position(
+            "https://example-rpc.test/v1/secret", 555, http_post=fake_post,
+        )
+        self.assertEqual(position["token_id"], 555)
+        self.assertEqual(position["chain_id"], 1)
+
+    # ---- require_eth_rpc_url：跟 GRAPH_API_KEY 同規則 ----
+
+    def test_require_eth_rpc_url_missing_raises(self):
+        with mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("ETH_RPC_URL", None)
+            with self.assertRaises(wallet_rpc_client.WalletRpcError):
+                wallet_rpc_client.require_eth_rpc_url()
+
+    def test_require_eth_rpc_url_present_returns_value(self):
+        with mock.patch.dict(os.environ, {"ETH_RPC_URL": "https://example-rpc.test/v1/x"}):
+            self.assertEqual(
+                wallet_rpc_client.require_eth_rpc_url(), "https://example-rpc.test/v1/x"
+            )
 
 
 class TestTokenWhitelist(unittest.TestCase):

@@ -2,7 +2,11 @@
 """方案 B（本機排程追蹤）的最小化 SQLite 儲存層。
 
 隱私邊界（照 anne 的更正版說法，不誇大也不假裝）：
-- 錢包位址**不進 git、不送外部後端、不寫入 log**。
+- 錢包位址**不進 git、不送自建後端、不寫入 log**。但一旦接上真實的鏈上
+  查詢（下一階段的 RPC 整合），你選用的 RPC 供應商（例如 Infura／Alchemy
+  等）本來就會看到你的錢包位址與查詢內容——這是打 `eth_call` 這件事本身
+  的必然代價，不是這支程式額外洩漏出去的，但也不能假裝完全沒有第三方
+  看得到。
 - 錢包位址**會**進入本機這支追蹤 process 的記憶體、也會寫進本機這個
   SQLite 檔案（這就是「本機排程追蹤」存在的目的：明天要對得起今天的
   基準，才能算得出每日 delta／7d／30d APR）——不能承諾「完全不進
@@ -47,7 +51,7 @@ README_FILENAME = "README-備份與還原.md"
 README_CONTENT = """# Uniswap LP Tracker 本機資料夾
 
 這個資料夾存的是「方案 B：本機排程追蹤」的錢包 LP 部位快照，**只在這台電腦
-上**，不進任何 git repo、不送任何後端伺服器、不寫進任何 log。
+上**，不進任何 git repo、不送任何我們自建的後端伺服器、不寫進任何 log。
 
 ## 這裡有什麼
 
@@ -58,10 +62,16 @@ README_CONTENT = """# Uniswap LP Tracker 本機資料夾
 
 ## 隱私邊界（誠實版，不誇大）
 
-- 錢包位址**不會**進 git、不會送到任何外部後端、不會寫進任何 log 檔。
+- 錢包位址**不會**進 git、**不會**送到我們自建的任何後端伺服器、**不會**
+  寫進任何 log 檔。
 - 錢包位址**會**進入執行這支排程的本機 process 記憶體，也**會**寫進這個
   SQLite 檔案——這是「本機排程追蹤」能夠算出每日 delta／APR 的必要代價，
   不能承諾「完全不進 process」。
+- **啟用真實鏈上查詢後**：你選用的 RPC 供應商（例如 Infura／Alchemy 等）
+  會看到你的錢包位址與每一次查詢內容——這是打 `eth_call` 這個動作本身
+  的必然代價，不是我們額外送出去的，但也不能假裝「完全沒有第三方看
+  得到」。如果在意這點，可以選擇自己架設或使用你信任、有隱私政策承諾
+  的 RPC 供應商。
 
 ## 備份與還原
 
@@ -119,18 +129,27 @@ def _verify_sqlite_integrity(path: Path) -> bool:
         return False
 
 
+class WalletTrackerMigrationError(RuntimeError):
+    """搬移舊資料庫失敗時丟出。**Fail-closed**：get_connection() 遇到這個
+    狀態一律直接中止、絕不繼續往下建立一個空的新 SQLite 檔案——anne 的
+    更正：先前的 fail-open 設計（搬移失敗仍靜默建出空的新 DB）會讓使用者
+    誤以為歷史資料消失了，正好違反「搬遷不能忘記資料」這個功能存在的
+    目的。"""
+
+
 def migrate_legacy_db(legacy_path: Path | None = None, new_path: Path | None = None) -> str:
     """一次性安全搬移：舊隱藏路徑 -> 新的 `~/Documents/...` 路徑。
 
-    規則（anne 指定）：
+    規則（anne 指定，2026-09-26 更正為 fail-closed）：
       - 新路徑已經有檔案 -> 完全不動，回報 skip（絕不覆蓋）。
       - 舊路徑不存在 -> 沒東西可搬，回報 nothing_to_migrate。
-      - 舊路徑存在但檔案損壞（integrity_check 失敗）-> 不搬，留在原地讓
-        使用者自己處理，回報 legacy_corrupt。
+      - 舊路徑存在但檔案損壞（integrity_check 失敗）-> 不搬，留在原地，
+        回報 legacy_corrupt_not_migrated；呼叫端（get_connection）看到這個
+        狀態時**必須**中止並清楚指出舊檔位置，絕不能默默建立空的新 DB。
       - 驗證通過 -> 先建立新目錄（權限 0700，僅使用者可讀寫執行），
         搬移（`shutil.move`），回報 migrated。
-    回傳值是給呼叫端記 log／印訊息用的狀態字串，不丟例外中斷正常啟動流程
-    （搬移失敗不該讓整個追蹤功能開機失敗，這是加分項不是關鍵路徑）。
+    這個函式本身只回傳狀態字串，不丟例外（方便單獨測試每個分支）；
+    fail-closed 的「中止啟動」邏輯放在呼叫端 get_connection()。
     """
     legacy = legacy_path if legacy_path is not None else LEGACY_DB_PATH
     new = new_path if new_path is not None else DEFAULT_DB_PATH
@@ -161,7 +180,16 @@ def get_connection(db_path: Path | str | None = None) -> sqlite3.Connection:
     if using_default:
         # 只有真的走預設路徑（不是測試傳進來的 tempfile 路徑）才做舊路徑
         # 一次性搬移；測試永遠帶明確 db_path，不會觸發這條。
-        migrate_legacy_db()
+        status = migrate_legacy_db()
+        if status == "legacy_corrupt_not_migrated":
+            # Fail-closed：絕不繼續往下建立一個空的新 DB 讓人誤以為歷史
+            # 資料消失了——中止在這裡，還沒碰新路徑的任何檔案或目錄。
+            raise WalletTrackerMigrationError(
+                "舊的錢包追蹤資料庫損壞，搬移已中止（fail-closed，沒有建立空的新資料庫）。\n"
+                f"  舊檔案位置：{LEGACY_DB_PATH}\n"
+                "請先手動檢查／備份／修復這個檔案，再重新啟動追蹤；"
+                "或確認這個檔案已經不需要了之後手動刪除，讓下次啟動視為「沒有舊資料」。"
+            )
     path.parent.mkdir(parents=True, exist_ok=True)
     os.chmod(path.parent, stat.S_IRWXU)  # 0700：僅目前使用者可讀寫執行
     if using_default:
@@ -169,6 +197,7 @@ def get_connection(db_path: Path | str | None = None) -> sqlite3.Connection:
     conn = sqlite3.connect(str(path))
     conn.row_factory = sqlite3.Row
     ensure_schema(conn)
+    os.chmod(path, stat.S_IRUSR | stat.S_IWUSR)  # 0600：DB 檔案本身也鎖到僅使用者可讀寫
     return conn
 
 

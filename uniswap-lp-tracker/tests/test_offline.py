@@ -638,6 +638,20 @@ class TestMigrateLegacyDb(unittest.TestCase):
         self.assertFalse(self.new_path.exists())
         self.assertTrue(self.legacy_path.exists())  # 壞檔留在原地，沒被搬走或刪掉
 
+    def test_get_connection_fails_closed_on_corrupt_legacy_no_empty_db_created(self):
+        """anne 的更正：搬移失敗絕不能默默建立一個空的新 DB，那會讓使用者
+        誤以為歷史資料消失了。get_connection() 走預設路徑分支時要 fail-closed。"""
+        self.legacy_path.parent.mkdir(parents=True, exist_ok=True)
+        self.legacy_path.write_bytes(b"this is not a real sqlite file")
+        with mock.patch.object(wallet_snapshot_store, "LEGACY_DB_PATH", self.legacy_path), \
+             mock.patch.object(wallet_snapshot_store, "DEFAULT_DB_PATH", self.new_path):
+            with self.assertRaises(wallet_snapshot_store.WalletTrackerMigrationError) as ctx:
+                wallet_snapshot_store.get_connection()  # db_path=None -> 走預設路徑分支
+            self.assertIn(str(self.legacy_path), str(ctx.exception))
+        self.assertFalse(self.new_path.exists())  # 沒有建立任何空的新 DB 檔案
+        self.assertFalse(self.new_path.parent.exists())  # 連新目錄都不該被建立
+        self.assertTrue(self.legacy_path.exists())  # 壞掉的舊檔完全沒被動
+
 
 class TestWalletTrackerReadmeAndPermissions(unittest.TestCase):
     """README-備份與還原.md 與資料夾權限（get_connection 的預設路徑分支）。"""
@@ -673,6 +687,13 @@ class TestWalletTrackerReadmeAndPermissions(unittest.TestCase):
         conn.close()
         mode = stat.S_IMODE(db_path.parent.stat().st_mode)
         self.assertEqual(mode, stat.S_IRWXU)
+
+    def test_get_connection_sets_owner_only_file_permission(self):
+        db_path = Path(self.tmpdir) / "perm-check-file" / "wallet_snapshots.sqlite3"
+        conn = wallet_snapshot_store.get_connection(db_path)
+        conn.close()
+        mode = stat.S_IMODE(db_path.stat().st_mode)
+        self.assertEqual(mode, stat.S_IRUSR | stat.S_IWUSR)  # 0600
 
 
 class TestComputeWalletPositionMetrics(unittest.TestCase):

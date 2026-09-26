@@ -6,7 +6,6 @@ from __future__ import annotations
 
 import json
 import os
-import re
 import sys
 from pathlib import Path
 
@@ -85,27 +84,38 @@ def fee_apr_pct(fees_usd_window: float, window_days: float, tvl_usd: float) -> f
 
 
 GRAPH_API_KEY_ENV = "GRAPH_API_KEY"
-_GRAPH_KEY_HEX64_RE = re.compile(r"^[0-9a-fA-F]{64}$")
+GRAPH_API_KEY_SUSPICIOUSLY_SHORT_LEN = 20  # 只用來印非阻斷提醒，不是驗證門檻
 
 
-def graph_api_key_format_ok(value: str | None) -> bool:
-    """The Graph Studio API key 的格式規則：64 個十六進位字元。
+def graph_api_key_length_warning(value: str | None) -> str | None:
+    """回傳一行「非阻斷」提醒文字，或 None（沒什麼可提醒）。
 
-    只驗證*格式*，不驗證*有效性*（key 是否真的存在/未過期需要真的打一次
-    query 才能知道，本函式故意不做網路呼叫）。這條規則是為了擋下常見的
-    人為複製錯誤——例如使用者只選到 key 顯示行的前 12 碼——讓錯誤在
-    「送出網路請求前」就被攔下，而不是等到 GraphQL 端回一個難懂的 401。
+    2026-09-26 修正：原本這裡強制要求 64 個十六進位字元，anne 查證 The Graph
+    官方文件**沒有**規定固定 key 格式，這個硬性長度驗證有誤擋有效 key 的風險
+    （見 anne 回報，撤掉硬性驗證）。key 是否真的有效，只能靠一次唯讀查詢是否
+    成功來判斷，本模組不做網路呼叫、不猜格式，也不再假裝知道正確長度。
+    這裡只保留一個「明顯過短、疑似複製貼上被截斷」的非阻斷提醒（例如使用者
+    今天實測遇到的 12 碼），印出來但**不會**因此擋下呼叫端。
     """
     if not value:
-        return False
-    return bool(_GRAPH_KEY_HEX64_RE.match(value.strip()))
+        return None
+    stripped = value.strip()
+    if len(stripped) < GRAPH_API_KEY_SUSPICIOUSLY_SHORT_LEN:
+        return (
+            f"WARNING: 讀到的 key 長度只有 {len(stripped)} 碼，"
+            f"常見原因是複製貼上被截斷；本工具不會因此擋下，"
+            f"但接下來若查詢失敗，請先確認 key 是否完整。"
+        )
+    return None
 
 
 def require_graph_api_key(env_var: str = GRAPH_API_KEY_ENV) -> str:
-    """讀取並驗證 Graph API key 格式；讀不到或格式不對就印出對使用者友善的
-    修正指引後 exit(2)。絕不放行格式錯誤的 key，也絕不 print/log key 本身
-    （格式錯誤訊息只印長度，不印內容）。呼叫端（daily cron / GraphQL client）
-    一律透過本函式取得 key，不要各自寫 os.environ.get 判斷式。
+    """讀取 Graph API key；缺少就印出使用者友善的修正指引後 exit(2)。
+
+    只驗證「有沒有讀到」，不驗證格式/長度（見 graph_api_key_length_warning
+    的說明：The Graph 沒有公開的固定格式，長度不是可靠的正確性訊號）。
+    絕不 print/log key 本身；呼叫端（daily cron / GraphQL client）一律透過
+    本函式取得 key，不要各自寫 os.environ.get 判斷式。
     """
     value = os.environ.get(env_var)
     if not value:
@@ -118,15 +128,9 @@ def require_graph_api_key(env_var: str = GRAPH_API_KEY_ENV) -> str:
         )
         sys.exit(2)
     stripped = value.strip()
-    if not graph_api_key_format_ok(stripped):
-        print(
-            f"ERROR: {env_var} 長度為 {len(stripped)} 碼，不是 The Graph API key"
-            f" 應有的 64 個十六進位字元——常見原因是複製時被截斷（例如只選到"
-            f" key 顯示行的前 12 碼）。請回到 https://thegraph.com/studio/apikeys/"
-            f" 確認完整 64 碼字串後重新 export，本工具不會用不完整的 key 嘗試連線。",
-            file=sys.stderr,
-        )
-        sys.exit(2)
+    warning = graph_api_key_length_warning(stripped)
+    if warning:
+        print(warning, file=sys.stderr)
     return stripped
 
 

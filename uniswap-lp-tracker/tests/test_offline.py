@@ -55,34 +55,33 @@ class TestFeeAprFormula(unittest.TestCase):
         self.assertIsNone(common.fee_apr_pct(None, 1, 1_000_000))
 
 
-class TestGraphApiKeyFormatValidation(unittest.TestCase):
-    """對應 @anne 要求：長度需為 64 hex 才放行，不是「非空就放行」。"""
+class TestGraphApiKeyHandling(unittest.TestCase):
+    """2026-09-26 修正：anne 查證 The Graph 官方文件沒有規定固定 key 格式，
+    原本的「64 hex 才放行」硬性驗證撤掉（會誤擋有效 key）。現在只驗證
+    「有沒有讀到」，長度過短只印非阻斷提醒，不 exit。"""
 
-    VALID_64_HEX = "a" * 64  # 合成測試值，不是任何真實 key
-    VALID_64_HEX_MIXED_CASE = ("1234567890abcdefABCDEF" * 3)[:64]
+    PLAUSIBLE_KEY = "a" * 64  # 合成測試值，不是任何真實 key；只是「夠長」的樣本
 
-    def test_none_and_empty_rejected(self):
-        self.assertFalse(common.graph_api_key_format_ok(None))
-        self.assertFalse(common.graph_api_key_format_ok(""))
+    def test_none_and_empty_have_no_warning(self):
+        # 空值本身不算「疑似截斷」，require_graph_api_key 的缺 key 分支才管這個
+        self.assertIsNone(common.graph_api_key_length_warning(None))
+        self.assertIsNone(common.graph_api_key_length_warning(""))
 
-    def test_truncated_12_chars_rejected(self):
-        # 重現使用者實測遇到的情況：keychain 只存到前 12 碼
-        self.assertFalse(common.graph_api_key_format_ok("a" * 12))
+    def test_truncated_12_chars_gets_warning_not_rejection(self):
+        # 重現使用者實測遇到的情況：keychain 只存到前 12 碼 -> 只警告，不擋
+        warning = common.graph_api_key_length_warning("a" * 12)
+        self.assertIsNotNone(warning)
+        self.assertIn("12", warning)
 
-    def test_valid_64_hex_accepted(self):
-        self.assertTrue(common.graph_api_key_format_ok(self.VALID_64_HEX))
-        self.assertTrue(common.graph_api_key_format_ok(self.VALID_64_HEX_MIXED_CASE))
+    def test_plausible_length_key_has_no_warning(self):
+        self.assertIsNone(common.graph_api_key_length_warning(self.PLAUSIBLE_KEY))
 
-    def test_64_chars_but_non_hex_rejected(self):
-        non_hex = ("z" * 64)
-        self.assertFalse(common.graph_api_key_format_ok(non_hex))
+    def test_non_hex_characters_do_not_trigger_any_warning(self):
+        # 不再假設官方格式是 hex；任何字元組成只要夠長都不該被判定可疑
+        self.assertIsNone(common.graph_api_key_length_warning("not-hex-but-long-enough-key-string"))
 
-    def test_whitespace_is_trimmed_before_check(self):
-        self.assertTrue(common.graph_api_key_format_ok(f"  {self.VALID_64_HEX}\n"))
-
-    def test_65_or_63_chars_rejected(self):
-        self.assertFalse(common.graph_api_key_format_ok("a" * 65))
-        self.assertFalse(common.graph_api_key_format_ok("a" * 63))
+    def test_whitespace_is_trimmed_before_length_check(self):
+        self.assertIsNone(common.graph_api_key_length_warning(f"  {self.PLAUSIBLE_KEY}\n"))
 
     def test_require_graph_api_key_exits_2_when_unset(self):
         with mock.patch.dict(os.environ, {}, clear=False):
@@ -91,19 +90,30 @@ class TestGraphApiKeyFormatValidation(unittest.TestCase):
                 common.require_graph_api_key()
             self.assertEqual(ctx.exception.code, 2)
 
-    def test_require_graph_api_key_exits_2_when_truncated(self):
+    def test_require_graph_api_key_does_not_exit_on_truncated_key(self):
+        # 核心修正點：12 碼的 key 過去會 exit(2)，現在必須放行（只印警告）
         with mock.patch.dict(os.environ, {common.GRAPH_API_KEY_ENV: "a" * 12}):
-            with self.assertRaises(SystemExit) as ctx:
-                common.require_graph_api_key()
-            self.assertEqual(ctx.exception.code, 2)
-
-    def test_require_graph_api_key_returns_stripped_value_when_valid(self):
-        with mock.patch.dict(os.environ, {common.GRAPH_API_KEY_ENV: f"  {self.VALID_64_HEX}  "}):
             result = common.require_graph_api_key()
-            self.assertEqual(result, self.VALID_64_HEX)
+            self.assertEqual(result, "a" * 12)
 
-    def test_error_message_never_prints_key_content(self):
-        # 格式錯誤訊息只能印長度，不能把 key 內容印出來
+    def test_require_graph_api_key_returns_stripped_value(self):
+        with mock.patch.dict(os.environ, {common.GRAPH_API_KEY_ENV: f"  {self.PLAUSIBLE_KEY}  "}):
+            result = common.require_graph_api_key()
+            self.assertEqual(result, self.PLAUSIBLE_KEY)
+
+    def test_missing_key_error_message_never_prints_key_content(self):
+        import contextlib
+        import io
+
+        with mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop(common.GRAPH_API_KEY_ENV, None)
+            buf = io.StringIO()
+            with contextlib.redirect_stderr(buf):
+                with self.assertRaises(SystemExit):
+                    common.require_graph_api_key()
+            self.assertIn("GRAPH_API_KEY", buf.getvalue())
+
+    def test_truncated_key_warning_never_prints_full_key_content(self):
         import contextlib
         import io
 
@@ -111,11 +121,10 @@ class TestGraphApiKeyFormatValidation(unittest.TestCase):
         with mock.patch.dict(os.environ, {common.GRAPH_API_KEY_ENV: truncated}):
             buf = io.StringIO()
             with contextlib.redirect_stderr(buf):
-                with self.assertRaises(SystemExit):
-                    common.require_graph_api_key()
-            stderr_text = buf.getvalue()
-            self.assertNotIn(truncated, stderr_text)
-            self.assertIn("長度為 12 碼", stderr_text)
+                result = common.require_graph_api_key()
+            self.assertEqual(result, truncated)
+            # 警告訊息只能提長度數字，不能把完整 key 字串印出來
+            self.assertNotIn(truncated, buf.getvalue())
 
 
 class TestTokenWhitelist(unittest.TestCase):

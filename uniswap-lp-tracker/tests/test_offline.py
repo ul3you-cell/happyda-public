@@ -26,6 +26,8 @@ import fetch_pool_metrics  # noqa: E402
 import graph_gateway_check  # noqa: E402
 import normalize  # noqa: E402
 import run_daily_update  # noqa: E402
+import wallet_apr_calc  # noqa: E402
+import wallet_snapshot_store  # noqa: E402
 
 
 class TestFeeTierConversion(unittest.TestCase):
@@ -490,6 +492,200 @@ class TestMergeGraphEnrichment(unittest.TestCase):
         result = normalize.merge_graph_enrichment(rows, payload)
         self.assertIsNone(result[0]["tvl_usd"])
         self.assertIn("查無對應資料", result[0]["tvl_usd_note"])
+
+
+class TestWalletSnapshotStore(unittest.TestCase):
+    """wallet_snapshot_store.py：最小化 SQLite 儲存層，schema/insert/fetch
+    round trip。全部用 tempfile 路徑，不碰使用者真實的 DEFAULT_DB_PATH。"""
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp(prefix="wallet-tracker-test-")
+        self.db_path = os.path.join(self.tmpdir, "test.sqlite3")
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def _snapshot(self, ts, fees=100.0, value=10000.0, in_range=True):
+        return dict(
+            ts=ts, wallet_addr="0xABCDEF0000000000000000000000000000ABCD",
+            chain_id=1, token_id=42, pool_addr="0xPOOL", tick_lower=-100, tick_upper=100,
+            liquidity="123456789012345678901234", in_range=in_range,
+            fees_accrued_usd=fees, position_value_usd=value,
+        )
+
+    def test_insert_and_fetch_round_trip_ordered_by_ts(self):
+        conn = wallet_snapshot_store.get_connection(self.db_path)
+        wallet_snapshot_store.insert_snapshot(conn, **self._snapshot(300, fees=3.0))
+        wallet_snapshot_store.insert_snapshot(conn, **self._snapshot(100, fees=1.0))
+        wallet_snapshot_store.insert_snapshot(conn, **self._snapshot(200, fees=2.0))
+        history = wallet_snapshot_store.fetch_position_history(
+            conn, wallet_addr="0xabcdef0000000000000000000000000000abcd", chain_id=1, token_id=42
+        )
+        self.assertEqual([h["ts"] for h in history], [100, 200, 300])
+        self.assertEqual([h["fees_accrued_usd"] for h in history], [1.0, 2.0, 3.0])
+        conn.close()
+
+    def test_insert_or_replace_same_day_overwrites_not_errors(self):
+        conn = wallet_snapshot_store.get_connection(self.db_path)
+        wallet_snapshot_store.insert_snapshot(conn, **self._snapshot(100, fees=1.0))
+        # 排程重跑同一天：不能因為主鍵衝突而炸掉，應該視為修正覆蓋
+        wallet_snapshot_store.insert_snapshot(conn, **self._snapshot(100, fees=999.0))
+        history = wallet_snapshot_store.fetch_position_history(
+            conn, wallet_addr="0xabcdef0000000000000000000000000000abcd", chain_id=1, token_id=42
+        )
+        self.assertEqual(len(history), 1)
+        self.assertEqual(history[0]["fees_accrued_usd"], 999.0)
+        conn.close()
+
+    def test_wallet_addr_case_insensitive_lookup(self):
+        conn = wallet_snapshot_store.get_connection(self.db_path)
+        wallet_snapshot_store.insert_snapshot(conn, **self._snapshot(100))
+        history = wallet_snapshot_store.fetch_position_history(
+            conn, wallet_addr="0xABCDEF0000000000000000000000000000ABCD", chain_id=1, token_id=42
+        )
+        self.assertEqual(len(history), 1)
+        conn.close()
+
+    def test_missing_fees_stored_as_none_not_zero(self):
+        conn = wallet_snapshot_store.get_connection(self.db_path)
+        wallet_snapshot_store.insert_snapshot(conn, **self._snapshot(100, fees=None))
+        history = wallet_snapshot_store.fetch_position_history(
+            conn, wallet_addr="0xabcdef0000000000000000000000000000abcd", chain_id=1, token_id=42
+        )
+        self.assertIsNone(history[0]["fees_accrued_usd"])
+        conn.close()
+
+    def test_list_tracked_positions(self):
+        conn = wallet_snapshot_store.get_connection(self.db_path)
+        wallet_snapshot_store.insert_snapshot(conn, **self._snapshot(100))
+        other = self._snapshot(100)
+        other["token_id"] = 43
+        other["pool_addr"] = "0xPOOL2"
+        wallet_snapshot_store.insert_snapshot(conn, **other)
+        positions = wallet_snapshot_store.list_tracked_positions(
+            conn, wallet_addr="0xabcdef0000000000000000000000000000abcd", chain_id=1
+        )
+        self.assertEqual(sorted(p[0] for p in positions), [42, 43])
+        conn.close()
+
+
+class TestComputeWalletPositionMetrics(unittest.TestCase):
+    """wallet_apr_calc.compute_wallet_position_metrics：純函式，合成資料，
+    對應 anne 的要求「先完成合成資料→連續快照→delta／APR 離線測試」。"""
+
+    def _rows(self, n, fees=10.0, value=10000.0):
+        # fees/value 比例固定 = 0.001/day -> 不論窗口長度都年化成 36.5%
+        # （APR = fees_sum/avg_value*(365/window_days)*100，資料均勻時窗口長度
+        # 會互相抵消，這是刻意選的比例，方便手算對照）。
+        return [{"ts": i, "fees_accrued_usd": fees, "position_value_usd": value} for i in range(n)]
+
+    def test_zero_days_reports_not_started(self):
+        result = wallet_apr_calc.compute_wallet_position_metrics([])
+        self.assertEqual(result["days_tracked"], 0)
+        self.assertIsNone(result["fee_apr_7d_pct"])
+        self.assertIn("尚未開始追蹤", result["note"])
+
+    def test_six_days_insufficient_for_7d(self):
+        result = wallet_apr_calc.compute_wallet_position_metrics(self._rows(6))
+        self.assertIsNone(result["fee_apr_7d_pct"])
+        self.assertIsNone(result["fee_apr_30d_pct"])
+        self.assertIn("尚不足計算", result["note"])
+
+    def test_exactly_seven_days_yields_7d_apr_not_30d(self):
+        # 100 usd/day * 7 天 / 10000 avg value * (365/7) * 100 = 36.5%
+        result = wallet_apr_calc.compute_wallet_position_metrics(self._rows(7))
+        self.assertEqual(result["days_tracked"], 7)
+        self.assertAlmostEqual(result["fee_apr_7d_pct"], 36.5, places=1)
+        self.assertIsNone(result["fee_apr_30d_pct"])
+        self.assertIn("30d APR 尚不足計算", result["note"])
+
+    def test_twenty_nine_days_still_no_30d(self):
+        result = wallet_apr_calc.compute_wallet_position_metrics(self._rows(29))
+        self.assertIsNotNone(result["fee_apr_7d_pct"])
+        self.assertIsNone(result["fee_apr_30d_pct"])
+
+    def test_thirty_days_yields_both_windows(self):
+        result = wallet_apr_calc.compute_wallet_position_metrics(self._rows(30))
+        self.assertAlmostEqual(result["fee_apr_7d_pct"], 36.5, places=1)
+        self.assertAlmostEqual(result["fee_apr_30d_pct"], 36.5, places=1)
+        self.assertIsNone(result["note"])
+
+    def test_uses_only_most_recent_window_not_full_history(self):
+        # 前面 40 天 fees=0，最近 7 天 fees=1000 -- 7d APR 必須只反映最近 7 天
+        rows = [{"ts": i, "fees_accrued_usd": 0.0, "position_value_usd": 10000.0} for i in range(40)]
+        rows += [{"ts": 40 + i, "fees_accrued_usd": 1000.0, "position_value_usd": 10000.0} for i in range(7)]
+        result = wallet_apr_calc.compute_wallet_position_metrics(rows)
+        # 7d 視窗全部是 fees=1000：7000/10000*(365/7)*100 = 3650%
+        self.assertAlmostEqual(result["fee_apr_7d_pct"], 3650.0, places=1)
+        # 30d 視窗涵蓋 23 天 fees=0 + 7 天 fees=1000：7000/10000*(365/30)*100 ≈ 851.67%
+        self.assertAlmostEqual(result["fee_apr_30d_pct"], 851.6667, places=3)
+        # 兩個數字明顯不同，證明 7d/30d 真的各自用自己的視窗算，不是同一份全歷史平均
+        self.assertNotAlmostEqual(result["fee_apr_30d_pct"], result["fee_apr_7d_pct"], places=1)
+
+    def test_missing_fee_in_window_blocks_that_windows_apr_not_fabricated(self):
+        rows = self._rows(30)
+        rows[-3]["fees_accrued_usd"] = None  # 7d 與 30d 視窗都涵蓋這天
+        result = wallet_apr_calc.compute_wallet_position_metrics(rows)
+        self.assertIsNone(result["fee_apr_7d_pct"])
+        self.assertIsNone(result["fee_apr_30d_pct"])
+        self.assertIn("暫不可信", result["note"])
+
+
+class TestWalletTrackingEndToEnd(unittest.TestCase):
+    """合成資料 -> 連續快照寫入 SQLite -> 讀出 -> 算 delta/APR 的完整鏈路，
+    對應 anne 這輪明確要求的離線驗收順序。"""
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp(prefix="wallet-tracker-e2e-")
+        self.db_path = os.path.join(self.tmpdir, "e2e.sqlite3")
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def test_35_synthetic_days_produce_7d_and_30d_apr(self):
+        conn = wallet_snapshot_store.get_connection(self.db_path)
+        wallet_addr = "0x1111111111111111111111111111111111aaaa"
+        for day in range(35):
+            wallet_snapshot_store.insert_snapshot(
+                conn,
+                ts=1735689600 + day * 86400,
+                wallet_addr=wallet_addr,
+                chain_id=1,
+                token_id=7,
+                pool_addr="0xpool",
+                tick_lower=-887220,
+                tick_upper=887220,
+                liquidity="5000000000000000000",
+                in_range=True,
+                fees_accrued_usd=50.0,
+                position_value_usd=20000.0,
+            )
+        history = wallet_snapshot_store.fetch_position_history(
+            conn, wallet_addr=wallet_addr, chain_id=1, token_id=7
+        )
+        self.assertEqual(len(history), 35)
+        result = wallet_apr_calc.compute_wallet_position_metrics(history)
+        # 均勻資料下 APR = fees/value*365*100，跟窗口長度無關：50/20000*365*100 = 91.25%
+        self.assertAlmostEqual(result["fee_apr_7d_pct"], 91.25, places=2)
+        self.assertAlmostEqual(result["fee_apr_30d_pct"], 91.25, places=2)
+        conn.close()
+
+    def test_first_six_days_of_real_rollout_show_insufficient_not_fabricated(self):
+        conn = wallet_snapshot_store.get_connection(self.db_path)
+        wallet_addr = "0x2222222222222222222222222222222222bbbb"
+        for day in range(6):
+            wallet_snapshot_store.insert_snapshot(
+                conn, ts=1735689600 + day * 86400, wallet_addr=wallet_addr, chain_id=1, token_id=9,
+                pool_addr="0xpool2", tick_lower=-1000, tick_upper=1000, liquidity="1",
+                in_range=True, fees_accrued_usd=10.0, position_value_usd=5000.0,
+            )
+        history = wallet_snapshot_store.fetch_position_history(conn, wallet_addr=wallet_addr, chain_id=1, token_id=9)
+        result = wallet_apr_calc.compute_wallet_position_metrics(history)
+        self.assertIsNone(result["fee_apr_7d_pct"])
+        self.assertIn("尚不足計算", result["note"])
+        conn.close()
 
 
 class TestTokenWhitelist(unittest.TestCase):

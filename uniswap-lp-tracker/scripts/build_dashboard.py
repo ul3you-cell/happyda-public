@@ -69,6 +69,14 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   .pager-btn {{ font-size:.8rem; padding:5px 12px; border-radius:6px; border:1px solid var(--line);
                 background:#fff; color:var(--ink); cursor:pointer; }}
   .pager-btn:disabled {{ cursor:not-allowed; opacity:.45; }}
+  .wallet-box {{ margin:14px 0; padding:12px 14px; border:1px dashed var(--line); border-radius:8px; background:#fbfcfe; }}
+  .wallet-note {{ font-size:.82rem; color:#556; margin:6px 0 10px; }}
+  .wallet-input-row {{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }}
+  .wallet-input-row input {{ flex:1; min-width:260px; padding:6px 10px; border:1px solid var(--line);
+                             border-radius:6px; font-family:monospace; font-size:.85rem; }}
+  .wallet-status {{ font-size:.8rem; margin-top:8px; color:#445; }}
+  .wallet-status-ok {{ color:#0a7a3d; }}
+  .wallet-status-error {{ color:#b3261e; }}
   .pager-info {{ font-size:.82rem; color:#445; }}
   footer {{ margin-top:1.6rem; color:#667085; font-size:.8rem; border-top:1px solid var(--line); padding-top:1rem; }}
   a {{ color:#0b57d0; overflow-wrap:anywhere; }}
@@ -106,6 +114,19 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       <li>「⚠️ token 不在白名單」列代表官方回應內含本專案 <code>config/pools_targets.json</code> 未預先驗證的合約位址，
         已停用數值顯示，需人工複核（防止假幣/釣魚合約誤植）。</li>
     </ul>
+  </div>
+
+  <div class="wallet-box" id="wallet-box">
+    <strong>錢包位址（選填，僅供之後錢包 LP／每日 delta／個人 APR 功能使用）：</strong>
+    <p class="wallet-note">此位址只會存在你目前這個瀏覽器的 <code>localStorage</code>，
+      <strong>不會送出到任何伺服器、不進 log、不進 repo</strong>——之後的錢包 RPC 查詢會直接在
+      你的瀏覽器端發出，這裡先讓你把位址存起來；查詢功能本身尚未實作（見上方免責聲明「本頁不顯示個別錢包 LP 部位」）。</p>
+    <div class="wallet-input-row">
+      <input type="text" id="wallet-address-input" placeholder="0x..." spellcheck="false" autocomplete="off">
+      <button type="button" id="wallet-address-save-btn" class="pager-btn">儲存</button>
+      <button type="button" id="wallet-address-clear-btn" class="pager-btn">清除</button>
+    </div>
+    <p class="wallet-status" id="wallet-address-status"></p>
   </div>
 
   <h2>池位總表（點欄名可依該欄排序，再點一次反向；灰色斜體＝該欄無資料）</h2>
@@ -317,6 +338,56 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     sortState = {{ key: 'tvl_usd', dir: -1 }};
     updateSortIndicators();
     applySort();
+  }})();
+
+  (function() {{
+    // 錢包位址輸入：純前端 localStorage，不送出到任何伺服器／log／repo（見
+    // research 的建議：位址雖非 secret，但足以被 7x24 監控，比 key 還敏感，
+    // 應由瀏覽器端處理，不要伺服器端處理）。下一階段的錢包 LP／每日 fee
+    // delta／個人 APR 會讀這裡存的位址直接在瀏覽器端發 RPC 唯讀查詢；本頁
+    // 目前只負責存取，完全沒有查詢邏輯、也不會把這個值傳給任何後端腳本。
+    const STORAGE_KEY = 'uniswapTrackerWalletAddress';
+    const ADDR_RE = /^0x[a-fA-F0-9]{{40}}$/;
+    const input = document.getElementById('wallet-address-input');
+    const saveBtn = document.getElementById('wallet-address-save-btn');
+    const clearBtn = document.getElementById('wallet-address-clear-btn');
+    const status = document.getElementById('wallet-address-status');
+    if (!input || !saveBtn || !clearBtn || !status) return;
+
+    function shortAddr(addr) {{
+      return addr.slice(0, 6) + '…' + addr.slice(-4);
+    }}
+
+    function refreshStatus() {{
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {{
+        status.textContent = '已儲存：' + shortAddr(saved) + '（只存在本機瀏覽器 localStorage，不會送出）';
+        status.className = 'wallet-status wallet-status-ok';
+        input.value = saved;
+      }} else {{
+        status.textContent = '尚未儲存任何位址（此欄位為下一階段錢包 LP／每日 delta／個人 APR 準備，目前尚未接上查詢邏輯）';
+        status.className = 'wallet-status';
+      }}
+    }}
+
+    saveBtn.addEventListener('click', () => {{
+      const v = input.value.trim();
+      if (!ADDR_RE.test(v)) {{
+        status.textContent = '格式錯誤：需為 0x 開頭 + 40 個十六進位字元的 EVM 位址，未儲存。';
+        status.className = 'wallet-status wallet-status-error';
+        return;
+      }}
+      localStorage.setItem(STORAGE_KEY, v);
+      refreshStatus();
+    }});
+
+    clearBtn.addEventListener('click', () => {{
+      localStorage.removeItem(STORAGE_KEY);
+      input.value = '';
+      refreshStatus();
+    }});
+
+    refreshStatus();
   }})();
   </script>
 

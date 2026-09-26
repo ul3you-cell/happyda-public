@@ -16,6 +16,12 @@ OUTPUT_PATH = PROJECT_ROOT.parent / "uniswap-lp-tracker-20260926.html"
 
 STATUS_LABELS = {
     "live": "即時（官方 API）",
+    # 「live」在資料層只代表 pool_info API 有回這個候選池，不代表財務指標
+    # （TVL/volume/APR）已經接通——V4、非 Ethereum 鏈目前就是這種狀況。
+    # JS 端 fmtCell() 會在 status=='live' 但 tvl_usd 為 null 時改用這個
+    # label + 灰色 badge，不與真正接通 TVL/APR 的池子共用綠色「即時」標籤
+    # （anne 2026-09-27 review：這樣才不會讓人誤以為財務指標已經可用）。
+    "live_unenriched": "池子已發現；TVL／APR 資料源未接通",
     "fixture": "離線 fixture（anne 已驗證，無 key）",
     "pending": "尚未擷取",
     "empty_response": "已查詢，官方確認目前無此池",
@@ -42,6 +48,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   .meta {{ color:#667085; font-size:.85rem; }}
   .badge {{ display:inline-block; border-radius:999px; padding:2px 9px; font-size:.72rem; color:#fff; }}
   .b-live {{ background:var(--live); }} .b-fixture {{ background:var(--fixture); color:#3c2f00; }}
+  .b-live-unenriched {{ background:var(--pending); color:#3c2f00; }}
   .b-pending {{ background:var(--pending); }} .b-not_found, .b-empty_response {{ background:var(--nf); }}
   .b-error, .b-untrusted_token {{ background:var(--bad); }}
 
@@ -270,8 +277,13 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         return '<span title="精確值：' + exact + '">' + formatUsdCompact(v) + '</span>';
       }}
       if (key === 'status') {{
-        const label = statusLabels[v] || v;
-        return '<span class="badge b-' + v + '">' + label + '</span>';
+        // status==='live' 只代表官方 pool_info API 有回這個候選池，不代表
+        // TVL/volume/APR 財務指標已經接通（V4、非 Ethereum 鏈目前正是這種
+        // 狀況）。這裡不改資料本身的 status 值（保留原始事實），只在「顯示」
+        // 這一層另外挑一個 label／顏色，跟真正財務指標齊全的池子區分開。
+        const displayKey = (v === 'live' && row.tvl_usd === null) ? 'live_unenriched' : v;
+        const label = statusLabels[displayKey] || displayKey;
+        return '<span class="badge b-' + displayKey + '">' + label + '</span>';
       }}
       if (key === 'source') {{
         if (!v) return null;

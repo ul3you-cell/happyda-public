@@ -16,6 +16,7 @@
   .meta { color:#667085; font-size:.85rem; }
   .badge { display:inline-block; border-radius:999px; padding:2px 9px; font-size:.72rem; color:#fff; }
   .b-live { background:var(--live); } .b-fixture { background:var(--fixture); color:#3c2f00; }
+  .b-live-unenriched { background:var(--pending); color:#3c2f00; }
   .b-pending { background:var(--pending); } .b-not_found, .b-empty_response { background:var(--nf); }
   .b-error, .b-untrusted_token { background:var(--bad); }
 
@@ -227,7 +228,7 @@
   (function() {
     const rows = JSON.parse(document.getElementById('pool-data').textContent);
     const tbody = document.querySelector('#pool-table tbody');
-    const statusLabels = {"live": "即時（官方 API）", "fixture": "離線 fixture（anne 已驗證，無 key）", "pending": "尚未擷取", "empty_response": "已查詢，官方確認目前無此池", "not_found": "官方確認無此池", "error": "查詢錯誤", "untrusted_token": "⚠️ token 不在白名單"};
+    const statusLabels = {"live": "即時（官方 API）", "live_unenriched": "池子已發現；TVL／APR 資料源未接通", "fixture": "離線 fixture（anne 已驗證，無 key）", "pending": "尚未擷取", "empty_response": "已查詢，官方確認目前無此池", "not_found": "官方確認無此池", "error": "查詢錯誤", "untrusted_token": "⚠️ token 不在白名單"};
     let sortState = { key: null, dir: 1 };
 
     function fmtCell(row, key, type) {
@@ -244,8 +245,13 @@
         return '<span title="精確值：' + exact + '">' + formatUsdCompact(v) + '</span>';
       }
       if (key === 'status') {
-        const label = statusLabels[v] || v;
-        return '<span class="badge b-' + v + '">' + label + '</span>';
+        // status==='live' 只代表官方 pool_info API 有回這個候選池，不代表
+        // TVL/volume/APR 財務指標已經接通（V4、非 Ethereum 鏈目前正是這種
+        // 狀況）。這裡不改資料本身的 status 值（保留原始事實），只在「顯示」
+        // 這一層另外挑一個 label／顏色，跟真正財務指標齊全的池子區分開。
+        const displayKey = (v === 'live' && row.tvl_usd === null) ? 'live_unenriched' : v;
+        const label = statusLabels[displayKey] || displayKey;
+        return '<span class="badge b-' + displayKey + '">' + label + '</span>';
       }
       if (key === 'source') {
         if (!v) return null;

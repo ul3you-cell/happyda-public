@@ -43,6 +43,17 @@ V3_MAINNET_DEPLOYMENT_ID = "5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV"
 
 MIN_QUERY = json.dumps({"query": "{ _meta { block { number } } }"})
 
+# 明確、固定的 User-Agent + Accept：anne 回報使用者實測 HTTP 403 / Cloudflare
+# error 1010，懷疑是 Cloudflare 依用戶端特徵（例如 Python 預設 UA 字串
+# "Python-urllib/3.x"）擋掉，跟 key 是否有效無關。這裡固定送出一個明確、
+# 不冒充瀏覽器的 UA，讓請求身分透明、可重現，也方便之後在 The Graph /
+# Cloudflare 側對照 log。
+REQUEST_HEADERS = {
+    "Content-Type": "application/json",
+    "Accept": "application/json",
+    "User-Agent": "uniswap-lp-tracker-gateway-check/1.0 (+https://github.com/ul3you-cell/happyda-public)",
+}
+
 
 def _redact_key_in_text(text: str, api_key: str) -> str:
     """輸出任何字串前，先確保 key 本身不會出現（防禦性二次遮蔽，即使呼叫端
@@ -58,7 +69,7 @@ def check_gateway(api_key: str, deployment_id: str = V3_MAINNET_DEPLOYMENT_ID) -
     req = urllib.request.Request(
         url,
         data=MIN_QUERY.encode("utf-8"),
-        headers={"Content-Type": "application/json"},
+        headers=REQUEST_HEADERS,
         method="POST",
     )
     try:
@@ -66,7 +77,12 @@ def check_gateway(api_key: str, deployment_id: str = V3_MAINNET_DEPLOYMENT_ID) -
             body = json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         raw = e.read().decode("utf-8", errors="replace")
-        return False, _redact_key_in_text(f"HTTP {e.code}：{raw[:300]}", api_key)
+        # CF-RAY 是 Cloudflare 的公開請求識別碼（不含任何憑證資訊），WAF 層擋
+        # 請求時貼出來能讓對方（或我們自己）用它查該次請求的處理紀錄；只在
+        # 判斷「這是網路/WAF 層擋，不是 key 本身無效」時才用得到。
+        cf_ray = e.headers.get("CF-RAY") if e.headers else None
+        cf_note = f"（CF-RAY={cf_ray}）" if cf_ray else ""
+        return False, _redact_key_in_text(f"HTTP {e.code}{cf_note}：{raw[:300]}", api_key)
     except urllib.error.URLError as e:
         return False, _redact_key_in_text(f"連線失敗：{e.reason}", api_key)
     except json.JSONDecodeError:

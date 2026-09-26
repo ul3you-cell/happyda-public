@@ -188,6 +188,50 @@ class TestGraphGatewayCheck(unittest.TestCase):
         self.assertIn("401", message)
         self.assertNotIn(self.FAKE_KEY, message)
 
+    def test_http_error_exposes_public_cf_ray_id_not_key(self):
+        # anne 回報使用者實測 HTTP 403 / Cloudflare error 1010：CF-RAY 是
+        # Cloudflare 的公開請求識別碼（非憑證），失敗訊息應該把它帶出來，
+        # 但同一次仍不能洩漏 key。
+        import email.message
+        import io
+
+        err_body = io.BytesIO(b"error code: 1010")
+        headers = email.message.Message()
+        headers["CF-RAY"] = "8c1a2b3d4e5f6789-SJC"
+
+        def _raise(*args, **kwargs):
+            raise urllib.error.HTTPError(
+                f"https://gateway.thegraph.com/api/{self.FAKE_KEY}/subgraphs/id/x",
+                403, "Forbidden", headers, err_body,
+            )
+
+        with mock.patch("graph_gateway_check.urllib.request.urlopen", side_effect=_raise):
+            ok, message = graph_gateway_check.check_gateway(self.FAKE_KEY)
+        self.assertFalse(ok)
+        self.assertIn("403", message)
+        self.assertIn("8c1a2b3d4e5f6789-SJC", message)
+        self.assertNotIn(self.FAKE_KEY, message)
+
+    def test_request_sends_explicit_user_agent_and_accept_headers(self):
+        # anne 懷疑 Cloudflare 403/1010 是 Python 預設 User-Agent 被擋，
+        # 這裡斷言送出的 urllib.Request 確實帶有明確、固定的 UA 與 Accept，
+        # 不是讓 urllib 用預設值（例如 "Python-urllib/3.14"）。
+        captured = {}
+
+        def _capture(req, timeout=None):
+            captured["user_agent"] = req.get_header("User-agent")
+            captured["accept"] = req.get_header("Accept")
+            captured["content_type"] = req.get_header("Content-type")
+            return self._fake_response({"data": {"_meta": {"block": {"number": 1}}}})
+
+        with mock.patch("graph_gateway_check.urllib.request.urlopen", side_effect=_capture):
+            graph_gateway_check.check_gateway(self.FAKE_KEY)
+
+        self.assertTrue(captured["user_agent"])
+        self.assertNotIn("Python-urllib", captured["user_agent"])
+        self.assertEqual(captured["accept"], "application/json")
+        self.assertEqual(captured["content_type"], "application/json")
+
     def test_url_error_never_leaks_key(self):
         def _raise(*args, **kwargs):
             raise urllib.error.URLError("Name or service not known")

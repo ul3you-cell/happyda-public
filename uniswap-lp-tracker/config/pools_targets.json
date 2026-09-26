@@ -1,0 +1,80 @@
+{
+  "_comment": "Token 合約位址白名單 + 查詢目標。每個地址皆於 2026-09-26 以官方文件或區塊鏈瀏覽器交叉驗證，來源見 source 欄位。任何 API 回應內出現不在此白名單的 token 位址，normalize.py 會標記 untrusted_token 並排除數值欄位。",
+  "endpoint": "https://liquidity.api.uniswap.org/lp/pool_info",
+  "fee_tiers": [500, 3000, 10000],
+  "tick_spacing_by_fee": {"100": 1, "500": 10, "3000": 60, "10000": 200},
+  "v4_hook_address_default": "0x0000000000000000000000000000000000000000",
+  "protocols": ["V3", "V4"],
+  "chains": [
+    {
+      "chain_id": 1,
+      "chain_name": "Ethereum",
+      "quote_tokens": [
+        {"symbol": "USDC", "address": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48", "decimals": 6, "source": "coingecko contract lookup, 2026-09-26"},
+        {"symbol": "USDT", "address": "0xdAC17F958D2ee523a2206206994597C13D831ec7", "decimals": 6, "source": "etherscan.io/token/0xdAC17F..., 2026-09-26"}
+      ],
+      "base_tokens": [
+        {"symbol": "WETH", "address": "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2", "decimals": 18, "source": "well-known WETH9 mainnet deployment"},
+        {"symbol": "WBTC", "address": "0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599", "decimals": 8, "source": "well-known BitGo WBTC mainnet deployment"},
+        {"symbol": "cbBTC", "address": "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf", "decimals": 8, "source": "etherscan.io token page + allswap.io cross-chain deterministic address note, 2026-09-26"},
+        {"symbol": "WSOL", "address": "0xD31a59c85aE9D8edEFeC411D448f90841571b89c", "decimals": 8, "source": "coingecko Wormhole Bridged WSOL contract, referenced via Uniswap app pool link, 2026-09-26"},
+        {"symbol": "AAVE", "address": "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9", "decimals": 18, "source": "coingecko contract lookup, 2026-09-26"},
+        {"symbol": "UNI", "address": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984", "decimals": 18, "source": "developers.uniswap.org/docs/ecosystem/governance/uni, 2026-09-26 (official)"}
+      ]
+    },
+    {
+      "chain_id": 42161,
+      "chain_name": "Arbitrum",
+      "quote_tokens": [
+        {"symbol": "USDC", "address": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831", "decimals": 6, "source": "developers.circle.com/stablecoins/usdc-contract-addresses, 2026-09-26 (official, native USDC not USDC.e)"},
+        {"symbol": "USDT", "address": "0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9", "decimals": 6, "source": "well-known Tether Arbitrum One deployment"}
+      ],
+      "base_tokens": [
+        {"symbol": "WETH", "address": "0x82aF49447D8a07e3bd95BD0d56f35241523fBab1", "decimals": 18, "source": "well-known Arbitrum WETH deployment"},
+        {"symbol": "WBTC", "address": "0x2f2a2543B76A4166549F7aaB2e75Bef0aefC5B0f", "decimals": 8, "source": "well-known BitGo WBTC Arbitrum deployment"},
+        {"symbol": "cbBTC", "address": "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf", "decimals": 8, "source": "allswap.io: same deterministic address reused on Ethereum/Base/Arbitrum, 2026-09-26"},
+        {"symbol": "AAVE", "address": "0xba5DdD1f9d7F570dc94a51479a000E3BCE967196", "decimals": 18, "source": "arbiscan.io token page, 2026-09-26"},
+        {"symbol": "UNI", "address": "0xFa7F8980b0f1E64A2062791cc3b0871572f1F7f0", "decimals": 18, "source": "developers.uniswap.org/docs/ecosystem/governance/uni, 2026-09-26 (official)"}
+      ]
+    },
+    {
+      "chain_id": 8453,
+      "chain_name": "Base",
+      "quote_tokens": [
+        {"symbol": "USDC", "address": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913", "decimals": 6, "source": "developers.circle.com/stablecoins/usdc-contract-addresses, 2026-09-26 (official)"},
+        {"symbol": "USDT", "address": "0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2", "decimals": 6, "source": "basescan-based sources cross-checked (blazephoenix.xyz radar + cryptonetworkguide.com), 2026-09-26"}
+      ],
+      "base_tokens": [
+        {"symbol": "WETH", "address": "0x4200000000000000000000000000000000000006", "decimals": 18, "source": "OP-Stack standard predeploy WETH9, used on Base"},
+        {"symbol": "cbBTC", "address": "0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf", "decimals": 8, "source": "basescan.org token page (native issuance chain), 2026-09-26"},
+        {"symbol": "AAVE", "address": "0x63706e401c06ac8513145b7687A14804d17f814b", "decimals": 18, "source": "basescan.org token page, 2026-09-26"},
+        {"symbol": "UNI", "address": "0xc3De830EA07524a0761646a6a4e4be0e114a3C83", "decimals": 18, "source": "developers.uniswap.org/docs/ecosystem/governance/uni, 2026-09-26 (official)"}
+      ]
+    },
+    {
+      "chain_id": 56,
+      "chain_name": "BNB Smart Chain",
+      "quote_tokens": [
+        {"symbol": "USDC", "address": "0x8AC76a51cc950d9822D68b83fE1Ad97B32Cd580d", "decimals": 18, "source": "bscscan.com Binance-Peg USD Coin token page, 2026-09-26"},
+        {"symbol": "USDT", "address": "0x55d398326f99059fF775485246999027B3197955", "decimals": 18, "source": "bscscan.com Binance-Peg BSC-USD token page, 2026-09-26 (18 decimals, differs from other chains)"}
+      ],
+      "base_tokens": [
+        {"symbol": "WETH", "address": "0x2170Ed0880ac9A755fd29B2688956BD959F933F8", "decimals": 18, "source": "bscscan.com Binance-Peg Ethereum Token page, 2026-09-26"},
+        {"symbol": "BTCB", "address": "0x7130d2A12B9BCbFAe4f2634d864A1Ee1Ce3Ead9c", "decimals": 18, "source": "bscscan.com Binance-Peg BTCB Token page, 2026-09-26"},
+        {"symbol": "AAVE", "address": "0xfb6115445Bff7b52FeB98650C87f44907E58f802", "decimals": 18, "source": "bscscan.com Binance-Peg Aave Token page, 2026-09-26"},
+        {"symbol": "UNI", "address": "0x06e8bdE95BE4ce5cB1134BD47aD18a79fFB35822", "decimals": 18, "source": "developers.uniswap.org/docs/ecosystem/governance/uni, 2026-09-26 (official; same address as Polygon per official table)"}
+      ]
+    }
+  ],
+  "special_pool_references": [
+    {
+      "chain_id": 130,
+      "chain_name": "Unichain",
+      "pool_reference_identifier": "0x267EE34200b09Ea8b52D02EeC3300b84985B1eFd",
+      "protocol_guess_order": ["V4", "V3"],
+      "note": "Kanban 任務卡 t_bf8f4d3e 指定目標；protocol 未知，fetch 腳本會依序嘗試 V4/V3 直到回 200。"
+    }
+  ],
+  "known_chain_id_enum_unverified": [10, 130, 137, 143, 196, 324, 480, 1868, 4217, 4326, 4663, 5042, 10143, 42220, 43114, 57073, 59144, 81457, 7777777],
+  "known_chain_id_enum_source": "handoff.json @ t_6b258dd1, chainId_enum_full (官方文件 chainId enum，未逐一實測)"
+}

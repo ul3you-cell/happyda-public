@@ -1,0 +1,70 @@
+{
+  "task_id": "t_bf8f4d3e",
+  "parent_research_task_id": "t_6b258dd1",
+  "executed_by": "dev-claude",
+  "reviewer": "anne",
+  "executed_at": "2026-09-26",
+  "scope": "read-only Uniswap Liquidity API integration + dashboard build pipeline; no live full data run (no API key on this profile)",
+  "changed_files": [
+    "uniswap-lp-tracker/README.md",
+    "uniswap-lp-tracker/config/pools_targets.json",
+    "uniswap-lp-tracker/scripts/common.py",
+    "uniswap-lp-tracker/scripts/fetch_pool_info.py",
+    "uniswap-lp-tracker/scripts/normalize.py",
+    "uniswap-lp-tracker/scripts/build_dashboard.py",
+    "uniswap-lp-tracker/scripts/run_daily_update.py",
+    "uniswap-lp-tracker/scripts/notify_telegram.py",
+    "uniswap-lp-tracker/data/fixtures/eth-weth-usdc-v3-030.json",
+    "uniswap-lp-tracker/data/normalized_latest.json",
+    "uniswap-lp-tracker/tests/test_offline.py",
+    "uniswap-lp-tracker/tests/sort_logic_check.mjs",
+    "uniswap-lp-tracker/handoff.md",
+    "uniswap-lp-tracker/handoff.json",
+    "uniswap-lp-tracker/.gitignore",
+    "uniswap-lp-tracker-20260926.html",
+    "index.html"
+  ],
+  "not_touched": [
+    "obsidian-vault-second-brain-20260925.html (既有未提交，本任務未動)",
+    "scripts/ (既有未提交，本任務未動；另一任務在用)"
+  ],
+  "tests_run": [
+    {"cmd": "python3 tests/test_offline.py -v", "result": "13 passed, 0 failed"},
+    {"cmd": "node tests/sort_logic_check.mjs", "result": "28/28 sort combinations (14 columns x asc/desc) passed against real 231-row dataset"},
+    {"cmd": "python3 scripts/notify_telegram.py (no env)", "result": "exit 3, SKIP, no network call made"},
+    {"cmd": "python3 scripts/run_daily_update.py (no env)", "result": "exit 2, refused without UNISWAP_API_KEY"},
+    {"cmd": "python3 scripts/fetch_pool_info.py (no env)", "result": "exit 2, refused without UNISWAP_API_KEY, no fake data written"}
+  ],
+  "data_state": {
+    "live_rows": 0,
+    "fixture_rows": 1,
+    "pending_rows": 230,
+    "not_found_rows": 0,
+    "untrusted_rows": 0,
+    "fixture_source": "anne 使用自有 UNISWAP_API_KEY 實測 (Ethereum WETH/USDC V3 0.30%), 已複製到 data/fixtures/, 不含 key",
+    "note": "本次執行環境沒有 UNISWAP_API_KEY，230 個目標池位皆為 pending，等待 @anne 帶 key 執行 scripts/fetch_pool_info.py + normalize.py + build_dashboard.py（或 run_daily_update.py 一次跑完）"
+  },
+  "official_data_gaps_confirmed": [
+    "tvl_usd: 官方 pool_info 只回 poolLiquidity 原始值，非 USD TVL",
+    "volume_24h_usd / volume_7d_usd: 官方端點不提供，需 Subgraph poolDayDatas",
+    "fee_apr_24h_pct / fee_apr_7d_pct: 官方不提供，需 Subgraph feesUSD + TVL 自行計算（公式非官方）",
+    "income_change_direction (24h/7d 收入變化方向): 官方不提供歷史時序",
+    "wallet LP positions / 未領手續費: 官方無唯讀 position 端點，需 Subgraph positions 或 RPC view 函式"
+  ],
+  "token_whitelist_sources": "見 uniswap-lp-tracker/config/pools_targets.json 每個 token 的 source 欄位；全部於 2026-09-26 以官方 developers.uniswap.org 文件或區塊鏈瀏覽器（etherscan/arbiscan/basescan/bscscan）交叉驗證",
+  "known_limitations": [
+    "SOL 只在 Ethereum 有驗證過的 Wormhole 橋接位址；Arbitrum/Base/BNB 未找到可信賴的橋接 SOL 位址，config 中未列入這三鏈的 SOL base token，避免用未驗證位址查詢",
+    "Base 鏈沒有列 WBTC（改用官方原生 cbBTC），因為未能找到 Base 上被廣泛採用、可信的獨立 WBTC 部署",
+    "BNB 鏈的 UNI 位址與官方文件表格中 Polygon 的位址完全相同（0x06e8bdE95BE4ce5cB1134BD47aD18a79fFB35822）；這是直接從 developers.uniswap.org 官方頁面複製，非本專案臆測",
+    "Unichain 目標池 0x267EE34200b09Ea8b52D02EeC3300b84985B1eFd 假設為 pool address（poolReferenceIdentifier），fetch 腳本會依序嘗試 V4/V3；若實際是錢包地址則會查詢失敗，需 anne 執行後確認並回報修正",
+    "本機 Hermes browser 工具因 macOS TCC 權限問題無法開啟（讀取 ~/Library/Application Support/Google/Chrome/Default 被拒），故排序邏輯改用 Node.js 直接執行網頁內嵌的同一段 JS（PURE_SORT_START/END 區塊）驗證，而非真人瀏覽器點擊；建議日後瀏覽器工具可用時複測一次"
+  ],
+  "cron_and_telegram": {
+    "cron_created": false,
+    "reason": "建立/修改排程屬使用者或 @anne 動作範圍，dev-claude 不建立 cron",
+    "recommended_schedule": "Taipei 每日 08:20 -> UTC 00:20，執行 UNISWAP_API_KEY=... python3 uniswap-lp-tracker/scripts/run_daily_update.py --telegram",
+    "telegram_delivery_verified": false,
+    "telegram_reason": "本環境沒有 TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID，notify_telegram.py 遇到未設定會直接 SKIP、不連網、不假裝送達；需 anne 提供憑證後執行一次才能取得 message_id 作為送達證據"
+  },
+  "public_url_pending_verification": "https://ul3you-cell.github.io/happyda-public/uniswap-lp-tracker-20260926.html （需 push 後等 GitHub Pages 建置完成再驗 HTTP 200，見 handoff.md）"
+}

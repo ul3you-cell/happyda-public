@@ -104,6 +104,11 @@ def pool_obj_to_row(pool_obj: dict, source_label: str, snapshot_time: str, white
             f"含不在白名單內的 token 位址（{', '.join(untrusted)}），已排除數值顯示，需人工複核"
         )
         row["tvl_usd_note"] = "已停用：token 位址不在白名單"
+        # 白名單以外的 token：所有由官方 API 回傳、會在儀表板上顯示的數值欄位一律清空，
+        # 不可讓「已排除數值顯示」淪為空話（USD/volume/APR 本來就是 None，這裡額外清掉
+        # fee tier、tick spacing、current tick、raw liquidity 這幾個會顯示的原始數值）。
+        for numeric_key in ("fee_tier_raw", "fee_tier_pct", "tick_spacing", "current_tick", "pool_liquidity_raw"):
+            row[numeric_key] = None
     return row
 
 
@@ -151,7 +156,57 @@ def load_live_rows(whitelist: dict, config: dict) -> list[dict]:
     return rows
 
 
-def load_not_found_rows(config: dict) -> list[dict]:
+def _canonical_pair(symbol_a: str | None, symbol_b: str | None) -> tuple:
+    """token pair 的順序無關 key。官方 API 回應的 tokenAddressA/B 順序不保證
+    跟請求送出的 base/quote 順序一致（例如請求 WETH/USDC，回應可能是
+    USDC/WETH），若直接用未排序的 (a, b) 比對，會把已查到的池位誤判成
+    尚未擷取（t_bf8f4d3e review：anne 實跑 230 筆全部已回應，仍有 61 筆
+    卡在 pending）。用排序過的 tuple 讓兩邊順序無關。"""
+    if symbol_a is None or symbol_b is None:
+        return (symbol_a, symbol_b)
+    return tuple(sorted((symbol_a, symbol_b)))
+
+
+def _pending_key(item: dict) -> tuple:
+    """統一的池位識別 key，供 build_pending_rows 的「尚未擷取」判斷、
+    load_no_pool_rows 的「已查詢（無池／404／錯誤）」判斷、以及
+    covered_keys 的「已有 live/fixture 資料」判斷共用同一套邏輯與同一套
+    pair 順序正規化，避免同一組查詢因 token 順序不同或分屬不同函式各自
+    組 key，而被重複計入 pending 與其他狀態。"""
+    if item.get("query_type") == "poolReference":
+        return (item.get("chain_id"), item.get("protocol"), "REF", item.get("pool_reference_identifier"), None)
+    a, b = _canonical_pair(item.get("base_symbol"), item.get("quote_symbol"))
+    return (
+        item.get("chain_id"),
+        item.get("protocol"),
+        a,
+        b,
+        item.get("fee"),
+    )
+
+
+def _classify_no_pool_result(result: dict) -> tuple[str, str] | None:
+    """回傳 (status, pending_note)；若這筆結果其實查到池位（HTTP 200 且 pools 非空），
+    回 None（交給 load_live_rows 處理，這裡不重複計入）。"""
+    status_code = result.get("http_status")
+    if status_code == 200:
+        response = result.get("response")
+        pools = response.get("pools", []) if isinstance(response, dict) else []
+        if pools:
+            return None
+        return "empty_response", "官方已回應 HTTP 200，此組合目前查無池位（pools: []）；已查詢過，非尚未擷取"
+    if status_code == 404:
+        return "not_found", f"HTTP {status_code}：{result.get('response')}"
+    return "error", f"HTTP {status_code}：{result.get('response')}"
+
+
+def load_no_pool_rows(config: dict) -> list[dict]:
+    """處理『官方已經回應這筆查詢』但結果不是活躍池位的三種狀況，
+    一律不算尚未擷取（pending），避免真實 full update 時把已查無結果的組合誤判為未查：
+      - HTTP 200 但 response.pools 是空陣列 -> empty_response（已查，官方確認目前無此池）
+      - HTTP 404                          -> not_found（官方確認無此池）
+      - 其他非 200                        -> error（查詢本身失敗，非「無此池」）
+    """
     latest_path = DATA_DIR / "latest_raw.json"
     if not latest_path.exists():
         return []
@@ -159,12 +214,14 @@ def load_not_found_rows(config: dict) -> list[dict]:
         payload = json.load(f)
     rows = []
     for result in payload.get("results", []):
-        status = result.get("http_status")
-        if status == 200:
+        classified = _classify_no_pool_result(result)
+        if classified is None:
             continue
+        status, pending_note = classified
+
         row = base_row(result["chain_id"], result["chain_name"])
         row.update({
-            "status": "not_found" if status == 404 else "error",
+            "status": status,
             "protocol": result.get("protocol"),
             "token_a_symbol": result.get("base_symbol"),
             "token_b_symbol": result.get("quote_symbol"),
@@ -174,27 +231,56 @@ def load_not_found_rows(config: dict) -> list[dict]:
             "pool_address": result.get("pool_reference_identifier"),
             "snapshot_time": result.get("fetched_at"),
             "source": ENDPOINT,
-            "pending_note": f"HTTP {status}：{result.get('response')}",
-            "id": f"{result['chain_id']}-{result.get('protocol')}-notfound-{result.get('base_symbol')}-{result.get('quote_symbol')}-{result.get('fee')}",
+            "pending_note": pending_note,
+            "id": (
+                f"{result['chain_id']}-{result.get('protocol')}-{status}-"
+                f"{result.get('base_symbol')}-{result.get('quote_symbol')}-{result.get('fee')}-"
+                f"{result.get('pool_reference_identifier')}"
+            ),
         })
         rows.append(row)
     return rows
 
 
-def covered_keys(rows: list[dict]) -> set[tuple]:
+def no_pool_excluded_keys(config: dict) -> set[tuple]:
+    """跟 load_no_pool_rows 讀同一份 latest_raw.json，但回傳的是跟
+    build_queries()／build_pending_rows 相同格式的原始查詢 key（chain_id,
+    protocol, base_symbol, quote_symbol, fee，或 REF 變體），而不是 normalize
+    過的 row（row 用的是 token_a_symbol/fee_tier_raw 等不同欄位名）。
+    兩邊欄位名不同會讓 key 永遠比對不到，導致已查詢過的組合又被判成 pending
+    ——這是 t_bf8f4d3e review 第 3 點的根因，修正時兩處都要用同一個 _pending_key。
+    """
+    latest_path = DATA_DIR / "latest_raw.json"
+    if not latest_path.exists():
+        return set()
+    with open(latest_path, "r", encoding="utf-8") as f:
+        payload = json.load(f)
     keys = set()
-    for r in rows:
-        if r["status"] in ("live", "fixture", "untrusted_token"):
-            keys.add((r["chain_id"], r["protocol"], r["token_a_symbol"], r["token_b_symbol"], r["fee_tier_raw"]))
+    for result in payload.get("results", []):
+        if _classify_no_pool_result(result) is None:
+            continue
+        keys.add(_pending_key(result))
     return keys
 
 
-def build_pending_rows(config: dict, already_covered: set[tuple], already_not_found: set[tuple]) -> list[dict]:
+def covered_keys(rows: list[dict]) -> set[tuple]:
+    """回傳跟 _pending_key() 相同 shape、相同 pair 順序正規化的 key 集合，
+    這樣才能跟 build_pending_rows() 用請求 base/quote 組出的 key 正確比對，
+    不受 API 回應 tokenAddressA/B 順序影響（見 _canonical_pair 說明）。"""
+    keys = set()
+    for r in rows:
+        if r["status"] in ("live", "fixture", "untrusted_token"):
+            a, b = _canonical_pair(r["token_a_symbol"], r["token_b_symbol"])
+            keys.add((r["chain_id"], r["protocol"], a, b, r["fee_tier_raw"]))
+    return keys
+
+
+def build_pending_rows(config: dict, already_covered: set[tuple], already_excluded: set[tuple]) -> list[dict]:
     rows = []
     for q in build_queries(config):
+        key = _pending_key(q)
         if q["query_type"] == "poolParameters":
-            key = (q["chain_id"], q["protocol"], q["base_symbol"], q["quote_symbol"], q["fee"])
-            if key in already_covered or key in already_not_found:
+            if key in already_covered or key in already_excluded:
                 continue
             row = base_row(q["chain_id"], q["chain_name"])
             row.update({
@@ -209,8 +295,7 @@ def build_pending_rows(config: dict, already_covered: set[tuple], already_not_fo
             })
             rows.append(row)
         else:
-            key = (q["chain_id"], q["protocol"], "REF", q["pool_reference_identifier"], None)
-            if key in already_covered:
+            if key in already_covered or key in already_excluded:
                 continue
             row = base_row(q["chain_id"], q["chain_name"])
             row.update({
@@ -229,23 +314,25 @@ def main() -> int:
 
     fixture_rows = load_fixture_rows(whitelist, config)
     live_rows = load_live_rows(whitelist, config)
-    not_found_rows = load_not_found_rows(config)
+    no_pool_rows = load_no_pool_rows(config)
 
     covered = covered_keys(fixture_rows + live_rows)
-    not_found_keys = {
-        (r["chain_id"], r["protocol"], r["token_a_symbol"], r["token_b_symbol"], r["fee_tier_raw"])
-        for r in not_found_rows
-        if r["status"] == "not_found"
-    }
-    pending_rows = build_pending_rows(config, covered, not_found_keys)
+    # empty_response／not_found／error 都代表「官方已經回應這筆查詢」，一律不能再被
+    # build_pending_rows 標成尚未擷取（見 t_bf8f4d3e review：HTTP 200 空 pools 曾被誤判為 pending）。
+    # 用 no_pool_excluded_keys() 而非從 no_pool_rows 反推 key：normalize 過的 row
+    # 欄位名（token_a_symbol/fee_tier_raw）跟查詢 key 用的欄位名（base_symbol/fee）不同，
+    # 從 row 反推會永遠比對不到。
+    excluded_keys = no_pool_excluded_keys(config)
+    pending_rows = build_pending_rows(config, covered, excluded_keys)
 
-    all_rows = live_rows + fixture_rows + not_found_rows + pending_rows
+    all_rows = live_rows + fixture_rows + no_pool_rows + pending_rows
 
     meta = {
         "total_rows": len(all_rows),
         "live_rows": sum(1 for r in all_rows if r["status"] == "live"),
         "fixture_rows": sum(1 for r in all_rows if r["status"] == "fixture"),
         "pending_rows": sum(1 for r in all_rows if r["status"] == "pending"),
+        "empty_response_rows": sum(1 for r in all_rows if r["status"] == "empty_response"),
         "not_found_rows": sum(1 for r in all_rows if r["status"] == "not_found"),
         "error_rows": sum(1 for r in all_rows if r["status"] == "error"),
         "untrusted_rows": sum(1 for r in all_rows if r["status"] == "untrusted_token"),

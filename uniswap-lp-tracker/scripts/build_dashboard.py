@@ -18,6 +18,7 @@ STATUS_LABELS = {
     "live": "即時（官方 API）",
     "fixture": "離線 fixture（anne 已驗證，無 key）",
     "pending": "尚未擷取",
+    "empty_response": "已查詢，官方確認目前無此池",
     "not_found": "官方確認無此池",
     "error": "查詢錯誤",
     "untrusted_token": "⚠️ token 不在白名單",
@@ -41,7 +42,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   .meta {{ color:#667085; font-size:.85rem; }}
   .badge {{ display:inline-block; border-radius:999px; padding:2px 9px; font-size:.72rem; color:#fff; }}
   .b-live {{ background:var(--live); }} .b-fixture {{ background:var(--fixture); color:#3c2f00; }}
-  .b-pending {{ background:var(--pending); }} .b-not_found {{ background:var(--nf); }}
+  .b-pending {{ background:var(--pending); }} .b-not_found, .b-empty_response {{ background:var(--nf); }}
   .b-error, .b-untrusted_token {{ background:var(--bad); }}
   .summary-cards {{ display:flex; gap:10px; flex-wrap:wrap; margin:12px 0 4px; }}
   .card {{ background:#f4f7fb; border:1px solid var(--line); border-radius:10px; padding:8px 14px; font-size:.82rem; }}
@@ -59,6 +60,16 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   .null {{ color:#a3adb8; font-style:italic; }}
   .footer-count {{ margin-top:8px; font-size:.82rem; color:#445; }}
   .table-wrap {{ overflow-x:auto; }}
+  .sort-toggle {{ display:flex; gap:8px; margin:10px 0 2px; flex-wrap:wrap; }}
+  .toggle-btn {{ font-size:.8rem; padding:6px 12px; border-radius:999px; border:1px solid var(--line);
+                 background:#fff; color:var(--ink); cursor:pointer; }}
+  .toggle-btn.active {{ background:var(--blue); color:#fff; border-color:var(--blue); }}
+  .toggle-btn:disabled {{ cursor:not-allowed; opacity:.55; }}
+  .pager-bar {{ display:flex; align-items:center; gap:10px; margin-top:10px; flex-wrap:wrap; }}
+  .pager-btn {{ font-size:.8rem; padding:5px 12px; border-radius:6px; border:1px solid var(--line);
+                background:#fff; color:var(--ink); cursor:pointer; }}
+  .pager-btn:disabled {{ cursor:not-allowed; opacity:.45; }}
+  .pager-info {{ font-size:.82rem; color:#445; }}
   footer {{ margin-top:1.6rem; color:#667085; font-size:.8rem; border-top:1px solid var(--line); padding-top:1rem; }}
   a {{ color:#0b57d0; overflow-wrap:anywhere; }}
   @media (max-width:700px) {{ body {{ padding:10px; }} main {{ padding:14px; }} }}
@@ -75,6 +86,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     <div class="card"><b>{live_rows}</b>即時資料</div>
     <div class="card"><b>{fixture_rows}</b>離線 fixture</div>
     <div class="card"><b>{pending_rows}</b>尚未擷取</div>
+    <div class="card"><b>{empty_response_rows}</b>已查詢．目前無此池</div>
     <div class="card"><b>{not_found_rows}</b>官方確認無此池</div>
     <div class="card"><b>{untrusted_rows}</b>⚠️ 白名單警示</div>
   </div>
@@ -97,6 +109,12 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   </div>
 
   <h2>池位總表（點欄名可依該欄排序，再點一次反向；灰色斜體＝該欄無資料）</h2>
+  <div class="sort-toggle">
+    <button type="button" id="sort-tvl-btn" class="toggle-btn active">依 TVL 排序（預設）</button>
+    <button type="button" id="sort-wallet-apr-btn" class="toggle-btn" disabled
+      title="尚未提供資料來源：官方 pool_info 無錢包 LP／手續費端點，需 @research 先確認可唯讀取得多鏈 wallet positions＋fees 的正式來源後才能計算錢包 APR，見上方免責聲明">
+      依錢包 APR 排序（待資料源確認，見免責聲明）</button>
+  </div>
   <div class="table-wrap">
   <table id="pool-table" aria-describedby="footer-count">
     <caption>共 {total_rows} 筆目標池位／查詢。狀態徽章：live=即時、fixture=離線驗證、pending=尚未擷取、not_found=官方確認無此池。</caption>
@@ -121,7 +139,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     <tbody></tbody>
   </table>
   </div>
-  <p class="footer-count" id="footer-count">顯示中：<span id="visible-count">0</span> 筆 ／ 共 <span id="total-count">0</span> 筆（排序不會改變筆數與內容，只改變顯示順序）</p>
+  <p class="footer-count" id="footer-count">本頁顯示：<span id="visible-count">0</span> 筆 ／ 共 <span id="total-count">0</span> 筆（每頁 25 筆，排序只改變順序與分頁內容，不改變總筆數）</p>
+  <div class="pager-bar" id="pager"></div>
 
   <script type="application/json" id="pool-data">{rows_json}</script>
   <script>
@@ -182,10 +201,16 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       return v;
     }}
 
+    const PAGE_SIZE = 25;
+    let currentPage = 1;
+    let currentSorted = rows;
+
     function renderRows(data) {{
       tbody.innerHTML = '';
+      const start = (currentPage - 1) * PAGE_SIZE;
+      const pageData = data.slice(start, start + PAGE_SIZE);
       const frag = document.createDocumentFragment();
-      for (const row of data) {{
+      for (const row of pageData) {{
         const tr = document.createElement('tr');
         const cols = ['chain_name','protocol','pair_label','fee_tier_pct','pool_liquidity_raw','tvl_usd',
                       'volume_24h_usd','volume_7d_usd','fee_apr_24h_pct','fee_apr_7d_pct','current_tick',
@@ -207,16 +232,60 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         frag.appendChild(tr);
       }}
       tbody.appendChild(frag);
-      document.getElementById('visible-count').textContent = data.length;
+      document.getElementById('visible-count').textContent = pageData.length;
       document.getElementById('total-count').textContent = rows.length;
+      renderPager(data.length);
+    }}
+
+    function renderPager(totalFiltered) {{
+      const totalPages = Math.max(1, Math.ceil(totalFiltered / PAGE_SIZE));
+      if (currentPage > totalPages) currentPage = totalPages;
+      const pager = document.getElementById('pager');
+      pager.innerHTML = '';
+      const rangeStart = totalFiltered === 0 ? 0 : (currentPage - 1) * PAGE_SIZE + 1;
+      const rangeEnd = Math.min(currentPage * PAGE_SIZE, totalFiltered);
+      const info = document.createElement('span');
+      info.className = 'pager-info';
+      info.id = 'pager-info';
+      info.textContent = '第 ' + rangeStart + '–' + rangeEnd + ' 筆／共 ' + totalFiltered + ' 筆．第 ' + currentPage + ' / ' + totalPages + ' 頁';
+      function mkBtn(label, targetPage, disabled) {{
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.textContent = label;
+        b.disabled = disabled;
+        b.className = 'pager-btn';
+        b.addEventListener('click', () => {{ currentPage = targetPage; renderRows(currentSorted); }});
+        return b;
+      }}
+      pager.appendChild(mkBtn('« 上一頁', currentPage - 1, currentPage <= 1));
+      pager.appendChild(info);
+      pager.appendChild(mkBtn('下一頁 »', currentPage + 1, currentPage >= totalPages));
+    }}
+
+    function updateSortIndicators() {{
+      document.querySelectorAll('#pool-table thead th').forEach(h => {{
+        h.setAttribute('aria-sort', 'none');
+        const old = h.querySelector('.arrow'); if (old) old.remove();
+      }});
+      if (!sortState.key) return;
+      const th = document.querySelector('th[data-key="' + sortState.key + '"]');
+      if (!th) return;
+      th.setAttribute('aria-sort', sortState.dir === 1 ? 'ascending' : 'descending');
+      const arrow = document.createElement('span');
+      arrow.className = 'arrow';
+      arrow.textContent = sortState.dir === 1 ? '▲' : '▼';
+      th.appendChild(arrow);
     }}
 
     function applySort() {{
-      if (!sortState.key) {{ renderRows(rows); return; }}
-      const th = document.querySelector('th[data-key="' + sortState.key + '"]');
-      const type = th.dataset.type;
-      const sorted = sortRowsPure(rows, sortState.key, sortState.dir, type);
-      renderRows(sorted);
+      if (!sortState.key) {{ currentSorted = rows.slice(); }}
+      else {{
+        const th = document.querySelector('th[data-key="' + sortState.key + '"]');
+        const type = th.dataset.type;
+        currentSorted = sortRowsPure(rows, sortState.key, sortState.dir, type);
+      }}
+      currentPage = 1;
+      renderRows(currentSorted);
     }}
 
     document.querySelectorAll('#pool-table thead th').forEach(th => {{
@@ -228,20 +297,26 @@ HTML_TEMPLATE = """<!DOCTYPE html>
           sortState.key = key;
           sortState.dir = 1;
         }}
-        document.querySelectorAll('#pool-table thead th').forEach(h => {{
-          h.setAttribute('aria-sort', 'none');
-          const old = h.querySelector('.arrow'); if (old) old.remove();
-        }});
-        th.setAttribute('aria-sort', sortState.dir === 1 ? 'ascending' : 'descending');
-        const arrow = document.createElement('span');
-        arrow.className = 'arrow';
-        arrow.textContent = sortState.dir === 1 ? '▲' : '▼';
-        th.appendChild(arrow);
+        document.getElementById('sort-tvl-btn').classList.toggle('active', key === 'tvl_usd');
+        updateSortIndicators();
         applySort();
       }});
     }});
 
-    renderRows(rows);
+    document.getElementById('sort-tvl-btn').addEventListener('click', () => {{
+      sortState = {{ key: 'tvl_usd', dir: -1 }};
+      document.getElementById('sort-tvl-btn').classList.add('active');
+      updateSortIndicators();
+      applySort();
+    }});
+    // 錢包 APR 排序按鈕目前 disabled（見 HTML title 說明）：官方 pool_info 無錢包 LP／
+    // 手續費資料源，待 @research 確認可唯讀取得多鏈 wallet positions+fees 的正式端點後
+    // 才會補上對應資料欄位與啟用此按鈕，屆時比照 sort-tvl-btn 的寫法即可，不需重構分頁邏輯。
+
+    // 預設排序：TVL 由高到低，null（尚未有 TVL 資料的池）永遠置底，不受方向影響
+    sortState = {{ key: 'tvl_usd', dir: -1 }};
+    updateSortIndicators();
+    applySort();
   }})();
   </script>
 
@@ -274,6 +349,7 @@ def main() -> int:
         live_rows=meta["live_rows"],
         fixture_rows=meta["fixture_rows"],
         pending_rows=meta["pending_rows"],
+        empty_response_rows=meta.get("empty_response_rows", 0),
         not_found_rows=meta["not_found_rows"],
         untrusted_rows=meta["untrusted_rows"],
         rows_json=json.dumps(rows, ensure_ascii=False),

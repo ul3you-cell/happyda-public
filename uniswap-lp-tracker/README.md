@@ -52,9 +52,11 @@ python3 scripts/build_dashboard.py        # 產生 ../uniswap-lp-tracker-2026092
 UNISWAP_API_KEY=... python3 scripts/run_daily_update.py
 ```
 
-沒有 `UNISWAP_API_KEY` 時，`fetch_pool_info.py` 會直接報錯結束，
-不會用假資料填充；`normalize.py` 可只用 `data/fixtures/` 內離線 fixture
-運作（`--offline-only`），供本次 dev-claude 端驗證用。
+沒有 `UNISWAP_API_KEY` 時，`fetch_pool_info.py` 會直接報錯結束（exit 2），
+不會用假資料填充。`normalize.py` 本身不需要任何旗標即可離線運作：
+若 `data/latest_raw.json` 不存在（從未成功呼叫過官方 API），它只會讀
+`data/fixtures/` 內的離線 fixture 並把其餘目標池位標為 `pending`，
+不會連網，供本次 dev-claude 端驗證用。
 
 ## 資料欄位與限制（務必先讀）
 

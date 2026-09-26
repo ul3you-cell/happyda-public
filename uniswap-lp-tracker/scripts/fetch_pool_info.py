@@ -72,7 +72,11 @@ def build_queries(config: dict) -> list[dict]:
             body = {
                 "protocol": protocol,
                 "chainId": ref["chain_id"],
-                "poolReferences": [{"poolReferenceIdentifier": ref["pool_reference_identifier"]}],
+                # 官方 schema 是 poolReferences[0].referenceIdentifier（不是
+                # poolReferenceIdentifier）；用錯欄位名時伺服器視為空值，回
+                # 400 invalid_argument（t_bf8f4d3e review：anne 實測 Unichain
+                # 兩筆皆因此壞掉）。見 tests/test_offline.py 的 regression。
+                "poolReferences": [{"referenceIdentifier": ref["pool_reference_identifier"]}],
             }
             queries.append({
                 "query_type": "poolReference",

@@ -18,6 +18,7 @@
     "uniswap-lp-tracker/data/normalized_latest.json",
     "uniswap-lp-tracker/tests/test_offline.py",
     "uniswap-lp-tracker/tests/sort_logic_check.mjs",
+    "uniswap-lp-tracker/tests/browser_click_check.py",
     "uniswap-lp-tracker/handoff.md",
     "uniswap-lp-tracker/handoff.json",
     "uniswap-lp-tracker/.gitignore",
@@ -29,8 +30,9 @@
     "scripts/ (既有未提交，本任務未動；另一任務在用)"
   ],
   "tests_run": [
-    {"cmd": "python3 tests/test_offline.py -v", "result": "13 passed, 0 failed"},
-    {"cmd": "node tests/sort_logic_check.mjs", "result": "28/28 sort combinations (14 columns x asc/desc) passed against real 231-row dataset"},
+    {"cmd": "python3 tests/test_offline.py -v", "result": "21 passed, 0 failed (added TestPoolReferenceRequestSchema, TestCoveredKeysIgnoreTokenOrder in review round 3, on top of round 2's TestEmptyResponseHandling/TestScopedGitCommit/TestTelegramExitPropagation)"},
+    {"cmd": "node tests/sort_logic_check.mjs", "result": "28/28 sort combinations (14 columns x asc/desc) passed against real 231-row dataset (pure-function extraction)"},
+    {"cmd": "python3 tests/browser_click_check.py", "result": "28/28 passed: real headless Chrome 154.0.8037.58 via CDP, real Input.dispatchMouseEvent clicks on the live public URL, verified aria-sort toggling, row/visible/total counts unchanged, monotonic order (locale-aware for text columns), nulls-last, on all 14 columns x asc/desc"},
     {"cmd": "python3 scripts/notify_telegram.py (no env)", "result": "exit 3, SKIP, no network call made"},
     {"cmd": "python3 scripts/run_daily_update.py (no env)", "result": "exit 2, refused without UNISWAP_API_KEY"},
     {"cmd": "python3 scripts/fetch_pool_info.py (no env)", "result": "exit 2, refused without UNISWAP_API_KEY, no fake data written"}
@@ -57,7 +59,7 @@
     "Base 鏈沒有列 WBTC（改用官方原生 cbBTC），因為未能找到 Base 上被廣泛採用、可信的獨立 WBTC 部署",
     "BNB 鏈的 UNI 位址與官方文件表格中 Polygon 的位址完全相同（0x06e8bdE95BE4ce5cB1134BD47aD18a79fFB35822）；這是直接從 developers.uniswap.org 官方頁面複製，非本專案臆測",
     "Unichain 目標池 0x267EE34200b09Ea8b52D02EeC3300b84985B1eFd 假設為 pool address（poolReferenceIdentifier），fetch 腳本會依序嘗試 V4/V3；若實際是錢包地址則會查詢失敗，需 anne 執行後確認並回報修正",
-    "本機 Hermes browser 工具因 macOS TCC 權限問題無法開啟（讀取 ~/Library/Application Support/Google/Chrome/Default 被拒），故排序邏輯改用 Node.js 直接執行網頁內嵌的同一段 JS（PURE_SORT_START/END 區塊）驗證，而非真人瀏覽器點擊；建議日後瀏覽器工具可用時複測一次"
+    "本機 Hermes browser_navigate 工具仍因 macOS TCC 權限問題無法開啟（讀取 ~/Library/Application Support/Google/Chrome/Default 被拒，需使用者於系統設定授予完整磁碟取用權限，屬使用者動作）；改用 tests/browser_click_check.py 以獨立 --user-data-dir 直接啟動本機真實 Chrome 154.0.8037.58 + CDP 送真實滑鼠事件驗證，28/28 通過，不是模擬 .click() 也不是抽取純函式跑 Node"
   ],
   "cron_and_telegram": {
     "cron_created": false,
@@ -66,5 +68,26 @@
     "telegram_delivery_verified": false,
     "telegram_reason": "本環境沒有 TELEGRAM_BOT_TOKEN/TELEGRAM_CHAT_ID，notify_telegram.py 遇到未設定會直接 SKIP、不連網、不假裝送達；需 anne 提供憑證後執行一次才能取得 message_id 作為送達證據"
   },
-  "public_url_pending_verification": "https://ul3you-cell.github.io/happyda-public/uniswap-lp-tracker-20260926.html （需 push 後等 GitHub Pages 建置完成再驗 HTTP 200，見 handoff.md）"
+  "public_url_pending_verification": "https://ul3you-cell.github.io/happyda-public/uniswap-lp-tracker-20260926.html （需 push 後等 GitHub Pages 建置完成再驗 HTTP 200，見 handoff.md）",
+  "review_round_3_fixes": {
+    "reported_by": "anne, after a real run with her own UNISWAP_API_KEY (230 queries: 228x HTTP 200, 2x HTTP 400 on Unichain; normalize still showed 61 pending)",
+    "fix_1_unichain_request_schema": {
+      "bug": "fetch_pool_info.py sent poolReferences: [{poolReferenceIdentifier: ...}] but the official schema field is poolReferences[0].referenceIdentifier; server treated it as empty and returned 400 invalid_argument",
+      "fix": "changed the request body key to referenceIdentifier",
+      "verified_by": "unit test only (tests/test_offline.py::TestPoolReferenceRequestSchema); NOT yet re-verified against a real request in this environment (no UNISWAP_API_KEY here) -- anne must re-run fetch_pool_info.py to confirm the two Unichain queries actually succeed now",
+      "caveat": "anne separately confirmed 0x267EE34200b09Ea8b52D02EeC3300b84985B1eFd is a wallet address, not a pool; pool_info cannot resolve wallet->pool, so this target may still fail after the schema fix. Real V3/V4 wallet position lookup is out of scope here (handed to a separate research card) and must not be reported as a delivered pool."
+    },
+    "fix_2_covered_keys_token_order": {
+      "bug": "normalize.py::covered_keys() built its key from the API response's token_a_symbol/token_b_symbol (order decided by the server), while build_pending_rows() built its key from the request's base_symbol/quote_symbol (order decided by our config); when the server returned the pair in reversed order the keys never matched, so already-answered combos were re-labeled pending",
+      "fix": "added _canonical_pair() (order-independent sorted tuple) and made both covered_keys() and _pending_key() use it",
+      "verified_by": "re-ran scripts/normalize.py against anne's real data/latest_raw.json from this round: pending_rows 61->0, total_rows 292->231 (duplicate rows eliminated); also 2 new offline unit/integration tests (tests/test_offline.py::TestCoveredKeysIgnoreTokenOrder)"
+    },
+    "not_committed_this_round": [
+      "uniswap-lp-tracker/data/latest_raw.json",
+      "uniswap-lp-tracker/data/snapshot-20260926T070558Z.json",
+      "uniswap-lp-tracker/data/normalized_latest.json (regenerated locally from anne's raw data to prove the fix, but left uncommitted)",
+      "uniswap-lp-tracker-20260926.html (regenerated locally, left uncommitted)"
+    ],
+    "reason_not_committed": "anne asked not to push this round's data ('請勿自行push anne這次產生的data'); the Unichain schema fix is still unverified against a real request, so the data is not final. Only the code fixes (fetch_pool_info.py, normalize.py) and tests/handoff docs are ready to commit; anne re-runs the real update and decides when to commit/push the resulting data."
+  }
 }

@@ -9,15 +9,20 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
+import tempfile
 import unittest
 from pathlib import Path
+from unittest import mock
 
 SCRIPTS_DIR = Path(__file__).resolve().parent.parent / "scripts"
 sys.path.insert(0, str(SCRIPTS_DIR))
 
 import common  # noqa: E402
+import fetch_pool_info  # noqa: E402
 import normalize  # noqa: E402
+import run_daily_update  # noqa: E402
 
 
 class TestFeeTierConversion(unittest.TestCase):
@@ -135,6 +140,289 @@ class TestNormalizeSchema(unittest.TestCase):
         )
         self.assertEqual(row["status"], "untrusted_token")
         self.assertTrue(row["limitations"])
+        # 白名單外 token：所有會在儀表板顯示的原始數值欄位必須清空，
+        # 不可讓「已排除數值顯示」只改狀態文字卻仍外洩 API 數字。
+        for numeric_key in ("fee_tier_raw", "fee_tier_pct", "tick_spacing", "current_tick", "pool_liquidity_raw"):
+            self.assertIsNone(row[numeric_key], f"{numeric_key} 應在 untrusted_token 時清空")
+        # USD/volume/APR 本來就一律 None（沒有官方資料來源）
+        self.assertIsNone(row["tvl_usd"])
+        self.assertIsNone(row["volume_24h_usd"])
+        self.assertIsNone(row["fee_apr_24h_pct"])
+
+
+class TestEmptyResponseHandling(unittest.TestCase):
+    """驗證 HTTP 200 但 pools:[] 的已完成查詢不會被誤判為 pending（t_bf8f4d3e review 第 3 點）。"""
+
+    def setUp(self):
+        self.config = common.load_config()
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.tmp_data_dir = Path(self.tmpdir.name)
+        self.patcher = mock.patch.object(normalize, "DATA_DIR", self.tmp_data_dir)
+        self.patcher.start()
+
+        # AAVE/USDC 3000 fee 在 chain 1 是 config 內真實會產生查詢的目標組合。
+        latest_raw = {
+            "fetched_at": "2026-09-26T00:00:00+00:00",
+            "results": [
+                {
+                    "query_type": "poolParameters",
+                    "chain_id": 1,
+                    "chain_name": "Ethereum",
+                    "protocol": "V3",
+                    "base_symbol": "AAVE",
+                    "quote_symbol": "USDC",
+                    "fee": 3000,
+                    "http_status": 200,
+                    "response": {"pools": []},
+                    "fetched_at": "2026-09-26T00:00:00+00:00",
+                },
+                {
+                    "query_type": "poolParameters",
+                    "chain_id": 1,
+                    "chain_name": "Ethereum",
+                    "protocol": "V3",
+                    "base_symbol": "UNI",
+                    "quote_symbol": "USDC",
+                    "fee": 500,
+                    "http_status": 404,
+                    "response": "not found",
+                    "fetched_at": "2026-09-26T00:00:00+00:00",
+                },
+            ],
+        }
+        with open(self.tmp_data_dir / "latest_raw.json", "w", encoding="utf-8") as f:
+            json.dump(latest_raw, f)
+
+    def tearDown(self):
+        self.patcher.stop()
+        self.tmpdir.cleanup()
+
+    def test_http_200_empty_pools_is_empty_response_not_error(self):
+        rows = normalize.load_no_pool_rows(self.config)
+        by_pair = {(r["token_a_symbol"], r["token_b_symbol"]): r for r in rows}
+        self.assertEqual(by_pair[("AAVE", "USDC")]["status"], "empty_response")
+        self.assertEqual(by_pair[("UNI", "USDC")]["status"], "not_found")
+        # 沒有偽造數值：即使 pending_note 描述「已查詢」，數值欄位仍須是 None
+        self.assertIsNone(by_pair[("AAVE", "USDC")]["tvl_usd"])
+        self.assertIsNone(by_pair[("AAVE", "USDC")]["pool_liquidity_raw"])
+
+    def test_full_normalize_does_not_reintroduce_pending_for_queried_combo(self):
+        exit_code = normalize.main()
+        self.assertEqual(exit_code, 0)
+        with open(self.tmp_data_dir / "normalized_latest.json", "r", encoding="utf-8") as f:
+            data = json.load(f)
+        rows_for_aave_usdc_v3 = [
+            r for r in data["rows"]
+            if r["chain_id"] == 1 and r["protocol"] == "V3"
+            and r["token_a_symbol"] == "AAVE" and r["token_b_symbol"] == "USDC"
+            and r["fee_tier_raw"] == 3000
+        ]
+        # 同一組合（chain 1, V3, AAVE/USDC, fee 3000）只查過一次就只能出現一次，狀態必須是
+        # empty_response，不可同時／改為出現一筆 status=pending 的重複列。
+        # （config 對同一 base/quote/fee 還會產生 V4 的查詢，那是另一組未查過的組合，
+        # 理應仍是 pending，不在本測試斷言範圍內。）
+        self.assertEqual(len(rows_for_aave_usdc_v3), 1, rows_for_aave_usdc_v3)
+        self.assertEqual(rows_for_aave_usdc_v3[0]["status"], "empty_response")
+        self.assertGreaterEqual(data["meta"]["empty_response_rows"], 1)
+
+
+class TestScopedGitCommit(unittest.TestCase):
+    """在隔離的臨時 git repo 內驗證：工作目錄已有其他任務的 tracked 修改與
+    untracked 檔案時，commit_and_maybe_push 產生的 commit 絕不能包含它們
+    （t_bf8f4d3e review 第 1 點：不得把 obsidian-vault-second-brain 之類的
+    既有異動一起提交）。不連網、不 push（push=False）。"""
+
+    def setUp(self):
+        self.tmpdir = tempfile.TemporaryDirectory()
+        self.repo = Path(self.tmpdir.name)
+        env = {**os.environ, "GIT_AUTHOR_NAME": "t", "GIT_AUTHOR_EMAIL": "t@example.com",
+               "GIT_COMMITTER_NAME": "t", "GIT_COMMITTER_EMAIL": "t@example.com"}
+        self.env = env
+        self._git("init", "-q")
+        self._git("checkout", "-q", "-b", "main")
+        (self.repo / "other-task.html").write_text("original\n", encoding="utf-8")
+        self._git("add", "other-task.html")
+        self._git("commit", "-q", "-m", "seed")
+
+    def tearDown(self):
+        self.tmpdir.cleanup()
+
+    def _git(self, *args):
+        import subprocess
+        result = subprocess.run(["git", *args], cwd=self.repo, capture_output=True, text=True, env=self.env)
+        if result.returncode != 0:
+            raise AssertionError(f"git {args} failed: {result.stderr}")
+        return result
+
+    def test_commit_excludes_unrelated_tracked_and_untracked_changes(self):
+        # 模擬工作目錄已有其他任務的異動：既有 tracked 檔案被改過、且有未追蹤新檔。
+        (self.repo / "other-task.html").write_text("modified by someone else\n", encoding="utf-8")
+        (self.repo / "unrelated-untracked.txt").write_text("非本案\n", encoding="utf-8")
+
+        # 本案的異動：新增 dashboard html + data 目錄。
+        (self.repo / "uniswap-lp-tracker-20260926.html").write_text("<html>dashboard</html>", encoding="utf-8")
+        data_dir = self.repo / "uniswap-lp-tracker" / "data"
+        data_dir.mkdir(parents=True)
+        (data_dir / "normalized_latest.json").write_text("{}", encoding="utf-8")
+
+        rc = run_daily_update.commit_and_maybe_push(
+            self.repo,
+            ["uniswap-lp-tracker-20260926.html", "uniswap-lp-tracker/data"],
+            "data: test scoped commit",
+            push=False,
+        )
+        self.assertEqual(rc, 0)
+
+        show = self._git("show", "--stat", "--format=", "HEAD")
+        changed_files = [line.split("|")[0].strip() for line in show.stdout.strip().splitlines() if "|" in line]
+        self.assertIn("uniswap-lp-tracker-20260926.html", changed_files)
+        self.assertTrue(any("normalized_latest.json" in f for f in changed_files))
+        self.assertNotIn("other-task.html", changed_files)
+        self.assertFalse(any("unrelated-untracked" in f for f in changed_files))
+
+        # 其他任務的 tracked 修改與 untracked 檔案必須仍留在工作目錄未被提交（still dirty）。
+        status = self._git("status", "--porcelain")
+        self.assertIn("other-task.html", status.stdout)
+        self.assertIn("unrelated-untracked.txt", status.stdout)
+
+    def test_no_dashboard_change_skips_commit_without_touching_unrelated_dirty_files(self):
+        (self.repo / "other-task.html").write_text("modified by someone else\n", encoding="utf-8")
+        head_before = self._git("rev-parse", "HEAD").stdout.strip()
+
+        rc = run_daily_update.commit_and_maybe_push(
+            self.repo,
+            ["uniswap-lp-tracker-20260926.html", "uniswap-lp-tracker/data"],
+            "data: should be skipped",
+            push=False,
+        )
+        self.assertEqual(rc, 0)
+        head_after = self._git("rev-parse", "HEAD").stdout.strip()
+        self.assertEqual(head_before, head_after, "沒有本案 pathspec 的變動時不該產生新 commit")
+
+
+class TestTelegramExitPropagation(unittest.TestCase):
+    """驗證未設定 TELEGRAM_BOT_TOKEN/CHAT_ID 時，run_telegram_notification 會
+    回傳 notify_telegram.py 的非 0 exit code（不吞掉），且不連網
+    （t_bf8f4d3e review 第 5 點）。"""
+
+    def test_missing_telegram_env_propagates_nonzero_exit_without_network(self):
+        env = os.environ.copy()
+        env.pop("TELEGRAM_BOT_TOKEN", None)
+        env.pop("TELEGRAM_CHAT_ID", None)
+        with mock.patch.dict(os.environ, env, clear=True):
+            rc = run_daily_update.run_telegram_notification(SCRIPTS_DIR)
+        self.assertEqual(rc, 3, "notify_telegram.py 未設定憑證時應以 exit 3 表示 SKIP／未送達")
+
+
+class TestPoolReferenceRequestSchema(unittest.TestCase):
+    """驗證 special_pool_references（Unichain 目標池）送出的請求 body 用官方
+    schema 的 poolReferences[0].referenceIdentifier，不是
+    poolReferenceIdentifier（anne 實測 2 筆 Unichain 皆因欄位名錯誤被伺服器
+    視為空值、回 400 invalid_argument；見 fetch_pool_info.py 修正註解）。"""
+
+    def test_pool_reference_body_uses_referenceIdentifier_key(self):
+        config = common.load_config()
+        queries = fetch_pool_info.build_queries(config)
+        ref_queries = [q for q in queries if q["query_type"] == "poolReference"]
+        self.assertTrue(ref_queries, "config 應至少有一筆 special_pool_references 目標")
+        for q in ref_queries:
+            refs = q["body"]["poolReferences"]
+            self.assertEqual(len(refs), 1)
+            self.assertIn("referenceIdentifier", refs[0])
+            self.assertNotIn("poolReferenceIdentifier", refs[0])
+            self.assertEqual(refs[0]["referenceIdentifier"], q["pool_reference_identifier"])
+            self.assertTrue(refs[0]["referenceIdentifier"])
+
+
+class TestCoveredKeysIgnoreTokenOrder(unittest.TestCase):
+    """驗證官方回應把 tokenAddressA/B 順序反過來（例如請求 WETH/USDC，回應
+    是 USDC/WETH）時，covered_keys() 仍能跟 build_pending_rows() 的請求
+    base/quote key 對上，不會把已查到的池位誤判成 pending（t_bf8f4d3e
+    review：anne 實跑 230 筆全部已回應，normalized 卻仍有 61 筆卡在
+    pending，根因是 token 順序未正規化）。"""
+
+    def setUp(self):
+        self.config = common.load_config()
+
+    def test_reversed_token_order_row_is_recognized_as_covered(self):
+        # 模擬請求 base=WETH quote=USDC，但官方回應 tokenAddressA/B 剛好反過來。
+        row = {
+            "chain_id": 1,
+            "protocol": "V3",
+            "token_a_symbol": "USDC",
+            "token_b_symbol": "WETH",
+            "fee_tier_raw": 3000,
+            "status": "live",
+        }
+        covered = normalize.covered_keys([row])
+
+        matching_query = None
+        for q in fetch_pool_info.build_queries(self.config):
+            if (
+                q.get("query_type") == "poolParameters"
+                and q["chain_id"] == 1
+                and q["protocol"] == "V3"
+                and q["base_symbol"] == "WETH"
+                and q["quote_symbol"] == "USDC"
+                and q["fee"] == 3000
+            ):
+                matching_query = q
+                break
+        self.assertIsNotNone(matching_query, "config 應含 chain1/V3/WETH-USDC/3000 這組查詢")
+        self.assertIn(normalize._pending_key(matching_query), covered)
+
+    def test_full_normalize_reversed_order_does_not_create_pending_duplicate(self):
+        # 用 UNI/USDC（chain 1, fee 3000）而非 WETH/USDC，避免跟固定存在的
+        # anne 離線 fixture（本身就是 chain1/V3/WETH-USDC/3000）撞同一組合，
+        # 干擾「只應有一筆」的斷言。
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_data_dir = Path(tmp)
+            with mock.patch.object(normalize, "DATA_DIR", tmp_data_dir):
+                latest_raw = {
+                    "fetched_at": "2026-09-26T00:00:00+00:00",
+                    "results": [
+                        {
+                            "query_type": "poolParameters",
+                            "chain_id": 1,
+                            "chain_name": "Ethereum",
+                            "protocol": "V3",
+                            "base_symbol": "UNI",
+                            "quote_symbol": "USDC",
+                            "fee": 3000,
+                            "http_status": 200,
+                            "response": {
+                                "pools": [{
+                                    "poolReferenceIdentifier": "0xreversedorder",
+                                    "poolProtocol": "V3",
+                                    # 故意跟請求的 base/quote 順序相反。
+                                    "tokenAddressA": "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48",  # USDC
+                                    "tokenAddressB": "0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984",  # UNI
+                                    "fee": 3000,
+                                    "chainId": 1,
+                                    "poolLiquidity": "123",
+                                    "currentTick": 1,
+                                }],
+                            },
+                            "fetched_at": "2026-09-26T00:00:00+00:00",
+                        },
+                    ],
+                }
+                with open(tmp_data_dir / "latest_raw.json", "w", encoding="utf-8") as f:
+                    json.dump(latest_raw, f)
+
+                exit_code = normalize.main()
+                self.assertEqual(exit_code, 0)
+                with open(tmp_data_dir / "normalized_latest.json", "r", encoding="utf-8") as f:
+                    data = json.load(f)
+
+        rows_for_pair = [
+            r for r in data["rows"]
+            if r["chain_id"] == 1 and r["protocol"] == "V3" and r["fee_tier_raw"] == 3000
+            and {r["token_a_symbol"], r["token_b_symbol"]} == {"UNI", "USDC"}
+        ]
+        # 已回應（live）的這組合，不能同時又跑出一筆 pending 的重複列。
+        self.assertEqual(len(rows_for_pair), 1, rows_for_pair)
+        self.assertEqual(rows_for_pair[0]["status"], "live")
 
 
 class TestNormalizeFullRun(unittest.TestCase):

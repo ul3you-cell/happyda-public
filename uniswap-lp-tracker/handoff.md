@@ -143,6 +143,48 @@ commit/push）。
 
 ---
 
+## 0.4 第五輪修正（anne 合約／資料完整性驗收：fixture 與 live 重複計數 + 查詢數寫錯）
+
+anne 用修正過 nested `chainId` 的正式資料驗收，nested `chainId` 修補本身已通過
+真實 API 重驗（230/230 HTTP 200），但發現兩個資料完整性問題：
+
+1. **fixture 與 live 同一顆池被重複列出**：`normalize.py::load_fixture_rows()`
+   原本無條件把 `data/fixtures/eth-weth-usdc-v3-030.json` 這顆離線 fixture
+   （Ethereum V3 USDC/WETH 0.30%，池位地址
+   `0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8`）加入 `live_rows` 之外的列，
+   完全沒檢查正式 API 是否已經回應過同一顆池；anne 這輪的正式回應剛好也含
+   同一顆池，導致 `normalized_latest.json` 同時有 `live` 與 `fixture` 兩列，
+   公開頁面把同一顆池計了兩次（`total_rows=231` 但只有 230 顆池被實際問過）。
+   修正：新增 `_pool_identity()`（優先用 `chain_id/protocol/pool_address`，缺
+   位址時退回 `chain_id/protocol/canonical_pair/fee`）與
+   `dedupe_fixture_rows()`，`main()` 在組 `all_rows` 前先用正式 `live_rows`
+   把同一顆池的 fixture 濾掉；若某顆池完全沒有 live 資料（例如本次執行環境
+   沒有 key），fixture 仍會保留，離線 smoke 不會退化成 0 筆資料。新增
+   `tests/test_offline.py::TestFixtureDedupedAgainstLive`（3 個測試：單元測
+   `dedupe_fixture_rows()` 在有/無同池 live 資料時的兩種行為；整合測
+   `normalize.main()` 對同一顆池的 live+fixture 輸入只會輸出一筆 `live`）。
+   **此修正尚未用 anne 這輪的真實 `data/latest_raw.json` 重跑驗證**（本環境
+   沒有這份檔案／key）——需要 anne 在現有 raw snapshot 上重跑 `normalize.py`，
+   確認 `total_rows` 從 `231` 降到 `230`、且 WETH/USDC 那顆池只剩一筆
+   `live`（不再有 `fixture` 重複列）。
+2. **§2 查詢數寫錯**：本文件原先把查詢數寫成「230 個 token-pair + 1 個池位
+   參考 = 231」，跟 `fetch_pool_info.py::build_queries()` 的實際輸出不符——
+   實際是 **228 個 token-pair 查詢 + 1 個 Unichain 池位參考的 V4/V3 兩次協定
+   探測 = 230 筆請求**；已在 §2 更正並加上换算明細（Ethereum 72 + Arbitrum
+   60 + Base 48 + BNB 48 = 228）。231 這個數字其實是「輸出列數」（含 anne
+   離線 fixture 那一筆），跟「請求數」是兩件不同的東西，容易混淆，本輪已在
+   §2 加上區分說明。
+
+**本輪同樣沒有動任何資料檔**：`data/latest_raw.json`、
+`data/snapshot-20260926T070558Z.json`、`data/normalized_latest.json`、
+`uniswap-lp-tracker-20260926.html` 全部留給 anne 用自己重跑真實請求後的原始
+回應，重新產生並自行決定 commit/push 的時機（且上一輪 anne 已明確要求「請勿
+自行 push anne 這次產生的 data」）。改動範圍僅
+`scripts/normalize.py`、`tests/test_offline.py`、這份 `handoff.md`／
+`handoff.json`。
+
+---
+
 ## 0. 給 @anne 的一段話：接手要做的三件事
 
 1. **帶自己的 `UNISWAP_API_KEY` 跑一次真實資料**：
@@ -150,8 +192,9 @@ commit/push）。
    cd uniswap-lp-tracker
    UNISWAP_API_KEY=你的key python3 scripts/run_daily_update.py --no-push
    ```
-   會依序跑 `fetch_pool_info.py`（231 筆查詢，含 1 個 Unichain 池位參考 + 230 個
-   token-pair 查詢，見下方 §2）→ `normalize.py` → `build_dashboard.py`，
+   會依序跑 `fetch_pool_info.py`（230 筆查詢，含 228 個 token-pair 查詢 + 1 個
+   Unichain 池位參考的 V4/V3 兩次協定探測，見下方 §2）→ `normalize.py` →
+   `build_dashboard.py`，
    產生真實資料版的 `uniswap-lp-tracker-20260926.html`。**本次 dev-claude 執行
    環境沒有 key，所以目前頁面上 230 筆是 `pending`**，只有 1 筆（Ethereum
    WETH/USDC V3 0.30%）是你之前提供的離線 fixture。
@@ -196,8 +239,15 @@ commit/push）。
 | BNB Smart Chain | 56 | WETH(peg), BTCB, AAVE, UNI | USDC, USDT | 同上 | V3, V4 |
 | Unichain | 130 | — | — | — | 指定池位 `0x267EE34200b09Ea8b52D02EeC3300b84985B1eFd`（見 §0.2） |
 
-共 230 個 token-pair 查詢（4 鏈 × 平均 ~5 base token × 2 quote × 3 fee × 2 protocol，
-扣除各鏈實際 base token 數不同）+ 1 個 Unichain 池位參考 = **231 筆目標**。
+共 228 個 token-pair 查詢（4 鏈 × 平均 ~5 base token × 2 quote × 3 fee × 2 protocol，
+扣除各鏈實際 base token 數不同：Ethereum 72 + Arbitrum 60 + Base 48 + BNB 48）
++ 1 個 Unichain 池位參考各嘗試 V4／V3 兩次協定探測 = **230 筆請求**（`build_queries()`
+實際輸出的筆數，見 `tests/test_offline.py::TestPoolReferenceRequestSchema`）。
+
+> 修正說明（t_bf8f4d3e review 第五輪）：先前這裡誤寫成「230 個 token-pair + 1
+> 個池位參考 = 231」，與 `build_queries()` 的實際輸出不符（228 + 2 = 230）；
+> 231 其實是公開頁面加上 anne 離線 fixture 後的**輸出列數**，跟這裡描述的
+> **請求數**是兩件事，容易混淆，故予以更正。
 
 **SOL 覆蓋範圍限制**：只有 Ethereum 上找到可信賴、可交叉驗證的橋接位址
 （Wormhole WSOL `0xD31a59c85aE9D8edEFeC411D448f90841571b89c`）。Arbitrum／Base／BNB

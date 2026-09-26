@@ -98,5 +98,28 @@
     "caveat_reiterated": "0x267EE34200b09Ea8b52D02EeC3300b84985B1eFd remains a wallet address, not a pool (anne confirmed in round 3); even with a fully correct request schema, pool_info has no wallet->pool resolution, so these 2 queries may legitimately come back HTTP 200 with pools: [] (must normalize to empty_response, never reported as a delivered pool or wallet position)",
     "files_changed_this_round": ["uniswap-lp-tracker/scripts/fetch_pool_info.py", "uniswap-lp-tracker/tests/test_offline.py", "uniswap-lp-tracker/handoff.md", "uniswap-lp-tracker/handoff.json"],
     "data_files_touched": false
+  },
+  "review_round_5_fixes": {
+    "reported_by": "anne, after the nested chainId fix passed real API re-verification (230/230 HTTP 200), reviewing anne's real data + published dashboard",
+    "fix_1_fixture_live_duplicate": {
+      "bug": "normalize.py::load_fixture_rows() unconditionally included the offline fixture (Ethereum V3 USDC/WETH 0.30%, pool_address 0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8) regardless of whether the official API had already returned the same pool; anne's real run also returned that pool, so normalized_latest.json had both a live row and a fixture row for it, double-counting one pool (total_rows=231 for only 230 actually-queried pools)",
+      "fix": "added _pool_identity() (chain_id/protocol/pool_address, falling back to chain_id/protocol/canonical_pair/fee when no address) and dedupe_fixture_rows(); main() now filters fixture_rows against live_rows before building all_rows, so a fixture row is only kept when no live row covers the same pool (offline fallback still works when there is no live data at all)",
+      "verified_by": "3 new offline tests (tests/test_offline.py::TestFixtureDedupedAgainstLive: unit test for dedupe_fixture_rows() with/without a matching live row, integration test that normalize.main() emits exactly one live row -- not two -- when live and fixture data describe the same pool); NOT yet re-verified against anne's real data/latest_raw.json from this round (not present in this environment) -- anne must re-run normalize.py on the existing raw snapshot and confirm total_rows drops from 231 to 230 with the WETH/USDC pool appearing only once as live",
+      "tests_run": "python3 tests/test_offline.py -v -> 25 passed; node tests/sort_logic_check.mjs -> 28/28 (against the still-published, not-yet-regenerated 231-row dataset; unaffected by this code-only change)"
+    },
+    "fix_2_query_count_wording": {
+      "bug": "handoff.md section 2 said '230 token-pair queries + 1 pool reference = 231', which does not match fetch_pool_info.py::build_queries()'s actual output",
+      "fix": "corrected to 228 token-pair queries (Ethereum 72 + Arbitrum 60 + Base 48 + BNB 48) + 1 Unichain pool reference probed twice (V4 then V3) = 230 requests; clarified that 231 is the dashboard's output row count (including anne's offline fixture), a different number from the request count",
+      "verified_by": "arithmetic cross-checked against config/pools_targets.json (protocols=2, fee_tiers=3, per-chain base/quote token counts) and fetch_pool_info.py::build_queries() logic"
+    },
+    "files_changed_this_round": ["uniswap-lp-tracker/scripts/normalize.py", "uniswap-lp-tracker/tests/test_offline.py", "uniswap-lp-tracker/handoff.md", "uniswap-lp-tracker/handoff.json"],
+    "data_files_touched": false,
+    "not_committed_this_round": [
+      "uniswap-lp-tracker/data/latest_raw.json",
+      "uniswap-lp-tracker/data/snapshot-20260926T070558Z.json",
+      "uniswap-lp-tracker/data/normalized_latest.json",
+      "uniswap-lp-tracker-20260926.html"
+    ],
+    "reason_not_committed": "anne explicitly asked not to push her real-data outputs; the fixture-dedup fix is not yet re-verified against her latest raw snapshot, so the published dashboard data is left untouched for anne to regenerate and commit/push at her own timing"
   }
 }

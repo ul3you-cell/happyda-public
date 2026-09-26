@@ -263,6 +263,33 @@ def no_pool_excluded_keys(config: dict) -> set[tuple]:
     return keys
 
 
+def _pool_identity(row: dict) -> tuple:
+    """同一顆池位的身分識別 key，跟 `_pending_key()` 的「查詢組合」key 不同層次：
+    這裡用來判斷 fixture row 與 live row 是不是「同一顆已經上鏈的池」，藉此避免
+    fixture 被當成額外一筆重複列出（t_bf8f4d3e review 第三輪：anne 的 Ethereum
+    WETH/USDC V3 0.30% fixture 池位地址 0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8，
+    跟正式 API 回應的同一顆池同時出現在 rows 裡，造成 total_rows 虛增）。
+    優先用 pool_address（同一鏈+協定+池位地址即同一池，比 token pair 更精確，
+    同一 pair/fee 理論上也可能有多顆池，例如不同 tickSpacing 的 v4 池）；
+    只有在缺 pool_address 時才退回用 chain/protocol/pair/fee 比對。"""
+    addr = (row.get("pool_address") or "").lower()
+    if addr:
+        return ("addr", row.get("chain_id"), row.get("protocol"), addr)
+    a, b = _canonical_pair(row.get("token_a_symbol"), row.get("token_b_symbol"))
+    return ("pair", row.get("chain_id"), row.get("protocol"), a, b, row.get("fee_tier_raw"))
+
+
+def dedupe_fixture_rows(fixture_rows: list[dict], live_rows: list[dict]) -> list[dict]:
+    """fixture 只是「離線 fallback／測試資料」，不是額外池位；一旦同一顆池已經有
+    live 資料，就不能再讓 fixture 重複列出同一池，否則會把已取得一次的資料計成
+    兩筆（t_bf8f4d3e review 第三輪：Ethereum WETH/USDC V3 0.30% 的 fixture 跟正式
+    API 回應同一顆池同時出現在公開頁面，撐大 total_rows）。反過來說：若真實資料
+    完全缺失（例如本次執行環境沒有 UNISWAP_API_KEY），fixture 仍要保留，離線
+    smoke 才不會退化。"""
+    live_identities = {_pool_identity(r) for r in live_rows if r["status"] == "live"}
+    return [r for r in fixture_rows if _pool_identity(r) not in live_identities]
+
+
 def covered_keys(rows: list[dict]) -> set[tuple]:
     """回傳跟 _pending_key() 相同 shape、相同 pair 順序正規化的 key 集合，
     這樣才能跟 build_pending_rows() 用請求 base/quote 組出的 key 正確比對，
@@ -314,6 +341,10 @@ def main() -> int:
 
     fixture_rows = load_fixture_rows(whitelist, config)
     live_rows = load_live_rows(whitelist, config)
+    # fixture 只是離線 fallback／測試資料；同一顆池若已有正式 live 回應，
+    # 不能讓 fixture 再重複列出一次（t_bf8f4d3e review 第三輪：Ethereum
+    # WETH/USDC V3 0.30% 同時出現 live 與 fixture 兩列，虛增 total_rows）。
+    fixture_rows = dedupe_fixture_rows(fixture_rows, live_rows)
     no_pool_rows = load_no_pool_rows(config)
 
     covered = covered_keys(fixture_rows + live_rows)

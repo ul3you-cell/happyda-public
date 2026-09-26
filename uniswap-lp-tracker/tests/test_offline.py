@@ -443,6 +443,88 @@ class TestCoveredKeysIgnoreTokenOrder(unittest.TestCase):
         self.assertEqual(rows_for_pair[0]["status"], "live")
 
 
+class TestFixtureDedupedAgainstLive(unittest.TestCase):
+    """驗證同一顆池若已經有正式 live 回應，離線 fixture 不會再重複列出同一池
+    （t_bf8f4d3e review 第三輪：anne 的正式資料裡，Ethereum WETH/USDC V3 0.30%
+    fixture 池位地址 0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8 跟正式 API 回應
+    同一顆池同時出現在 rows，把 total_rows 撐大且重複計數一顆池）。"""
+
+    def setUp(self):
+        self.config = common.load_config()
+        self.whitelist = common.build_token_whitelist(self.config)
+        fixture_path = common.FIXTURES_DIR / "eth-weth-usdc-v3-030.json"
+        with open(fixture_path, "r", encoding="utf-8") as f:
+            self.fixture_payload = json.load(f)
+        self.fixture_pool_obj = self.fixture_payload["pools"][0]
+
+    def test_dedupe_drops_fixture_row_matching_live_pool_address(self):
+        fixture_row = normalize.pool_obj_to_row(
+            self.fixture_pool_obj, source_label="offline fixture", snapshot_time=None,
+            whitelist=self.whitelist, config=self.config,
+        )
+        fixture_row["status"] = "fixture"
+        # 模擬正式 API 回應同一顆池（同 chain/protocol/pool_address），是 live 狀態。
+        live_row = normalize.pool_obj_to_row(
+            self.fixture_pool_obj, source_label="live", snapshot_time="2026-09-26T07:40:00+00:00",
+            whitelist=self.whitelist, config=self.config,
+        )
+        self.assertEqual(live_row["status"], "live")
+
+        deduped = normalize.dedupe_fixture_rows([fixture_row], [live_row])
+        self.assertEqual(deduped, [], "同一池位已有 live 資料時，fixture 不能再重複列出")
+
+    def test_dedupe_keeps_fixture_row_when_no_matching_live_pool(self):
+        fixture_row = normalize.pool_obj_to_row(
+            self.fixture_pool_obj, source_label="offline fixture", snapshot_time=None,
+            whitelist=self.whitelist, config=self.config,
+        )
+        fixture_row["status"] = "fixture"
+        # 完全沒有 live 資料時（例如本次執行環境沒有 UNISWAP_API_KEY），fixture 必須保留
+        # 作為離線 fallback，不能因為新增了 dedupe 邏輯就連唯一的資料來源都被濾掉。
+        deduped = normalize.dedupe_fixture_rows([fixture_row], [])
+        self.assertEqual(len(deduped), 1)
+
+    def test_full_normalize_no_duplicate_pool_when_live_matches_fixture(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp_data_dir = Path(tmp)
+            with mock.patch.object(normalize, "DATA_DIR", tmp_data_dir):
+                pool_obj = self.fixture_pool_obj
+                latest_raw = {
+                    "fetched_at": "2026-09-26T07:40:00+00:00",
+                    "results": [
+                        {
+                            "query_type": "poolParameters",
+                            "chain_id": pool_obj["chainId"],
+                            "chain_name": "Ethereum",
+                            "protocol": pool_obj["poolProtocol"],
+                            "base_symbol": "WETH",
+                            "quote_symbol": "USDC",
+                            "fee": pool_obj["fee"],
+                            "http_status": 200,
+                            "response": {"pools": [pool_obj]},
+                            "fetched_at": "2026-09-26T07:40:00+00:00",
+                        },
+                    ],
+                }
+                with open(tmp_data_dir / "latest_raw.json", "w", encoding="utf-8") as f:
+                    json.dump(latest_raw, f)
+
+                exit_code = normalize.main()
+                self.assertEqual(exit_code, 0)
+                with open(tmp_data_dir / "normalized_latest.json", "r", encoding="utf-8") as f:
+                    data = json.load(f)
+
+        pool_address = pool_obj["poolReferenceIdentifier"].lower()
+        rows_for_pool = [
+            r for r in data["rows"]
+            if r["pool_address"] and r["pool_address"].lower() == pool_address
+        ]
+        # 正式 latest_raw.json 已含這顆池的 live 資料時，fixture 不可再重複列出同一顆池；
+        # 只能有一筆，且狀態是 live（不是被 fixture 蓋掉或兩者並存）。
+        self.assertEqual(len(rows_for_pool), 1, rows_for_pool)
+        self.assertEqual(rows_for_pool[0]["status"], "live")
+
+
 class TestNormalizeFullRun(unittest.TestCase):
     """對 normalize.main() 的完整輸出做 sanity check（讀真實 data/normalized_latest.json，
     需先跑過 scripts/normalize.py 至少一次；若尚未產生則此測試會自動先產生一份）。"""

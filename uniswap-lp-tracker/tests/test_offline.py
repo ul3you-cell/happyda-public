@@ -317,8 +317,11 @@ class TestTelegramExitPropagation(unittest.TestCase):
 class TestPoolReferenceRequestSchema(unittest.TestCase):
     """驗證 special_pool_references（Unichain 目標池）送出的請求 body 用官方
     schema 的 poolReferences[0].referenceIdentifier，不是
-    poolReferenceIdentifier（anne 實測 2 筆 Unichain 皆因欄位名錯誤被伺服器
-    視為空值、回 400 invalid_argument；見 fetch_pool_info.py 修正註解）。"""
+    poolReferenceIdentifier；且該元素內還要帶巢狀 chainId（anne 實測 2 輪：
+    第一輪欄位名錯誤被伺服器視為空值、回 400 invalid_argument；改正欄位名
+    後第二輪伺服器回應明確指出 poolReferences[0].chainId must be one of ...
+    130 ...，代表巢狀 chainId 也是必填，不能只靠頂層 chainId）。見
+    fetch_pool_info.py 修正註解。"""
 
     def test_pool_reference_body_uses_referenceIdentifier_key(self):
         config = common.load_config()
@@ -332,6 +335,21 @@ class TestPoolReferenceRequestSchema(unittest.TestCase):
             self.assertNotIn("poolReferenceIdentifier", refs[0])
             self.assertEqual(refs[0]["referenceIdentifier"], q["pool_reference_identifier"])
             self.assertTrue(refs[0]["referenceIdentifier"])
+
+    def test_pool_reference_body_includes_nested_chain_id(self):
+        """anne 第二輪 changes_requested：poolReferences[0] 仍缺巢狀 chainId，
+        官方 400 訊息點名 poolReferences[0].chainId must be one of ... 130 ...
+        （不是只靠頂層 body["chainId"]）。"""
+        config = common.load_config()
+        queries = fetch_pool_info.build_queries(config)
+        ref_queries = [q for q in queries if q["query_type"] == "poolReference"]
+        self.assertTrue(ref_queries, "config 應至少有一筆 special_pool_references 目標")
+        for q in ref_queries:
+            refs = q["body"]["poolReferences"]
+            self.assertEqual(len(refs), 1)
+            self.assertIn("chainId", refs[0], "poolReferences[0] 必須帶巢狀 chainId，不能只依賴頂層 chainId")
+            self.assertEqual(refs[0]["chainId"], q["body"]["chainId"])
+            self.assertEqual(refs[0]["chainId"], q["chain_id"])
 
 
 class TestCoveredKeysIgnoreTokenOrder(unittest.TestCase):

@@ -73,10 +73,17 @@ def build_queries(config: dict) -> list[dict]:
                 "protocol": protocol,
                 "chainId": ref["chain_id"],
                 # 官方 schema 是 poolReferences[0].referenceIdentifier（不是
-                # poolReferenceIdentifier）；用錯欄位名時伺服器視為空值，回
-                # 400 invalid_argument（t_bf8f4d3e review：anne 實測 Unichain
-                # 兩筆皆因此壞掉）。見 tests/test_offline.py 的 regression。
-                "poolReferences": [{"referenceIdentifier": ref["pool_reference_identifier"]}],
+                # poolReferenceIdentifier），且該元素內還需要「巢狀」
+                # chainId（不是只有頂層 chainId）；用錯欄位名或漏掉巢狀
+                # chainId 時伺服器視為空值/不支援的鏈，回 400
+                # invalid_argument（t_bf8f4d3e review：anne 兩輪實測
+                # Unichain 兩筆皆因此壞掉，第二輪錯誤訊息明確指出
+                # poolReferences[0].chainId must be one of ... 130 ...）。
+                # 見 tests/test_offline.py 的 regression。
+                "poolReferences": [{
+                    "referenceIdentifier": ref["pool_reference_identifier"],
+                    "chainId": ref["chain_id"],
+                }],
             }
             queries.append({
                 "query_type": "poolReference",

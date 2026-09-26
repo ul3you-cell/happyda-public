@@ -89,5 +89,14 @@
       "uniswap-lp-tracker-20260926.html (regenerated locally, left uncommitted)"
     ],
     "reason_not_committed": "anne asked not to push this round's data ('請勿自行push anne這次產生的data'); the Unichain schema fix is still unverified against a real request, so the data is not final. Only the code fixes (fetch_pool_info.py, normalize.py) and tests/handoff docs are ready to commit; anne re-runs the real update and decides when to commit/push the resulting data."
+  },
+  "review_round_4_fix": {
+    "reported_by": "anne, after re-running fetch_pool_info.py with a real UNISWAP_API_KEY on top of round 3's fix (228x HTTP 200, 2x HTTP 400 on Unichain -- same 2 queries, different error)",
+    "bug": "round 3 only fixed the field name (poolReferenceIdentifier -> referenceIdentifier) but poolReferences[0] was still missing its own nested chainId; server error changed from 'referenceIdentifier is not allowed to be empty' to 'poolReferences[0].chainId must be one of ... 130 ...', i.e. the top-level body chainId is not sufficient -- each poolReferences element also needs chainId",
+    "fix": "fetch_pool_info.py::build_queries() now sets poolReferences[0] = {referenceIdentifier: ..., chainId: ref[\"chain_id\"]} (130 for Unichain)",
+    "verified_by": "unit test only (tests/test_offline.py::TestPoolReferenceRequestSchema::test_pool_reference_body_includes_nested_chain_id, asserts nested chainId equals both the top-level body chainId and the query's chain_id); NOT yet re-verified against a real request in this environment (no UNISWAP_API_KEY here) -- anne must re-run fetch_pool_info.py again to confirm the two Unichain queries stop failing with a schema-related 400",
+    "caveat_reiterated": "0x267EE34200b09Ea8b52D02EeC3300b84985B1eFd remains a wallet address, not a pool (anne confirmed in round 3); even with a fully correct request schema, pool_info has no wallet->pool resolution, so these 2 queries may legitimately come back HTTP 200 with pools: [] (must normalize to empty_response, never reported as a delivered pool or wallet position)",
+    "files_changed_this_round": ["uniswap-lp-tracker/scripts/fetch_pool_info.py", "uniswap-lp-tracker/tests/test_offline.py", "uniswap-lp-tracker/handoff.md", "uniswap-lp-tracker/handoff.json"],
+    "data_files_touched": false
   }
 }

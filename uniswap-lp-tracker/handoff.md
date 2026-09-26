@@ -102,6 +102,47 @@ Unichain HTTP 400；且 normalize 後仍有 61 筆卡在 `pending`（理論上 2
 
 ---
 
+## 0.3 第四輪修正（anne 帶正式 key 重跑後，Unichain 仍 400 的第二次根因）
+
+anne 用真實 `UNISWAP_API_KEY` 重跑第三輪修正後的程式碼：228 筆 HTTP
+200，Unichain 的 2 筆 V3/V4 poolReference 查詢**仍然** HTTP 400，但這次
+官方錯誤訊息換了：`poolReferences[0].chainId must be one of ... 130
+...`。代表第三輪只修正了欄位名（`poolReferenceIdentifier` →
+`referenceIdentifier`），沒注意到 `poolReferences[0]` 這個物件本身**也
+需要自己的 `chainId`**——不能只靠 body 頂層的 `chainId`。
+
+修正：`fetch_pool_info.py::build_queries()` 的 `poolReferences[0]` 現在
+同時帶 `referenceIdentifier` 與 `chainId`（值同頂層 `ref["chain_id"]`，
+Unichain 是 `130`）：
+
+```python
+"poolReferences": [{
+    "referenceIdentifier": ref["pool_reference_identifier"],
+    "chainId": ref["chain_id"],
+}],
+```
+
+新增 `tests/test_offline.py::TestPoolReferenceRequestSchema::test_pool_reference_body_includes_nested_chain_id`，
+斷言 `poolReferences[0]` 一定帶 `chainId` 且與頂層 `chainId`／查詢的
+`chain_id` 一致。**此修正同樣尚未經真實請求重驗**（本環境無
+`UNISWAP_API_KEY`）——需要 anne 再帶 key 跑一次 `fetch_pool_info.py`，
+確認 Unichain 這兩筆這次真的不再是 schema 相關的 400。
+
+再次提醒（anne 已在第三輪確認、本輪重申，避免被誤判為交付成功）：
+`0x267EE34200b09Ea8b52D02EeC3300b84985B1eFd` 是**錢包地址而非池位**，
+即使這次 schema 完全修對、伺服器也接受請求格式，`pool_info` 端點依然
+**做不到「錢包→池位」查詢**，這兩筆查詢即使拿到 HTTP 200 也很可能是
+`pools: []`（`empty_response`），必須照 §0.2 第 3 點的規則正規化為
+`empty_response`，**絕對不能**把它標成成功交付的池位或錢包 position。
+真正的 V3/V4 wallet position 查詢仍在另一張研究卡的範圍。
+
+本輪只改了 `scripts/fetch_pool_info.py`、`tests/test_offline.py`、這份
+`handoff.md`、`handoff.json`；沒有動任何資料檔（anne 的 `data/latest_raw.json`
+等仍留在工作目錄未 commit，由 anne 重跑真實請求後自行決定何時
+commit/push）。
+
+---
+
 ## 0. 給 @anne 的一段話：接手要做的三件事
 
 1. **帶自己的 `UNISWAP_API_KEY` 跑一次真實資料**：

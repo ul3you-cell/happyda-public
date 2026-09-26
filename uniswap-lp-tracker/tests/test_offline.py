@@ -13,6 +13,7 @@ import os
 import sys
 import tempfile
 import unittest
+import urllib.error
 from pathlib import Path
 from unittest import mock
 
@@ -21,6 +22,7 @@ sys.path.insert(0, str(SCRIPTS_DIR))
 
 import common  # noqa: E402
 import fetch_pool_info  # noqa: E402
+import graph_gateway_check  # noqa: E402
 import normalize  # noqa: E402
 import run_daily_update  # noqa: E402
 
@@ -125,6 +127,82 @@ class TestGraphApiKeyHandling(unittest.TestCase):
             self.assertEqual(result, truncated)
             # 警告訊息只能提長度數字，不能把完整 key 字串印出來
             self.assertNotIn(truncated, buf.getvalue())
+
+
+class TestGraphGatewayCheck(unittest.TestCase):
+    """graph_gateway_check.py 的唯讀 smoke test 邏輯：全部用 mock.patch 攔截
+    urllib.request.urlopen，不打真實網路（CI/離線環境不該連上 The Graph）。"""
+
+    FAKE_KEY = "deadbeef" * 8  # 合成測試值，不是任何真實 key
+
+    @staticmethod
+    def _fake_response(payload: dict):
+        class _Resp:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+            def read(self):
+                return json.dumps(payload).encode("utf-8")
+
+        return _Resp()
+
+    def test_success_extracts_block_number(self):
+        payload = {"data": {"_meta": {"block": {"number": 12345678}}}}
+        with mock.patch("graph_gateway_check.urllib.request.urlopen", return_value=self._fake_response(payload)):
+            ok, message = graph_gateway_check.check_gateway(self.FAKE_KEY)
+        self.assertTrue(ok)
+        self.assertIn("12345678", message)
+        self.assertNotIn(self.FAKE_KEY, message)
+
+    def test_graphql_errors_field_is_reported_as_failure(self):
+        payload = {"errors": [{"message": "deployment does not exist"}]}
+        with mock.patch("graph_gateway_check.urllib.request.urlopen", return_value=self._fake_response(payload)):
+            ok, message = graph_gateway_check.check_gateway(self.FAKE_KEY)
+        self.assertFalse(ok)
+        self.assertIn("deployment does not exist", message)
+        self.assertNotIn(self.FAKE_KEY, message)
+
+    def test_missing_expected_field_is_reported_as_failure(self):
+        payload = {"data": {}}
+        with mock.patch("graph_gateway_check.urllib.request.urlopen", return_value=self._fake_response(payload)):
+            ok, message = graph_gateway_check.check_gateway(self.FAKE_KEY)
+        self.assertFalse(ok)
+
+    def test_http_error_response_never_leaks_key(self):
+        import io
+
+        err_body = io.BytesIO(b'{"error": "invalid api key"}')
+
+        def _raise(*args, **kwargs):
+            raise urllib.error.HTTPError(
+                f"https://gateway.thegraph.com/api/{self.FAKE_KEY}/subgraphs/id/x",
+                401, "Unauthorized", {}, err_body,
+            )
+
+        with mock.patch("graph_gateway_check.urllib.request.urlopen", side_effect=_raise):
+            ok, message = graph_gateway_check.check_gateway(self.FAKE_KEY)
+        self.assertFalse(ok)
+        self.assertIn("401", message)
+        self.assertNotIn(self.FAKE_KEY, message)
+
+    def test_url_error_never_leaks_key(self):
+        def _raise(*args, **kwargs):
+            raise urllib.error.URLError("Name or service not known")
+
+        with mock.patch("graph_gateway_check.urllib.request.urlopen", side_effect=_raise):
+            ok, message = graph_gateway_check.check_gateway(self.FAKE_KEY)
+        self.assertFalse(ok)
+        self.assertNotIn(self.FAKE_KEY, message)
+
+    def test_main_exits_2_when_key_unset(self):
+        with mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop(common.GRAPH_API_KEY_ENV, None)
+            with self.assertRaises(SystemExit) as ctx:
+                graph_gateway_check.main()
+            self.assertEqual(ctx.exception.code, 2)
 
 
 class TestTokenWhitelist(unittest.TestCase):

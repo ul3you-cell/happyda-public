@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import json
 import os
+import stat
 import sys
 import tempfile
 import unittest
@@ -568,6 +569,110 @@ class TestWalletSnapshotStore(unittest.TestCase):
         )
         self.assertEqual(sorted(p[0] for p in positions), [42, 43])
         conn.close()
+
+
+class TestMigrateLegacyDb(unittest.TestCase):
+    """wallet_snapshot_store.migrate_legacy_db()：舊隱藏路徑 ->
+    ~/Documents/... 新路徑的一次性安全搬移。全程用 tempdir 模擬兩邊路徑，
+    完全不碰真實的 LEGACY_DB_PATH / DEFAULT_DB_PATH。"""
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp(prefix="wallet-tracker-migrate-")
+        self.legacy_path = Path(self.tmpdir) / "legacy" / "wallet_snapshots.sqlite3"
+        self.new_path = Path(self.tmpdir) / "new" / "wallet_snapshots.sqlite3"
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def _make_valid_legacy_db(self):
+        self.legacy_path.parent.mkdir(parents=True, exist_ok=True)
+        conn = wallet_snapshot_store.get_connection(self.legacy_path)
+        wallet_snapshot_store.insert_snapshot(
+            conn, ts=100, wallet_addr="0xabc", chain_id=1, token_id=1, pool_addr="0xpool",
+            tick_lower=-1, tick_upper=1, liquidity="1", in_range=True,
+            fees_accrued_usd=1.0, position_value_usd=100.0,
+        )
+        conn.close()
+
+    def test_nothing_to_migrate_when_legacy_absent(self):
+        status = wallet_snapshot_store.migrate_legacy_db(self.legacy_path, self.new_path)
+        self.assertEqual(status, "nothing_to_migrate")
+        self.assertFalse(self.new_path.exists())
+
+    def test_migrates_valid_legacy_db_to_new_path(self):
+        self._make_valid_legacy_db()
+        status = wallet_snapshot_store.migrate_legacy_db(self.legacy_path, self.new_path)
+        self.assertEqual(status, "migrated")
+        self.assertTrue(self.new_path.exists())
+        self.assertFalse(self.legacy_path.exists())  # 搬移=不留舊檔
+        # 搬過去的資料要能正常讀出來，不是只搬了個空殼
+        conn = wallet_snapshot_store.get_connection(self.new_path)
+        history = wallet_snapshot_store.fetch_position_history(conn, wallet_addr="0xabc", chain_id=1, token_id=1)
+        self.assertEqual(len(history), 1)
+        conn.close()
+
+    def test_never_overwrites_existing_new_path(self):
+        self._make_valid_legacy_db()
+        self.new_path.parent.mkdir(parents=True, exist_ok=True)
+        conn = wallet_snapshot_store.get_connection(self.new_path)
+        wallet_snapshot_store.insert_snapshot(
+            conn, ts=999, wallet_addr="0xexisting", chain_id=1, token_id=2, pool_addr="0xpool2",
+            tick_lower=-1, tick_upper=1, liquidity="1", in_range=True,
+            fees_accrued_usd=2.0, position_value_usd=200.0,
+        )
+        conn.close()
+        status = wallet_snapshot_store.migrate_legacy_db(self.legacy_path, self.new_path)
+        self.assertEqual(status, "skip_new_already_exists")
+        self.assertTrue(self.legacy_path.exists())  # 舊檔完全沒被動
+        conn = wallet_snapshot_store.get_connection(self.new_path)
+        history = wallet_snapshot_store.fetch_position_history(conn, wallet_addr="0xexisting", chain_id=1, token_id=2)
+        self.assertEqual(len(history), 1)  # 新檔內容沒被覆蓋掉
+        conn.close()
+
+    def test_corrupt_legacy_db_not_migrated(self):
+        self.legacy_path.parent.mkdir(parents=True, exist_ok=True)
+        self.legacy_path.write_bytes(b"this is not a real sqlite file")
+        status = wallet_snapshot_store.migrate_legacy_db(self.legacy_path, self.new_path)
+        self.assertEqual(status, "legacy_corrupt_not_migrated")
+        self.assertFalse(self.new_path.exists())
+        self.assertTrue(self.legacy_path.exists())  # 壞檔留在原地，沒被搬走或刪掉
+
+
+class TestWalletTrackerReadmeAndPermissions(unittest.TestCase):
+    """README-備份與還原.md 與資料夾權限（get_connection 的預設路徑分支）。"""
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp(prefix="wallet-tracker-readme-")
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def test_readme_written_with_required_topics(self):
+        target = Path(self.tmpdir) / "docs-style-dir"
+        target.mkdir(parents=True, exist_ok=True)
+        wallet_snapshot_store._ensure_readme(target)
+        readme_path = target / wallet_snapshot_store.README_FILENAME
+        self.assertTrue(readme_path.exists())
+        text = readme_path.read_text(encoding="utf-8")
+        for keyword in ("備份", "還原", "Time Machine", "不進任何 git repo"):
+            self.assertIn(keyword, text)
+
+    def test_readme_not_overwritten_if_already_present(self):
+        target = Path(self.tmpdir) / "docs-style-dir"
+        target.mkdir(parents=True, exist_ok=True)
+        readme_path = target / wallet_snapshot_store.README_FILENAME
+        readme_path.write_text("使用者自己寫的筆記", encoding="utf-8")
+        wallet_snapshot_store._ensure_readme(target)
+        self.assertEqual(readme_path.read_text(encoding="utf-8"), "使用者自己寫的筆記")
+
+    def test_get_connection_sets_owner_only_directory_permission(self):
+        db_path = Path(self.tmpdir) / "perm-check" / "wallet_snapshots.sqlite3"
+        conn = wallet_snapshot_store.get_connection(db_path)
+        conn.close()
+        mode = stat.S_IMODE(db_path.parent.stat().st_mode)
+        self.assertEqual(mode, stat.S_IRWXU)
 
 
 class TestComputeWalletPositionMetrics(unittest.TestCase):

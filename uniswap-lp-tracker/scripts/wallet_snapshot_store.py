@@ -7,9 +7,16 @@
   SQLite 檔案（這就是「本機排程追蹤」存在的目的：明天要對得起今天的
   基準，才能算得出每日 delta／7d／30d APR）——不能承諾「完全不進
   process」，那種說法已經被 anne 糾正過一次，不再重複那個錯誤。
-- DB 檔案預設路徑在使用者 home 目錄下、**完全在這個 git repo 之外**
-  （結構上就不可能被誤 commit），可用環境變數 WALLET_TRACKER_DB_PATH 覆蓋
+- DB 檔案預設路徑在 `~/Documents/Hermes Data/Uniswap LP Tracker/`
+  （anne 的選擇，2026-09-26 定案）——**完全在這個 git repo 之外**（結構上
+  就不可能被誤 commit），且刻意放在 Finder 看得到的 `Documents` 底下，
+  Migration Assistant／Time Machine 遷移或重灌時比較不容易被漏掉（跟
+  一開始選的隱藏資料夾 `~/.uniswap_tracker/` 相反，那個位置在搬家時很
+  容易被忘記，anne 已否決）。可用環境變數 WALLET_TRACKER_DB_PATH 覆蓋
   （測試會覆蓋成 tempfile 路徑，不會碰到使用者的真實檔案）。
+  **選對位置不等於自動備份**——資料夾本身不會被這支程式自動同步到任何
+  地方，重灌前仍需使用者自行確認 Documents 有進 Time Machine 或其他
+  備份機制（見同資料夾的 README-備份與還原.md）。
 
 Schema 只存「錢包位址＋NFT 部位＋每日 fee 快照」這一張表（anne：
 「最小化 SQLite」），不另外存一張衍生的 delta 表——delta／APR 一律在
@@ -23,12 +30,59 @@ fee-growth 差值或唯讀 eth_call 模擬 collect() 算出後寫入；本模組
 from __future__ import annotations
 
 import os
+import shutil
 import sqlite3
+import stat
 from pathlib import Path
 
+DEFAULT_DB_DIR = Path.home() / "Documents" / "Hermes Data" / "Uniswap LP Tracker"
 DEFAULT_DB_PATH = Path(
-    os.environ.get("WALLET_TRACKER_DB_PATH", str(Path.home() / ".uniswap_tracker" / "wallet_snapshots.sqlite3"))
+    os.environ.get("WALLET_TRACKER_DB_PATH", str(DEFAULT_DB_DIR / "wallet_snapshots.sqlite3"))
 )
+# 2026-09-26 以前的舊預設路徑（隱藏資料夾，anne 已否決：重灌/搬家時容易忘記）。
+# 只用來做一次性安全搬移，之後新安裝不會再產生這個路徑。
+LEGACY_DB_PATH = Path.home() / ".uniswap_tracker" / "wallet_snapshots.sqlite3"
+
+README_FILENAME = "README-備份與還原.md"
+README_CONTENT = """# Uniswap LP Tracker 本機資料夾
+
+這個資料夾存的是「方案 B：本機排程追蹤」的錢包 LP 部位快照，**只在這台電腦
+上**，不進任何 git repo、不送任何後端伺服器、不寫進任何 log。
+
+## 這裡有什麼
+
+- `wallet_snapshots.sqlite3`：SQLite 資料庫，一張表 `wallet_position_snapshot`，
+  每天一筆快照（錢包位址、NFT 部位、當日估算手續費、部位估值）。
+  用來算 7 天／30 天 fee APR；資料從你啟用追蹤那天開始累積，滿 7／30 天前
+  會明確顯示「尚不足計算」，不會用不足的資料硬湊一個年化數字。
+
+## 隱私邊界（誠實版，不誇大）
+
+- 錢包位址**不會**進 git、不會送到任何外部後端、不會寫進任何 log 檔。
+- 錢包位址**會**進入執行這支排程的本機 process 記憶體，也**會**寫進這個
+  SQLite 檔案——這是「本機排程追蹤」能夠算出每日 delta／APR 的必要代價，
+  不能承諾「完全不進 process」。
+
+## 備份與還原
+
+- **選對這個位置（`~/Documents/...`）不等於自動備份。** 這支程式不會自動
+  把這個資料夾同步到任何雲端或外接硬碟。
+- 想備份：確認 macOS 的 Time Machine（或你慣用的備份工具）有把整個
+  `~/Documents` 資料夾納入備份範圍即可，這個資料夾會跟著一起備份。
+- 重灌或換機前：先確認上一次 Time Machine 備份的時間點晚於你最後一次
+  更新這個資料庫的時間，或手動把整個 `Uniswap LP Tracker` 資料夾複製到
+  新機器的相同路徑（`~/Documents/Hermes Data/Uniswap LP Tracker/`）。
+- 還原後不用做任何額外設定，程式預設路徑就會直接找到這裡的
+  `wallet_snapshots.sqlite3` 繼續累積歷史。
+
+## 舊版路徑
+
+2026-09-26 以前，本程式的預設路徑是隱藏資料夾 `~/.uniswap_tracker/`——
+已改到這裡，理由是隱藏資料夾在 Migration Assistant／Time Machine 選擇性
+還原時比較容易被漏掉。第一次在新路徑啟動時，程式會**自動、安全地**把
+舊路徑的資料庫搬過來（先驗證完整性、絕不覆蓋這裡已存在的新檔案），
+搬移成功後才會刪除舊檔案。
+"""
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS wallet_position_snapshot (
@@ -51,9 +105,67 @@ CREATE TABLE IF NOT EXISTS wallet_position_snapshot (
 """
 
 
+def _verify_sqlite_integrity(path: Path) -> bool:
+    """搬移前先確認舊檔真的是一個沒壞的 SQLite 檔案，壞檔不搬（留在原地，
+    不製造「新位置有一個壞掉但看起來存在」的檔案）。"""
+    try:
+        conn = sqlite3.connect(str(path))
+        try:
+            row = conn.execute("PRAGMA integrity_check").fetchone()
+            return bool(row) and row[0] == "ok"
+        finally:
+            conn.close()
+    except sqlite3.Error:
+        return False
+
+
+def migrate_legacy_db(legacy_path: Path | None = None, new_path: Path | None = None) -> str:
+    """一次性安全搬移：舊隱藏路徑 -> 新的 `~/Documents/...` 路徑。
+
+    規則（anne 指定）：
+      - 新路徑已經有檔案 -> 完全不動，回報 skip（絕不覆蓋）。
+      - 舊路徑不存在 -> 沒東西可搬，回報 nothing_to_migrate。
+      - 舊路徑存在但檔案損壞（integrity_check 失敗）-> 不搬，留在原地讓
+        使用者自己處理，回報 legacy_corrupt。
+      - 驗證通過 -> 先建立新目錄（權限 0700，僅使用者可讀寫執行），
+        搬移（`shutil.move`），回報 migrated。
+    回傳值是給呼叫端記 log／印訊息用的狀態字串，不丟例外中斷正常啟動流程
+    （搬移失敗不該讓整個追蹤功能開機失敗，這是加分項不是關鍵路徑）。
+    """
+    legacy = legacy_path if legacy_path is not None else LEGACY_DB_PATH
+    new = new_path if new_path is not None else DEFAULT_DB_PATH
+
+    if new.exists():
+        return "skip_new_already_exists"
+    if not legacy.exists():
+        return "nothing_to_migrate"
+    if not _verify_sqlite_integrity(legacy):
+        return "legacy_corrupt_not_migrated"
+
+    new.parent.mkdir(parents=True, exist_ok=True)
+    os.chmod(new.parent, stat.S_IRWXU)  # 0700：僅目前使用者可讀寫執行
+    shutil.move(str(legacy), str(new))
+    return "migrated"
+
+
+def _ensure_readme(target_dir: Path) -> None:
+    readme_path = target_dir / README_FILENAME
+    if readme_path.exists():
+        return  # 不覆蓋使用者可能已經看過/編輯過的版本
+    readme_path.write_text(README_CONTENT, encoding="utf-8")
+
+
 def get_connection(db_path: Path | str | None = None) -> sqlite3.Connection:
+    using_default = db_path is None
     path = Path(db_path) if db_path is not None else DEFAULT_DB_PATH
+    if using_default:
+        # 只有真的走預設路徑（不是測試傳進來的 tempfile 路徑）才做舊路徑
+        # 一次性搬移；測試永遠帶明確 db_path，不會觸發這條。
+        migrate_legacy_db()
     path.parent.mkdir(parents=True, exist_ok=True)
+    os.chmod(path.parent, stat.S_IRWXU)  # 0700：僅目前使用者可讀寫執行
+    if using_default:
+        _ensure_readme(path.parent)
     conn = sqlite3.connect(str(path))
     conn.row_factory = sqlite3.Row
     ensure_schema(conn)

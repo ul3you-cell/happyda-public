@@ -86,7 +86,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <body>
 <main>
   <h1>Uniswap 多鏈 LP／熱門池唯讀儀表板 <span class="badge b-live">唯讀 · 官方 API</span></h1>
-  <p class="meta">產生時間（UTC）：{generated_at} ｜ 端點：<code>{endpoint}</code> ｜
+  <p class="meta">產生時間（UTC）：{generated_at} ｜ 資料來源：Uniswap Liquidity API＋The Graph v3 subgraph ｜
     任務卡 t_bf8f4d3e（委託 @anne，執行 dev-claude）｜ 上游研究 t_6b258dd1</p>
 
   <div class="summary-cards">
@@ -102,14 +102,15 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   <div class="disclaimer">
     <strong>資料限制與免責聲明（發布前必讀）：</strong>
     <ul>
-      <li>官方 Uniswap Liquidity API <code>/lp/pool_info</code> <strong>不提供</strong> USD TVL、24h/7d 成交量、fee APR、歷史時序、
-        任何錢包 LP 部位；本頁對應欄位固定顯示「資料源未提供」，<strong>絕不造數</strong>。</li>
+      <li>官方 Uniswap Liquidity API <code>/lp/pool_info</code> 本身<strong>不提供</strong> USD TVL、成交量或 fee APR；
+        本頁已用 The Graph v3 subgraph 補上 <strong>Ethereum v3 池</strong>的 TVL、24h／7d 成交量與池子級 fee APR，
+        其他鏈或資料不足的列維持「—」，<strong>絕不造數</strong>。</li>
       <li>「Liquidity」欄為官方回傳的 <code>poolLiquidity</code> 原始流動性單位（v3/v4 concentrated liquidity L 值），
         <strong>不是 USD TVL</strong>，不同 token pair 之間不可直接比較大小。</li>
-      <li>APR 一律為「年化」推算，<strong>非保證報酬</strong>；fee APR（若未來接上 Subgraph 後計算）僅反映手續費收入，
-        <strong>不含</strong>代幣漲跌與無常損失（Impermanent Loss）。</li>
-      <li>本頁<strong>不顯示個別錢包 LP 部位或未領手續費</strong>；如需查詢特定錢包需另行使用 Subgraph
-        <code>positions</code> 或 RPC view 函式，本頁未實作（Liquidity API 無唯讀 position 端點）。</li>
+      <li>目前顯示的是<strong>池子級 fee APR</strong>：以完整日 fees 與池子 TVL 年化推算，非保證報酬；
+        <strong>不等於你的個人收益</strong>，也不含代幣漲跌與無常損失（Impermanent Loss）。小 TVL 池的年化數字可能極端，需特別審慎。</li>
+      <li>本頁<strong>尚未顯示個別錢包 LP 部位、每日 delta 或個人 APR</strong>；這些功能需要另接
+        Uniswap v3 NFT 的唯讀 RPC 快照與本機歷史資料庫，目前仍在建置中。</li>
       <li>Active range／tick 邊界僅反映 <code>currentTick</code> 快照當下狀態，會隨市場變動；本頁不做即時輪詢。</li>
       <li>「⚠️ token 不在白名單」列代表官方回應內含本專案 <code>config/pools_targets.json</code> 未預先驗證的合約位址，
         已停用數值顯示，需人工複核（防止假幣/釣魚合約誤植）。</li>
@@ -118,9 +119,9 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
   <div class="wallet-box" id="wallet-box">
     <strong>錢包位址（選填，僅供之後錢包 LP／每日 delta／個人 APR 功能使用）：</strong>
-    <p class="wallet-note">此位址只會存在你目前這個瀏覽器的 <code>localStorage</code>，
-      <strong>不會送出到任何伺服器、不進 log、不進 repo</strong>——之後的錢包 RPC 查詢會直接在
-      你的瀏覽器端發出，這裡先讓你把位址存起來；查詢功能本身尚未實作（見上方免責聲明「本頁不顯示個別錢包 LP 部位」）。</p>
+    <p class="wallet-note">目前這個欄位只把位址存在此瀏覽器的 <code>localStorage</code>，
+      <strong>尚未發出任何網路查詢，也不進 log／repo</strong>。錢包追蹤接通後，位址會由本機追蹤程式讀取、
+      寫入本機 SQLite，且所選 RPC 供應商會看到位址與查詢內容；查詢功能目前尚未實作。</p>
     <div class="wallet-input-row">
       <input type="text" id="wallet-address-input" placeholder="0x..." spellcheck="false" autocomplete="off">
       <button type="button" id="wallet-address-save-btn" class="pager-btn">儲存</button>
@@ -133,8 +134,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   <div class="sort-toggle">
     <button type="button" id="sort-tvl-btn" class="toggle-btn active">依 TVL 排序（預設）</button>
     <button type="button" id="sort-wallet-apr-btn" class="toggle-btn" disabled
-      title="尚未提供資料來源：官方 pool_info 無錢包 LP／手續費端點，需 @research 先確認可唯讀取得多鏈 wallet positions＋fees 的正式來源後才能計算錢包 APR，見上方免責聲明">
-      依錢包 APR 排序（待資料源確認，見免責聲明）</button>
+      title="錢包 NFT RPC 快照與本機歷史資料庫尚未接通，因此暫無可排序的個人 APR">
+      依錢包 APR 排序（功能建置中）</button>
   </div>
   <div class="table-wrap">
   <table id="pool-table" aria-describedby="footer-count">
@@ -330,9 +331,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       updateSortIndicators();
       applySort();
     }});
-    // 錢包 APR 排序按鈕目前 disabled（見 HTML title 說明）：官方 pool_info 無錢包 LP／
-    // 手續費資料源，待 @research 確認可唯讀取得多鏈 wallet positions+fees 的正式端點後
-    // 才會補上對應資料欄位與啟用此按鈕，屆時比照 sort-tvl-btn 的寫法即可，不需重構分頁邏輯。
+    // 錢包 APR 排序按鈕目前 disabled：錢包 NFT RPC 快照與本機歷史資料庫尚未接通；
+    // 等個人 APR 有真實資料後再啟用，屆時可沿用既有分頁／排序邏輯。
 
     // 預設排序：TVL 由高到低，null（尚未有 TVL 資料的池）永遠置底，不受方向影響
     sortState = {{ key: 'tvl_usd', dir: -1 }};
@@ -392,7 +392,9 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   </script>
 
   <footer>
-    資料來源：<a href="{endpoint}" target="_blank" rel="noopener">{endpoint}</a>（官方 Uniswap Liquidity API，需自有 API key，本頁不含 key）。<br>
+    資料來源：<a href="{endpoint}" target="_blank" rel="noopener">Uniswap Liquidity API</a>（池子探索）＋
+    <a href="https://developers.uniswap.org/docs/ecosystem/subgraphs/overview" target="_blank" rel="noopener">The Graph v3 subgraph</a>
+    （Ethereum v3 的 TVL／成交量／池子級 fee APR；本頁不含任何 API key）。<br>
     Token 合約位址白名單與來源見 repo <code>uniswap-lp-tracker/config/pools_targets.json</code>；
     正規化與測試程式見 <code>uniswap-lp-tracker/scripts/</code> 與 <code>uniswap-lp-tracker/tests/</code>。<br>
     本頁由 Hermes Agent（@dev-claude，交由 @anne 驗收）產生，僅供個人研究追蹤，非投資建議。<br>

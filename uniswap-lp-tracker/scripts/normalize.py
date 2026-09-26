@@ -302,6 +302,70 @@ def covered_keys(rows: list[dict]) -> set[tuple]:
     return keys
 
 
+def load_graph_enrichment() -> dict | None:
+    """讀 scripts/fetch_pool_metrics.py 寫出的 data/graph_pool_day_data.json。
+    檔案不存在 -> None（維持原本「資料源未提供」的 null+note 行為，向下相容，
+    不強迫每次 normalize 都要先跑過 Graph fetch）。"""
+    path = DATA_DIR / "graph_pool_day_data.json"
+    if not path.exists():
+        return None
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def merge_graph_enrichment(rows: list[dict], enrichment_payload: dict | None) -> list[dict]:
+    """把 The Graph v3 poolDayDatas 算出的 TVL／volume／fee APR／收入變化方向
+    疊回既有 rows。只覆蓋：
+      - chain_id 跟 enrichment_payload["chain_id"] 一致（目前只有 Ethereum
+        mainnet 有已確認的 deployment ID，見 common.GRAPH_V3_DEPLOYMENT_ID_BY_CHAIN）
+      - status 為 live/fixture 且有 pool_address 的列
+    找不到對應池子資料，或整份 enrichment 檔案缺席，都維持原本
+    「資料源未提供」的 null+note，不補假數字、不吞掉原因說明。
+    """
+    if not enrichment_payload:
+        return rows
+    target_chain_id = enrichment_payload.get("chain_id")
+    pools = enrichment_payload.get("pools", {})
+    source_desc = enrichment_payload.get("source", "The Graph v3 subgraph poolDayDatas")
+    generated_at = enrichment_payload.get("generated_at")
+
+    for row in rows:
+        if row.get("chain_id") != target_chain_id:
+            continue
+        if row.get("status") not in ("live", "fixture"):
+            continue
+        addr = row.get("pool_address")
+        if not addr:
+            continue
+        metrics = pools.get(addr.lower())
+        if metrics is None:
+            row["tvl_usd_note"] = (
+                f"{TVL_NOTE}（額外說明：已嘗試查 The Graph，但此池子位址在"
+                f" poolDayDatas 回應中查無對應資料，抓取時間 {generated_at}）"
+            )
+            continue
+
+        row["tvl_usd"] = metrics.get("tvl_usd")
+        row["tvl_usd_note"] = None if metrics.get("tvl_usd") is not None else (
+            f"資料源已查詢但無回應（The Graph pool.totalValueLockedUSD 為空），抓取時間 {generated_at}"
+        )
+        row["volume_24h_usd"] = metrics.get("volume_24h_usd")
+        row["volume_7d_usd"] = metrics.get("volume_7d_usd")
+        row["fee_apr_24h_pct"] = metrics.get("fee_apr_24h_pct")
+        row["fee_apr_7d_pct"] = metrics.get("fee_apr_7d_pct")
+        row["income_change_direction"] = metrics.get("income_change_direction")
+
+        metrics_note = metrics.get("note")
+        volume_note = f"{source_desc}（抓取時間 {generated_at}）"
+        fee_apr_note = metrics_note or volume_note
+        income_note = metrics_note or volume_note
+        row["volume_note"] = volume_note if metrics.get("volume_24h_usd") is not None else metrics_note or volume_note
+        row["fee_apr_note"] = fee_apr_note
+        row["income_change_note"] = income_note
+
+    return rows
+
+
 def build_pending_rows(config: dict, already_covered: set[tuple], already_excluded: set[tuple]) -> list[dict]:
     rows = []
     for q in build_queries(config):
@@ -357,6 +421,12 @@ def main() -> int:
     pending_rows = build_pending_rows(config, covered, excluded_keys)
 
     all_rows = live_rows + fixture_rows + no_pool_rows + pending_rows
+
+    # 有 scripts/fetch_pool_metrics.py 產生的 Graph 資料就疊上去（目前只有
+    # chain_id=1／Ethereum mainnet），沒有就維持原本的「資料源未提供」
+    # null+note——不強迫每次 normalize 都要先有 GRAPH_API_KEY。
+    graph_enrichment = load_graph_enrichment()
+    all_rows = merge_graph_enrichment(all_rows, graph_enrichment)
 
     meta = {
         "total_rows": len(all_rows),

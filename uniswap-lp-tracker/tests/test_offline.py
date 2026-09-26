@@ -22,6 +22,7 @@ sys.path.insert(0, str(SCRIPTS_DIR))
 
 import common  # noqa: E402
 import fetch_pool_info  # noqa: E402
+import fetch_pool_metrics  # noqa: E402
 import graph_gateway_check  # noqa: E402
 import normalize  # noqa: E402
 import run_daily_update  # noqa: E402
@@ -247,6 +248,192 @@ class TestGraphGatewayCheck(unittest.TestCase):
             with self.assertRaises(SystemExit) as ctx:
                 graph_gateway_check.main()
             self.assertEqual(ctx.exception.code, 2)
+
+
+class TestComputePoolDayMetrics(unittest.TestCase):
+    """common.compute_pool_day_metrics 純函式：TVL／24h·7d volume／fee APR／
+    收入變化方向的計算與「資料不足」邊界。合成資料，不連網。"""
+
+    NOW_TS = 1_735_000_000.0  # 任意固定時間點，today_bucket = NOW_TS // 86400
+
+    def _today_bucket(self):
+        return int(self.NOW_TS // 86400)
+
+    def test_today_partial_day_excluded_from_calculation(self):
+        today = self._today_bucket()
+        day_data = [{"date": today, "volumeUSD": "999999", "feesUSD": "999999"}]
+        result = common.compute_pool_day_metrics(1_000_000.0, day_data, self.NOW_TS)
+        self.assertEqual(result["days_available"], 0)
+        self.assertIsNone(result["volume_24h_usd"])
+        self.assertIsNone(result["fee_apr_24h_pct"])
+        self.assertIn("資料不足", result["note"])
+
+    def test_out_of_range_zero_fees_is_valid_not_missing(self):
+        # research 的重點：out-of-range 那天 feesUSD=0 合法，不是缺值
+        today = self._today_bucket()
+        day_data = [{"date": today - 1, "volumeUSD": "0", "feesUSD": "0"}]
+        result = common.compute_pool_day_metrics(1_000_000.0, day_data, self.NOW_TS)
+        self.assertEqual(result["volume_24h_usd"], 0.0)
+        self.assertEqual(result["fee_apr_24h_pct"], 0.0)
+
+    def test_seven_complete_days_yields_7d_apr(self):
+        today = self._today_bucket()
+        day_data = [
+            {"date": today - 1 - i, "volumeUSD": "10000", "feesUSD": "1000"}
+            for i in range(8)  # 8 天：today-1 .. today-8，全部都是「完整天」
+        ]
+        result = common.compute_pool_day_metrics(1_000_000.0, day_data, self.NOW_TS)
+        self.assertEqual(result["days_available"], 8)
+        self.assertIsNotNone(result["fee_apr_7d_pct"])
+        # 7 天 * 1000 fees / 1,000,000 tvl * (365/7) * 100 = 36.5%
+        self.assertAlmostEqual(result["fee_apr_7d_pct"], 36.5, places=1)
+        self.assertEqual(result["volume_7d_usd"], 70000.0)
+
+    def test_fewer_than_seven_days_marks_insufficient_not_fabricated(self):
+        today = self._today_bucket()
+        day_data = [{"date": today - 1 - i, "volumeUSD": "10000", "feesUSD": "1000"} for i in range(3)]
+        result = common.compute_pool_day_metrics(1_000_000.0, day_data, self.NOW_TS)
+        self.assertIsNone(result["fee_apr_7d_pct"])
+        self.assertIsNone(result["volume_7d_usd"])
+        self.assertIn("尚不足計算", result["note"])
+        # 24h 指標不受 7d 資料不足影響，仍應算得出來
+        self.assertIsNotNone(result["fee_apr_24h_pct"])
+
+    def test_income_change_direction_up_down_flat(self):
+        today = self._today_bucket()
+        up = common.compute_pool_day_metrics(
+            1_000_000.0,
+            [{"date": today - 1, "volumeUSD": "1", "feesUSD": "200"}, {"date": today - 2, "volumeUSD": "1", "feesUSD": "100"}],
+            self.NOW_TS,
+        )
+        down = common.compute_pool_day_metrics(
+            1_000_000.0,
+            [{"date": today - 1, "volumeUSD": "1", "feesUSD": "50"}, {"date": today - 2, "volumeUSD": "1", "feesUSD": "100"}],
+            self.NOW_TS,
+        )
+        flat = common.compute_pool_day_metrics(
+            1_000_000.0,
+            [{"date": today - 1, "volumeUSD": "1", "feesUSD": "100"}, {"date": today - 2, "volumeUSD": "1", "feesUSD": "100"}],
+            self.NOW_TS,
+        )
+        self.assertEqual(up["income_change_direction"], "up")
+        self.assertEqual(down["income_change_direction"], "down")
+        self.assertEqual(flat["income_change_direction"], "flat")
+
+    def test_single_day_has_no_change_direction(self):
+        today = self._today_bucket()
+        result = common.compute_pool_day_metrics(1_000_000.0, [{"date": today - 1, "volumeUSD": "1", "feesUSD": "100"}], self.NOW_TS)
+        self.assertIsNone(result["income_change_direction"])
+
+    def test_no_pool_tvl_still_reports_volume_but_no_apr(self):
+        today = self._today_bucket()
+        result = common.compute_pool_day_metrics(None, [{"date": today - 1, "volumeUSD": "500", "feesUSD": "50"}], self.NOW_TS)
+        self.assertEqual(result["volume_24h_usd"], 500.0)
+        self.assertIsNone(result["fee_apr_24h_pct"])
+
+    def test_empty_day_data_reports_insufficient_history(self):
+        result = common.compute_pool_day_metrics(1_000_000.0, [], self.NOW_TS)
+        self.assertEqual(result["days_available"], 0)
+        self.assertIn("資料不足", result["note"])
+
+
+class TestFetchPoolMetricsBatchQuery(unittest.TestCase):
+    """fetch_pool_metrics.py 的批次 GraphQL alias 組裝／解析：純字串/字典操作，
+    不連網。"""
+
+    def test_build_batch_query_contains_aliases_for_each_pool(self):
+        query = fetch_pool_metrics.build_batch_query(["0xAAA", "0xBBB"])
+        self.assertIn("p0: pool(id: \"0xaaa\")", query)
+        self.assertIn("d0: poolDayDatas(where: { pool: \"0xaaa\" }", query)
+        self.assertIn("p1: pool(id: \"0xbbb\")", query)
+        self.assertIn("d1: poolDayDatas(where: { pool: \"0xbbb\" }", query)
+
+    def test_parse_batch_response_extracts_tvl_and_day_data(self):
+        body = {
+            "data": {
+                "p0": {"id": "0xaaa", "totalValueLockedUSD": "1234.5"},
+                "d0": [{"date": 100, "volumeUSD": "10", "feesUSD": "1"}],
+                "p1": {"id": "0xbbb", "totalValueLockedUSD": "999"},
+                "d1": [],
+            }
+        }
+        parsed = fetch_pool_metrics.parse_batch_response(body, ["0xAAA", "0xBBB"])
+        self.assertEqual(parsed["0xaaa"]["tvl_usd"], 1234.5)
+        self.assertEqual(len(parsed["0xaaa"]["day_data"]), 1)
+        self.assertEqual(parsed["0xbbb"]["tvl_usd"], 999.0)
+        self.assertEqual(parsed["0xbbb"]["day_data"], [])
+
+    def test_parse_batch_response_pool_not_found_keeps_none_not_fabricated(self):
+        # 官方回 pool: null（池子在這個 deployment 上真的不存在），不能假裝有資料
+        body = {"data": {"p0": None, "d0": []}}
+        parsed = fetch_pool_metrics.parse_batch_response(body, ["0xCCC"])
+        self.assertIsNone(parsed["0xccc"]["tvl_usd"])
+        self.assertEqual(parsed["0xccc"]["day_data"], [])
+
+
+class TestMergeGraphEnrichment(unittest.TestCase):
+    """normalize.merge_graph_enrichment：只覆蓋對得上 chain_id + pool_address
+    且 status 為 live/fixture 的列，其餘維持原本的『資料源未提供』。"""
+
+    def _row(self, **overrides):
+        row = normalize.base_row(1, "Ethereum")
+        row.update({
+            "status": "live",
+            "pool_address": "0xAAAABBBBCCCCDDDDEEEEFFFF00001111222233334",
+        })
+        row.update(overrides)
+        return row
+
+    def test_none_payload_leaves_rows_untouched(self):
+        rows = [self._row()]
+        result = normalize.merge_graph_enrichment(rows, None)
+        self.assertIsNone(result[0]["tvl_usd"])
+        self.assertEqual(result[0]["tvl_usd_note"], normalize.TVL_NOTE)
+
+    def test_matching_pool_gets_overlaid(self):
+        addr = "0xaaaabbbbccccddddeeeeffff00001111222233334"
+        rows = [self._row(pool_address=addr)]
+        payload = {
+            "chain_id": 1,
+            "generated_at": "2026-09-26T00:00:00Z",
+            "source": "test-source",
+            "pools": {
+                addr: {
+                    "tvl_usd": 1_000_000.0,
+                    "volume_24h_usd": 5000.0,
+                    "volume_7d_usd": 35000.0,
+                    "fee_apr_24h_pct": 12.3,
+                    "fee_apr_7d_pct": 11.1,
+                    "income_change_direction": "up",
+                    "note": None,
+                }
+            },
+        }
+        result = normalize.merge_graph_enrichment(rows, payload)
+        self.assertEqual(result[0]["tvl_usd"], 1_000_000.0)
+        self.assertEqual(result[0]["fee_apr_7d_pct"], 11.1)
+        self.assertEqual(result[0]["income_change_direction"], "up")
+        self.assertIsNone(result[0]["tvl_usd_note"])
+
+    def test_pending_status_row_never_overlaid(self):
+        rows = [self._row(status="pending", pool_address=None)]
+        payload = {"chain_id": 1, "pools": {}, "generated_at": "x", "source": "y"}
+        result = normalize.merge_graph_enrichment(rows, payload)
+        self.assertIsNone(result[0]["tvl_usd"])
+
+    def test_wrong_chain_id_never_overlaid(self):
+        rows = [self._row()]
+        rows[0]["chain_id"] = 42161  # Arbitrum -- enrichment 只覆蓋 chain_id=1
+        payload = {"chain_id": 1, "pools": {}, "generated_at": "x", "source": "y"}
+        result = normalize.merge_graph_enrichment(rows, payload)
+        self.assertIsNone(result[0]["tvl_usd"])
+
+    def test_pool_not_in_enrichment_gets_explanatory_note_not_silence(self):
+        rows = [self._row()]
+        payload = {"chain_id": 1, "pools": {}, "generated_at": "2026-09-26T00:00:00Z", "source": "y"}
+        result = normalize.merge_graph_enrichment(rows, payload)
+        self.assertIsNone(result[0]["tvl_usd"])
+        self.assertIn("查無對應資料", result[0]["tvl_usd_note"])
 
 
 class TestTokenWhitelist(unittest.TestCase):

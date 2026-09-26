@@ -29,17 +29,18 @@ import sys
 import urllib.error
 import urllib.request
 
-from common import require_graph_api_key
+from common import GRAPH_V3_DEPLOYMENT_ID_BY_CHAIN, require_graph_api_key
 
 GATEWAY_BASE = "https://gateway.thegraph.com/api"
 
-# 逐字抄自 developers.uniswap.org/docs/ecosystem/subgraphs/overview
-# （2026-09-26 抓取，見 research 交付的 uniswap_wallet_data_sources.md §1.A）。
+# 單一來源見 common.GRAPH_V3_DEPLOYMENT_ID_BY_CHAIN（逐字抄自
+# developers.uniswap.org/docs/ecosystem/subgraphs/overview，2026-09-26 抓取，
+# 抓取紀錄見 research 交付的 uniswap_wallet_data_sources.md §1.A）。
 # 官方原文警告：「Explorer links and endpoints in this page are examples of
 # public deployments. They are not official deployments...」——這裡選 v3
 # Mainnet 只是拿來做「key 是否有效」的 smoke test，不是本專案的正式資料源
 # （v3 subgraph 沒有 wallet position entity，見同一份交付文件 §1.C）。
-V3_MAINNET_DEPLOYMENT_ID = "5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV"
+V3_MAINNET_DEPLOYMENT_ID = GRAPH_V3_DEPLOYMENT_ID_BY_CHAIN[1]
 
 MIN_QUERY = json.dumps({"query": "{ _meta { block { number } } }"})
 

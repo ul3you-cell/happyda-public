@@ -1,0 +1,13 @@
+{
+  "_comment": "out-of-range 那天完全不收手續費，feesUSD/volumeUSD=0 是合法值，不是缺資料——結果必須是 0.0，不是 null。",
+  "tvl_usd": 1000000.0,
+  "now_ts": 1735693200,
+  "day_data_desc": [
+    {"date": 1735603200, "volumeUSD": "0", "feesUSD": "0"}
+  ],
+  "expected": {
+    "days_available": 1,
+    "volume_24h_usd": 0.0,
+    "fee_apr_24h_pct": 0.0
+  }
+}

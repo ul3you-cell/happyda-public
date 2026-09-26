@@ -1,0 +1,18 @@
+{
+  "_comment": "只有 3 個完整天（<7），7d 指標必須是 None + 尚不足計算的說明，不能硬湊年化數字。",
+  "tvl_usd": 1000000.0,
+  "now_ts": 1735693200,
+  "day_data_desc": [
+    {"date": 1735603200, "volumeUSD": "10000", "feesUSD": "1000"},
+    {"date": 1735516800, "volumeUSD": "10000", "feesUSD": "1000"},
+    {"date": 1735430400, "volumeUSD": "10000", "feesUSD": "1000"}
+  ],
+  "expected": {
+    "days_available": 3,
+    "volume_24h_usd": 10000.0,
+    "fee_apr_24h_pct": 36.5,
+    "volume_7d_usd": null,
+    "fee_apr_7d_pct": null,
+    "income_change_direction": "flat"
+  }
+}

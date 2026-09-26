@@ -252,16 +252,25 @@ class TestGraphGatewayCheck(unittest.TestCase):
 
 class TestComputePoolDayMetrics(unittest.TestCase):
     """common.compute_pool_day_metrics 純函式：TVL／24h·7d volume／fee APR／
-    收入變化方向的計算與「資料不足」邊界。合成資料，不連網。"""
+    收入變化方向的計算與「資料不足」邊界。合成資料，不連網。
 
-    NOW_TS = 1_735_000_000.0  # 任意固定時間點，today_bucket = NOW_TS // 86400
+    **`date` 一律用真實 Unix 秒**（不是 day bucket number）——這是
+    2026-09-26 那個「65 顆池全部誤判 days_available=0」bug 的教訓：先前這裡
+    的 fixture 直接把 day bucket number 當 `date` 塞進去，單元測試對得動，
+    但完全沒測到「Unix 秒轉 day bucket」這一步，e2e 才炸開。"""
 
-    def _today_bucket(self):
-        return int(self.NOW_TS // 86400)
+    DAY = 86400
+    TODAY_START = 1735689600  # 2025-01-01 00:00:00 UTC，當天第一秒（真實 Unix 秒）
+    NOW_TS = float(TODAY_START + 3600)  # 當天過了 1 小時
+
+    @classmethod
+    def _day_ts(cls, days_ago: int) -> int:
+        """回傳「days_ago 天前」那一天的（真實）Unix 秒時間戳，模擬 The Graph
+        `PoolDayData.date` 的實際格式。"""
+        return cls.TODAY_START - days_ago * cls.DAY
 
     def test_today_partial_day_excluded_from_calculation(self):
-        today = self._today_bucket()
-        day_data = [{"date": today, "volumeUSD": "999999", "feesUSD": "999999"}]
+        day_data = [{"date": self.TODAY_START + 1800, "volumeUSD": "999999", "feesUSD": "999999"}]
         result = common.compute_pool_day_metrics(1_000_000.0, day_data, self.NOW_TS)
         self.assertEqual(result["days_available"], 0)
         self.assertIsNone(result["volume_24h_usd"])
@@ -270,17 +279,15 @@ class TestComputePoolDayMetrics(unittest.TestCase):
 
     def test_out_of_range_zero_fees_is_valid_not_missing(self):
         # research 的重點：out-of-range 那天 feesUSD=0 合法，不是缺值
-        today = self._today_bucket()
-        day_data = [{"date": today - 1, "volumeUSD": "0", "feesUSD": "0"}]
+        day_data = [{"date": self._day_ts(1), "volumeUSD": "0", "feesUSD": "0"}]
         result = common.compute_pool_day_metrics(1_000_000.0, day_data, self.NOW_TS)
         self.assertEqual(result["volume_24h_usd"], 0.0)
         self.assertEqual(result["fee_apr_24h_pct"], 0.0)
 
     def test_seven_complete_days_yields_7d_apr(self):
-        today = self._today_bucket()
         day_data = [
-            {"date": today - 1 - i, "volumeUSD": "10000", "feesUSD": "1000"}
-            for i in range(8)  # 8 天：today-1 .. today-8，全部都是「完整天」
+            {"date": self._day_ts(1 + i), "volumeUSD": "10000", "feesUSD": "1000"}
+            for i in range(8)  # 8 天前..1 天前，全部都是「完整天」
         ]
         result = common.compute_pool_day_metrics(1_000_000.0, day_data, self.NOW_TS)
         self.assertEqual(result["days_available"], 8)
@@ -290,8 +297,7 @@ class TestComputePoolDayMetrics(unittest.TestCase):
         self.assertEqual(result["volume_7d_usd"], 70000.0)
 
     def test_fewer_than_seven_days_marks_insufficient_not_fabricated(self):
-        today = self._today_bucket()
-        day_data = [{"date": today - 1 - i, "volumeUSD": "10000", "feesUSD": "1000"} for i in range(3)]
+        day_data = [{"date": self._day_ts(1 + i), "volumeUSD": "10000", "feesUSD": "1000"} for i in range(3)]
         result = common.compute_pool_day_metrics(1_000_000.0, day_data, self.NOW_TS)
         self.assertIsNone(result["fee_apr_7d_pct"])
         self.assertIsNone(result["volume_7d_usd"])
@@ -300,20 +306,19 @@ class TestComputePoolDayMetrics(unittest.TestCase):
         self.assertIsNotNone(result["fee_apr_24h_pct"])
 
     def test_income_change_direction_up_down_flat(self):
-        today = self._today_bucket()
         up = common.compute_pool_day_metrics(
             1_000_000.0,
-            [{"date": today - 1, "volumeUSD": "1", "feesUSD": "200"}, {"date": today - 2, "volumeUSD": "1", "feesUSD": "100"}],
+            [{"date": self._day_ts(1), "volumeUSD": "1", "feesUSD": "200"}, {"date": self._day_ts(2), "volumeUSD": "1", "feesUSD": "100"}],
             self.NOW_TS,
         )
         down = common.compute_pool_day_metrics(
             1_000_000.0,
-            [{"date": today - 1, "volumeUSD": "1", "feesUSD": "50"}, {"date": today - 2, "volumeUSD": "1", "feesUSD": "100"}],
+            [{"date": self._day_ts(1), "volumeUSD": "1", "feesUSD": "50"}, {"date": self._day_ts(2), "volumeUSD": "1", "feesUSD": "100"}],
             self.NOW_TS,
         )
         flat = common.compute_pool_day_metrics(
             1_000_000.0,
-            [{"date": today - 1, "volumeUSD": "1", "feesUSD": "100"}, {"date": today - 2, "volumeUSD": "1", "feesUSD": "100"}],
+            [{"date": self._day_ts(1), "volumeUSD": "1", "feesUSD": "100"}, {"date": self._day_ts(2), "volumeUSD": "1", "feesUSD": "100"}],
             self.NOW_TS,
         )
         self.assertEqual(up["income_change_direction"], "up")
@@ -321,13 +326,11 @@ class TestComputePoolDayMetrics(unittest.TestCase):
         self.assertEqual(flat["income_change_direction"], "flat")
 
     def test_single_day_has_no_change_direction(self):
-        today = self._today_bucket()
-        result = common.compute_pool_day_metrics(1_000_000.0, [{"date": today - 1, "volumeUSD": "1", "feesUSD": "100"}], self.NOW_TS)
+        result = common.compute_pool_day_metrics(1_000_000.0, [{"date": self._day_ts(1), "volumeUSD": "1", "feesUSD": "100"}], self.NOW_TS)
         self.assertIsNone(result["income_change_direction"])
 
     def test_no_pool_tvl_still_reports_volume_but_no_apr(self):
-        today = self._today_bucket()
-        result = common.compute_pool_day_metrics(None, [{"date": today - 1, "volumeUSD": "500", "feesUSD": "50"}], self.NOW_TS)
+        result = common.compute_pool_day_metrics(None, [{"date": self._day_ts(1), "volumeUSD": "500", "feesUSD": "50"}], self.NOW_TS)
         self.assertEqual(result["volume_24h_usd"], 500.0)
         self.assertIsNone(result["fee_apr_24h_pct"])
 
@@ -335,6 +338,59 @@ class TestComputePoolDayMetrics(unittest.TestCase):
         result = common.compute_pool_day_metrics(1_000_000.0, [], self.NOW_TS)
         self.assertEqual(result["days_available"], 0)
         self.assertIn("資料不足", result["note"])
+
+
+class TestComputePoolDayMetricsUnixTimestampRegression(unittest.TestCase):
+    """@research 交付的 regression fixture spec：tests/fixtures/pool_day/*.json
+    每個 case 是「真實 Unix 秒 `date` + 手算 expected」，逐一比對
+    common.compute_pool_day_metrics() 的輸出，直接對應 2026-09-26 那個
+    「65 顆池全部誤判 days_available=0」bug 的修復。"""
+
+    FIXTURE_DIR = os.path.join(os.path.dirname(__file__), "fixtures", "pool_day")
+
+    def _load(self, case_id: str) -> dict:
+        path = os.path.join(self.FIXTURE_DIR, f"{case_id}.json")
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+
+    def _assert_case(self, case_id: str):
+        case = self._load(case_id)
+        result = common.compute_pool_day_metrics(
+            case["tvl_usd"], case["day_data_desc"], float(case["now_ts"])
+        )
+        expected = case["expected"]
+        for key, value in expected.items():
+            if isinstance(value, float):
+                self.assertAlmostEqual(result[key], value, places=4, msg=f"{case_id}: field {key}")
+            else:
+                self.assertEqual(result[key], value, msg=f"{case_id}: field {key}")
+
+    def test_case_a_simple_full_week(self):
+        self._assert_case("case_a_simple_full_week")
+        # 核心 regression 斷言：修復前這條必失敗（days_available 恆為 0）
+        result = common.compute_pool_day_metrics(**self._as_kwargs("case_a_simple_full_week"))
+        self.assertGreater(result["days_available"], 0)
+        self.assertIsNotNone(result["fee_apr_7d_pct"])
+
+    def test_case_b_partial_lt7(self):
+        self._assert_case("case_b_partial_lt7")
+
+    def test_case_c_today_bucket_present(self):
+        self._assert_case("case_c_today_bucket_present")
+
+    def test_case_d_out_of_range_zero_fees(self):
+        self._assert_case("case_d_out_of_range_zero_fees")
+
+    def test_case_e_stale_data_beyond_7(self):
+        self._assert_case("case_e_stale_data_beyond_7")
+
+    def _as_kwargs(self, case_id: str) -> dict:
+        case = self._load(case_id)
+        return {
+            "tvl_usd": case["tvl_usd"],
+            "day_data_desc": case["day_data_desc"],
+            "now_ts": float(case["now_ts"]),
+        }
 
 
 class TestFetchPoolMetricsBatchQuery(unittest.TestCase):

@@ -1,0 +1,25 @@
+{
+  "_comment": "10 個完整天，fees 逐日遞減，用來驗證 7d 視窗只取最近 7 天（1735603200..1735084800，加總4900），不是把全部 10 天(5500)都算進去；days_available 仍回報實際的 10（不硬卡 7）。",
+  "tvl_usd": 1000000.0,
+  "now_ts": 1735693200,
+  "day_data_desc": [
+    {"date": 1735603200, "volumeUSD": "10000", "feesUSD": "1000"},
+    {"date": 1735516800, "volumeUSD": "9000",  "feesUSD": "900"},
+    {"date": 1735430400, "volumeUSD": "8000",  "feesUSD": "800"},
+    {"date": 1735344000, "volumeUSD": "7000",  "feesUSD": "700"},
+    {"date": 1735257600, "volumeUSD": "6000",  "feesUSD": "600"},
+    {"date": 1735171200, "volumeUSD": "5000",  "feesUSD": "500"},
+    {"date": 1735084800, "volumeUSD": "4000",  "feesUSD": "400"},
+    {"date": 1734998400, "volumeUSD": "3000",  "feesUSD": "300"},
+    {"date": 1734912000, "volumeUSD": "2000",  "feesUSD": "200"},
+    {"date": 1734825600, "volumeUSD": "1000",  "feesUSD": "100"}
+  ],
+  "expected": {
+    "days_available": 10,
+    "volume_24h_usd": 10000.0,
+    "fee_apr_24h_pct": 36.5,
+    "volume_7d_usd": 49000.0,
+    "fee_apr_7d_pct": 25.55,
+    "income_change_direction": "up"
+  }
+}

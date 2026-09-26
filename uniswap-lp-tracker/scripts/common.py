@@ -159,13 +159,22 @@ def compute_pool_day_metrics(
       tvl_usd: pool 目前的 totalValueLockedUSD（None 代表沒查到這個 pool）
       day_data_desc: poolDayDatas 陣列，依 date 由新到舊排序（The Graph
         query 用 orderBy: date, orderDirection: desc 即符合此順序），
-        每筆至少含 {date:int, volumeUSD, feesUSD}（後兩者可為 str 或 number）
+        每筆至少含 {date:int, volumeUSD, feesUSD}（後兩者可為 str 或 number）。
+        **`date` 是 The Graph 官方 schema 定義的 Unix 秒**（`PoolDayData.date:
+        Int!`），*不是* day bucket number；本函式內部才把它換算成 day bucket
+        （見下方 `_to_day_bucket`）。2026-09-26 這裡曾經直接拿 Unix 秒跟
+        `now_ts // 86400`（day bucket）比大小，永遠判定為「非當天」以外的
+        全部條件都成立，導致 65 顆池全部誤判 days_available=0
+        （@anne 用真實 gateway 資料抓到、@research 對照官方 schema 確認）；
+        修正後兩邊都先換算成同一個 day bucket 單位再比較，並在
+        tests/fixtures/pool_day/ 用真實 Unix 秒 fixture 做 regression。
       now_ts: 呼叫當下的 unix timestamp（供判斷「今天」這個尚未結束的
         day bucket，避免把還在累積中的當日資料當成完整 24h 用）
 
     規則：
-      - 當天（date == now_ts // 86400）如果出現在 day_data_desc，視為
-        「尚在累積中、不完整」，一律排除，不拿來算 24h/7d 數字。
+      - 當天（`date` 換算成 day bucket後 == `now_ts // 86400`）如果出現在
+        day_data_desc，視為「尚在累積中、不完整」，一律排除，不拿來算
+        24h/7d 數字。
       - 24h 指標＝最近一個「完整」天的資料；沒有完整天 → 全部回 None，
         並附上「資料不足」原因（不是 0，也不是造數字）。
       - 7d 指標需要至少 7 個完整天；不足 7 天 → 回 None，附
@@ -189,7 +198,11 @@ def compute_pool_day_metrics(
     }
 
     today_bucket = int(now_ts // 86400)
-    completed = [d for d in day_data_desc if int(d["date"]) < today_bucket]
+    # `d["date"]` 是 Unix 秒，先換算成同一個 day-bucket 單位才能跟
+    # today_bucket 比較——這正是 anne/research 這輪抓到的 bug：先前這裡
+    # 直接拿 Unix 秒和 day bucket 比大小，Unix 秒永遠數量級大很多，
+    # 全部條目一律被排除，65 顆池全部誤判 days_available=0。
+    completed = [d for d in day_data_desc if (int(d["date"]) // 86400) < today_bucket]
     result["days_available"] = len(completed)
 
     if not completed:

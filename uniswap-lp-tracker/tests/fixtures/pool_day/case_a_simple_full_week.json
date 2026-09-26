@@ -1,0 +1,23 @@
+{
+  "_comment": "8 個完整天，全部真實 Unix 秒 date（2025-01-01 00:00 UTC 起算），regression case：修復前 days_available 恆為 0，這裡必須 >0。",
+  "tvl_usd": 1000000.0,
+  "now_ts": 1735693200,
+  "day_data_desc": [
+    {"date": 1735603200, "volumeUSD": "10000", "feesUSD": "1000"},
+    {"date": 1735516800, "volumeUSD": "10000", "feesUSD": "1000"},
+    {"date": 1735430400, "volumeUSD": "10000", "feesUSD": "1000"},
+    {"date": 1735344000, "volumeUSD": "10000", "feesUSD": "1000"},
+    {"date": 1735257600, "volumeUSD": "10000", "feesUSD": "1000"},
+    {"date": 1735171200, "volumeUSD": "10000", "feesUSD": "1000"},
+    {"date": 1735084800, "volumeUSD": "10000", "feesUSD": "1000"},
+    {"date": 1734998400, "volumeUSD": "10000", "feesUSD": "1000"}
+  ],
+  "expected": {
+    "days_available": 8,
+    "volume_24h_usd": 10000.0,
+    "fee_apr_24h_pct": 36.5,
+    "volume_7d_usd": 70000.0,
+    "fee_apr_7d_pct": 36.5,
+    "income_change_direction": "flat"
+  }
+}

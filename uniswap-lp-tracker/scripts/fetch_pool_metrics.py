@@ -70,16 +70,56 @@ def build_batch_query(pool_addresses: list[str]) -> str:
     return "{ " + " ".join(parts) + " }"
 
 
-def call_gateway(api_key: str, query: str, deployment_id: str, timeout: float = 20.0) -> dict:
+RETRYABLE_HTTP_STATUS = {429, 500, 502, 503, 504}
+MAX_RETRY_ATTEMPTS = 3  # 首次嘗試 + 最多 2 次重試
+RETRY_BASE_DELAY_SECONDS = 1.0  # 指數退避：1s, 2s（第三次仍失敗就放棄，交回呼叫端）
+
+
+def _retry_delay_seconds(attempt_idx: int, retry_after_header: str | None) -> float:
+    """優先尊重伺服器回的 Retry-After（The Graph gateway 429 常帶這個），
+    沒有就用指數退避（1s, 2s, ...）。不做隨機 jitter，保持行為可重現。"""
+    if retry_after_header:
+        try:
+            return max(0.0, float(retry_after_header))
+        except ValueError:
+            pass
+    return RETRY_BASE_DELAY_SECONDS * (2**attempt_idx)
+
+
+def call_gateway(
+    api_key: str,
+    query: str,
+    deployment_id: str,
+    timeout: float = 20.0,
+    max_attempts: int = MAX_RETRY_ATTEMPTS,
+    sleep_fn=time.sleep,
+) -> dict:
+    """呼叫 gateway；遇到 429/5xx（RETRYABLE_HTTP_STATUS）才重試，其他 HTTP
+    錯誤（如 401/400 key 或 query 本身有問題）直接往上拋，重試沒有意義。
+    重試次數用完仍失敗，最後一次的 HTTPError 原樣往上拋給呼叫端的既有
+    錯誤處理（含 key 遮蔽），不在這裡吞掉或改寫錯誤內容。"""
     url = f"{GATEWAY_BASE}/{api_key}/subgraphs/id/{deployment_id}"
-    req = urllib.request.Request(
-        url,
-        data=json.dumps({"query": query}).encode("utf-8"),
-        headers=REQUEST_HEADERS,
-        method="POST",
-    )
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        return json.loads(resp.read().decode("utf-8"))
+    last_error: urllib.error.HTTPError | None = None
+    for attempt_idx in range(max_attempts):
+        req = urllib.request.Request(
+            url,
+            data=json.dumps({"query": query}).encode("utf-8"),
+            headers=REQUEST_HEADERS,
+            method="POST",
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                return json.loads(resp.read().decode("utf-8"))
+        except urllib.error.HTTPError as e:
+            if e.code not in RETRYABLE_HTTP_STATUS or attempt_idx == max_attempts - 1:
+                raise
+            last_error = e
+            retry_after = e.headers.get("Retry-After") if e.headers else None
+            sleep_fn(_retry_delay_seconds(attempt_idx, retry_after))
+    # 理論上跑不到這裡（迴圈內不是 return 就是 raise），保留防禦性拋出。
+    if last_error is not None:
+        raise last_error
+    raise RuntimeError("call_gateway: 重試迴圈未預期結束")
 
 
 def parse_batch_response(body: dict, pool_addresses: list[str]) -> dict[str, dict]:

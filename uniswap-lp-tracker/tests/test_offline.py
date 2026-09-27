@@ -8,6 +8,7 @@
 """
 from __future__ import annotations
 
+import io
 import json
 import os
 import stat
@@ -429,6 +430,93 @@ class TestFetchPoolMetricsBatchQuery(unittest.TestCase):
         parsed = fetch_pool_metrics.parse_batch_response(body, ["0xCCC"])
         self.assertIsNone(parsed["0xccc"]["tvl_usd"])
         self.assertEqual(parsed["0xccc"]["day_data"], [])
+
+
+class TestCallGatewayRetryBackoff(unittest.TestCase):
+    """call_gateway 的 429/5xx 重試退避：只 mock urlopen，不連真實網路、
+    不消耗真實 API quota。"""
+
+    def _http_error(self, code, headers=None):
+        return urllib.error.HTTPError(
+            url="https://gateway.thegraph.com/api/fake/subgraphs/id/x",
+            code=code,
+            msg="err",
+            hdrs=headers or {},
+            fp=io.BytesIO(b'{"errors":[{"message":"rate limited"}]}'),
+        )
+
+    def _success_response(self, payload=b'{"data": {"p0": {"id": "0xaaa"}}}'):
+        cm = mock.MagicMock()
+        cm.__enter__.return_value = io.BytesIO(payload)
+        cm.__exit__.return_value = False
+        return cm
+
+    def test_retries_on_429_then_succeeds_and_sleeps_with_backoff(self):
+        sleeps = []
+        call_count = {"n": 0}
+
+        def fake_urlopen(req, timeout=None):
+            call_count["n"] += 1
+            if call_count["n"] < 3:
+                raise self._http_error(429)
+            return self._success_response()
+
+        with mock.patch.object(fetch_pool_metrics.urllib.request, "urlopen", side_effect=fake_urlopen):
+            body = fetch_pool_metrics.call_gateway(
+                "fake-key", "{ p0: pool(id: \"0xaaa\") { id } }", "dep-id",
+                sleep_fn=sleeps.append,
+            )
+        self.assertEqual(call_count["n"], 3)
+        self.assertEqual(body["data"]["p0"]["id"], "0xaaa")
+        # 兩次重試前都要睡：無 Retry-After 時走指數退避 1s, 2s
+        self.assertEqual(sleeps, [1.0, 2.0])
+
+    def test_respects_retry_after_header_over_exponential_backoff(self):
+        sleeps = []
+        call_count = {"n": 0}
+
+        def fake_urlopen(req, timeout=None):
+            call_count["n"] += 1
+            if call_count["n"] < 2:
+                raise self._http_error(429, headers={"Retry-After": "7"})
+            return self._success_response()
+
+        with mock.patch.object(fetch_pool_metrics.urllib.request, "urlopen", side_effect=fake_urlopen):
+            fetch_pool_metrics.call_gateway(
+                "fake-key", "{ p0: pool(id: \"0xaaa\") { id } }", "dep-id",
+                sleep_fn=sleeps.append,
+            )
+        self.assertEqual(sleeps, [7.0])
+
+    def test_exhausts_retries_and_raises_last_http_error(self):
+        def fake_urlopen(req, timeout=None):
+            raise self._http_error(503)
+
+        with mock.patch.object(fetch_pool_metrics.urllib.request, "urlopen", side_effect=fake_urlopen):
+            with self.assertRaises(urllib.error.HTTPError) as ctx:
+                fetch_pool_metrics.call_gateway(
+                    "fake-key", "{ p0: pool(id: \"0xaaa\") { id } }", "dep-id",
+                    sleep_fn=lambda _seconds: None,
+                )
+        self.assertEqual(ctx.exception.code, 503)
+
+    def test_non_retryable_401_raises_immediately_without_sleeping(self):
+        sleeps = []
+        call_count = {"n": 0}
+
+        def fake_urlopen(req, timeout=None):
+            call_count["n"] += 1
+            raise self._http_error(401)
+
+        with mock.patch.object(fetch_pool_metrics.urllib.request, "urlopen", side_effect=fake_urlopen):
+            with self.assertRaises(urllib.error.HTTPError) as ctx:
+                fetch_pool_metrics.call_gateway(
+                    "fake-key", "{ p0: pool(id: \"0xaaa\") { id } }", "dep-id",
+                    sleep_fn=sleeps.append,
+                )
+        self.assertEqual(ctx.exception.code, 401)
+        self.assertEqual(call_count["n"], 1)  # 沒有白白重試不可重試的錯誤
+        self.assertEqual(sleeps, [])
 
 
 class TestMergeGraphEnrichment(unittest.TestCase):

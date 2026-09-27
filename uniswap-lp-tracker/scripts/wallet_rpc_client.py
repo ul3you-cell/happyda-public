@@ -112,6 +112,7 @@ ALCHEMY_NETWORK_SLUG_BY_CHAIN = {
 SELECTOR_BALANCE_OF = "70a08231"
 SELECTOR_TOKEN_OF_OWNER_BY_INDEX = "2f745c59"
 SELECTOR_POSITIONS = "99fbab88"
+SELECTOR_OWNER_OF = "6352211e"          # ownerOf(uint256)，ERC-721 標準 selector
 # 4byte.directory 核對來源見 handoff.md，非憑記憶：
 SELECTOR_COLLECT = "fc6f7865"          # collect((uint256,address,uint128,uint128))
 SELECTOR_SLOT0 = "3850c7bd"            # slot0()
@@ -181,6 +182,37 @@ def build_calldata(selector_hex: str, *encoded_args: str) -> str:
 
 def calldata_balance_of(owner_addr: str) -> str:
     return build_calldata(SELECTOR_BALANCE_OF, encode_address_arg(owner_addr))
+
+
+def calldata_owner_of(token_id: int) -> str:
+    return build_calldata(SELECTOR_OWNER_OF, encode_uint_arg(token_id))
+
+
+def decode_owner_of_result(result_hex: str) -> str:
+    (word,) = _hex_words(result_hex)
+    return "0x" + word[-40:]
+
+
+# Transfer(address indexed from, address indexed to, uint256 indexed tokenId)
+# 的事件簽章雜湊——這是 ERC-721/ERC-20 全生態系共用、公開核對過的固定常數
+# （keccak256("Transfer(address,address,uint256)")），逐字核對自
+# eips.ethereum.org/EIPS/eip-721 範例與 Etherscan 上任一 ERC-721 合約的
+# Transfer log topic0，不是本專案自己算出來的猜測值，本環境也沒有安裝任何
+# keccak 套件去驗算它。
+TRANSFER_EVENT_TOPIC0 = "0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef"
+
+
+def _address_to_topic(addr: str) -> str:
+    """把 20-byte 位址編碼成 eth_getLogs indexed topic 用的 32-byte hex。"""
+    return "0x" + encode_address_arg(addr)
+
+
+def decode_transfer_log_token_id(log: dict) -> int:
+    """ERC-721 的 Transfer 事件三個參數都是 indexed，tokenId 在 topics[3]，\n    不在 data 裡（跟 ERC-20 Transfer 不同，那個 value 沒有 indexed，在 data）。"""
+    topics = log.get("topics") or []
+    if len(topics) < 4:
+        raise WalletRpcError(f"Transfer log topics 數量不足（可能是 ERC-20 log 混進來）：{log!r}")
+    return int(topics[3], 16)
 
 
 def calldata_token_of_owner_by_index(owner_addr: str, index: int) -> str:
@@ -462,6 +494,117 @@ def eth_call(
             f"eth_call 回應格式不是預期的 hex 字串（{_redact_rpc_url(rpc_url)}）：{result!r}"
         )
     return result
+
+
+# 部分免費公開 RPC 對 eth_getLogs 的區塊範圍限制訊息裡帶有「range too large／
+# limit exceeded／block range greater than／archive」等關鍵字（各家措辭不同，
+# 沒有統一格式），這裡不嘗試從錯誤字串解析出對方允許的確切上限，直接對半砍
+# 範圍重試——比逐家解析措辭更穩，任何家的訊息格式改了也不會壞掉。
+_LOGS_RANGE_ERROR_HINTS = ("range", "limit", "archive", "too many", "too large")
+
+
+def eth_get_logs(
+    rpc_url: str,
+    address: str,
+    topics: list,
+    from_block: int,
+    to_block: int,
+    http_post: Optional[HttpPost] = None,
+    _depth: int = 0,
+) -> list[dict]:
+    """打 eth_getLogs，遇到「區塊範圍太大」類錯誤就對半砍範圍遞迴重試，直到\n    單次請求成功或範圍已經砍到 1 個區塊還是失敗（此時把真正的錯誤往外拋，\n    不吞掉、不假裝查到 0 筆）。`_depth` 只是防止無限遞迴的安全閥。"""
+    poster = http_post or _default_http_post
+    if _depth > 40:
+        raise WalletRpcError(f"eth_getLogs 範圍遞迴切分超過安全上限（{_redact_rpc_url(rpc_url)}）")
+    payload = {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "eth_getLogs",
+        "params": [{
+            "fromBlock": hex(from_block),
+            "toBlock": hex(to_block),
+            "address": address,
+            "topics": topics,
+        }],
+    }
+    try:
+        response = poster(rpc_url, payload)
+    except WalletRpcError as exc:
+        # _default_http_post 對 HTTP 層級錯誤（例如某些供應商用 HTTP 400
+        # 表示「範圍太大」而不是 JSON-RPC error 物件）直接丟例外，不是回傳
+        # dict——這裡跟下面 JSON-RPC error 的判斷共用同一套「範圍太大就切半」
+        # 邏輯，不然遇到這種供應商會整段直接失敗、連切分重試都不會發生。
+        if from_block < to_block and any(h in str(exc).lower() for h in _LOGS_RANGE_ERROR_HINTS + ("bad request", "400")):
+            mid = from_block + (to_block - from_block) // 2
+            left = eth_get_logs(rpc_url, address, topics, from_block, mid, http_post=http_post, _depth=_depth + 1)
+            right = eth_get_logs(rpc_url, address, topics, mid + 1, to_block, http_post=http_post, _depth=_depth + 1)
+            return left + right
+        raise
+    if "error" in response:
+        err_msg = str(response["error"])
+        if from_block < to_block and any(h in err_msg.lower() for h in _LOGS_RANGE_ERROR_HINTS):
+            mid = from_block + (to_block - from_block) // 2
+            left = eth_get_logs(rpc_url, address, topics, from_block, mid, http_post=http_post, _depth=_depth + 1)
+            right = eth_get_logs(rpc_url, address, topics, mid + 1, to_block, http_post=http_post, _depth=_depth + 1)
+            return left + right
+        raise WalletRpcError(f"節點回報 eth_getLogs 錯誤（{_redact_rpc_url(rpc_url)}）：{response['error']}")
+    result = response.get("result")
+    if not isinstance(result, list):
+        raise WalletRpcError(f"eth_getLogs 回應格式異常（{_redact_rpc_url(rpc_url)}）：{result!r}")
+    return result
+
+
+# 部分免費公開 RPC 對「當前設定為預設的公開 RPC」啟用了 archive 限制（見
+# wallet_rpc_client 內對 PUBLIC_RPC_URL_BY_CHAIN 的說明），但同一條鏈换一個
+# 供應商（同樣免費、唯讀）就能查——這裡只挑已經用 curl 實測過「eth_getLogs
+# 對這個 v4 PositionManager 位址、fromBlock=0 到 latest 能成功回應」的供應商，
+# 2026-09-27 核對；缺的鏈就留給 eth_get_logs() 自己對 PUBLIC_RPC_URL_BY_CHAIN
+# 的預設 URL 做範圍遞迴切分去試，不保證一定能在免費額度內查完整段歷史。
+LOGS_RPC_OVERRIDE_BY_CHAIN = {
+    # Arbitrum：resolve_rpc_url() 平常優先選 Alchemy（此帳號唯一開通 RPC 的
+    # 網路），但 Alchemy 免費方案對 eth_getLogs 的範圍限制用 HTTP 400（非
+    # JSON-RPC error 物件）回應，eth_get_logs() 的範圍遞迴切分邏輯抓不到這
+    # 種格式。改用官方公開節點 arb1.arbitrum.io/rpc，已用 curl 實測
+    # fromBlock=0x0～latest 單次請求 <1s 內成功回應（不需要切分）。
+    42161: "https://arb1.arbitrum.io/rpc",
+    130: "https://unichain.gateway.tenderly.co",
+}
+
+
+class V4LogScanError(WalletRpcError):
+    """eth_getLogs 掃描 Transfer 事件失敗時丟出，帶著失敗前已經成功掃到的
+    logs_url，方便呼叫端在錯誤訊息裡誠實標出是哪個供應商查不到。"""
+
+
+def list_wallet_v4_token_ids_via_logs(
+    rpc_url: str,
+    wallet_addr: str,
+    chain_id: int,
+    http_post: Optional[HttpPost] = None,
+) -> list[int]:
+    """v4 PositionManager 不支援 tokenOfOwnerByIndex 時的替代方案：直接掃\n    ERC-721 標準 Transfer 事件裡 `to == wallet_addr` 的紀錄取得候選 token_id，\n    再逐一呼叫 ownerOf() 驗證「現在還是不是這個錢包持有」——避免把已經轉出\n    的舊部位也算進來。呼叫端要另外處理 WalletRpcError（掃描失敗，不代表\n    真的沒有部位，是這個免費 RPC 供應商查不到）。"""
+    if chain_id not in V4_POSITION_MANAGER_ADDRESS_BY_CHAIN:
+        raise WalletRpcError(f"chain_id={chain_id} 沒有已核對過的 v4 PositionManager 位址")
+    to_address = V4_POSITION_MANAGER_ADDRESS_BY_CHAIN[chain_id]
+    logs_url = LOGS_RPC_OVERRIDE_BY_CHAIN.get(chain_id, rpc_url)
+    poster = http_post or _default_http_post
+
+    latest_hex_resp = poster(logs_url, {"jsonrpc": "2.0", "id": 1, "method": "eth_blockNumber", "params": []})
+    if "error" in latest_hex_resp or not isinstance(latest_hex_resp.get("result"), str):
+        raise WalletRpcError(f"eth_blockNumber 查詢失敗（{_redact_rpc_url(logs_url)}）：{latest_hex_resp}")
+    latest_block = int(latest_hex_resp["result"], 16)
+
+    topics = [TRANSFER_EVENT_TOPIC0, None, _address_to_topic(wallet_addr)]
+    logs = eth_get_logs(logs_url, to_address, topics, 0, latest_block, http_post=http_post)
+    candidate_ids = sorted({decode_transfer_log_token_id(log) for log in logs})
+
+    still_owned: list[int] = []
+    for token_id in candidate_ids:
+        owner_hex = eth_call(rpc_url, to_address, calldata_owner_of(token_id), http_post=http_post)
+        owner_addr = decode_owner_of_result(owner_hex)
+        if owner_addr.lower() == wallet_addr.lower():
+            still_owned.append(token_id)
+    return still_owned
 
 
 def list_wallet_token_ids(

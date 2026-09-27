@@ -29,6 +29,7 @@ import graph_gateway_check  # noqa: E402
 import normalize  # noqa: E402
 import run_daily_update  # noqa: E402
 import wallet_apr_calc  # noqa: E402
+import wallet_live_fetch  # noqa: E402
 import wallet_rpc_client  # noqa: E402
 import wallet_snapshot_store  # noqa: E402
 
@@ -1585,6 +1586,63 @@ class TestNormalizeFullRun(unittest.TestCase):
                 self.assertIsNone(r["tvl_usd"])
                 self.assertIsNone(r["pool_liquidity_raw"])
                 self.assertIsNone(r["current_tick"])
+
+
+class TestBuildWalletRows(unittest.TestCase):
+    """build_wallet_rows() 要同時吃得下 v3（token0/1 是 {symbol,decimals,source}
+    dict）跟 v4（token0/1 目前只是 pool_key 裡的原始 currency 位址字串）兩種
+    形狀，不能假設同一種結構——2026-09-27 曾因為對 v4 row 直接呼叫
+    token0.get('symbol') 讓 build_dashboard.py 整個掛掉（'str' object has no
+    attribute 'get'），本測試防止回歸。"""
+
+    def test_v3_dict_shaped_tokens_produce_pair_label(self):
+        wallet_data = {
+            "v3": [{
+                "chain_name": "Arbitrum", "protocol": "v3", "error": None,
+                "queried_at": 1000,
+                "positions": [{
+                    "token_id": 1, "token0": {"symbol": "USDC", "decimals": 6, "source": "whitelist"},
+                    "token1": {"symbol": "WETH", "decimals": 18, "source": "whitelist"},
+                }],
+            }],
+            "v4": [],
+        }
+        rows = wallet_live_fetch.build_wallet_rows(wallet_data)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["pair_label"], "USDC/WETH")
+
+    def test_v4_string_shaped_tokens_do_not_crash_and_shorten_address(self):
+        wallet_data = {
+            "v3": [],
+            "v4": [{
+                "chain_name": "Unichain", "protocol": "v4", "error": None,
+                "queried_at": 2000, "enumeration_source": "eth_getLogs 掃描",
+                "positions": [{
+                    "token_id": 997894,
+                    "token0": "0x0000000000000000000000000000000000000000",
+                    "token1": "0x4200000000000000000000000000000000000006",
+                    "value_unsupported_reason": "v4 poolId 換算未支援",
+                }],
+            }],
+        }
+        rows = wallet_live_fetch.build_wallet_rows(wallet_data)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["pair_label"], "0x0000…0000/0x4200…0006")
+        self.assertEqual(rows[0]["source"], "v4 poolId 換算未支援")
+
+    def test_v4_position_without_token_fields_gets_none_pair_label(self):
+        wallet_data = {
+            "v3": [],
+            "v4": [{
+                "chain_name": "Unichain", "protocol": "v4", "error": None,
+                "queried_at": 2000,
+                "positions": [{"token_id": 1, "error": "取得部位詳情失敗"}],
+            }],
+        }
+        rows = wallet_live_fetch.build_wallet_rows(wallet_data)
+        self.assertEqual(len(rows), 1)
+        self.assertIsNone(rows[0]["pair_label"])
+        self.assertEqual(rows[0]["source"], "取得部位詳情失敗")
 
 
 if __name__ == "__main__":

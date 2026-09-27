@@ -67,6 +67,10 @@ def chain_smoke(chain_id: int) -> dict:
             raise rpc.WalletRpcError(f"節點回報 eth_chainId 錯誤：{chain_id_resp['error']}")
         if "error" in block_resp:
             raise rpc.WalletRpcError(f"節點回報 eth_blockNumber 錯誤：{block_resp['error']}")
+        if not isinstance(chain_id_resp.get("result"), str):
+            raise rpc.WalletRpcError(f"eth_chainId 回應格式異常（非預期的 hex 字串）：{chain_id_resp!r}")
+        if not isinstance(block_resp.get("result"), str):
+            raise rpc.WalletRpcError(f"eth_blockNumber 回應格式異常（非預期的 hex 字串）：{block_resp!r}")
         reported_chain_id = int(chain_id_resp["result"], 16)
         block_number = int(block_resp["result"], 16)
         ok = reported_chain_id == chain_id
@@ -203,10 +207,23 @@ def fetch_v4_chain(chain_id: int) -> dict:
         result["block_number"] = int(block_resp["result"], 16)
         token_ids = rpc.list_wallet_v4_token_ids(rpc_url, WALLET_ADDRESS, chain_id=chain_id)
     except rpc.V4EnumerationUnsupported as exc:
-        # balanceOf() 這個真實數字還是保留下來，不要因為列不出明細就整條鏈消失。
-        result["position_count"] = exc.balance_count
-        result["error"] = _redact(exc)
-        return result
+        # tokenOfOwnerByIndex 不可用是協定本身限制，改用 eth_getLogs 掃
+        # Transfer(to=wallet) 事件反查 token_id、再用 ownerOf() 驗證現況——
+        # 這是「查得到明細」而不是「balanceOf() 統計數字」，兩者在
+        # AC/報告裡要分開講清楚（見 @anne 2026-09-27 覆核意見）。
+        try:
+            token_ids = rpc.list_wallet_v4_token_ids_via_logs(rpc_url, WALLET_ADDRESS, chain_id)
+            result["enumeration_source"] = (
+                "eth_getLogs 掃描 Transfer(to=wallet) 事件＋ownerOf() 驗證現況"
+                "（v4 PositionManager 本身不支援 tokenOfOwnerByIndex，此為替代方案）"
+            )
+        except Exception as log_exc:  # noqa: BLE001 — 掃描本身也可能因供應商限制失敗
+            # balanceOf() 這個真實數字還是保留下來，不要因為列不出明細就整條鏈消失。
+            result["position_count"] = exc.balance_count
+            result["error"] = (
+                f"{_redact(exc)}｜eth_getLogs 替代方案也失敗：{_redact(log_exc)}"
+            )
+            return result
     except Exception as exc:  # noqa: BLE001
         result["error"] = _redact(exc)
         return result
@@ -365,11 +382,22 @@ def build_wallet_rows(wallet_data: dict) -> list[dict]:
         protocol = chain_result.get("protocol")
         chain_error = chain_result.get("error")
         for pos in chain_result.get("positions", []):
-            token0 = pos.get("token0", {})
-            token1 = pos.get("token1", {})
+            # v3 的 token0/token1 是 {symbol, decimals, source} dict（resolve_token_meta
+            # 組出來的）；v4 的 get_v4_position() 目前只回傳 pool_key 裡的原始
+            # currency 位址字串（未經白名單核對過的 symbol），兩種形狀都要處理，
+            # 不能假設同一種結構。
+            def _symbol_of(token_field):
+                if isinstance(token_field, dict):
+                    return token_field.get("symbol")
+                if isinstance(token_field, str) and token_field:
+                    return token_field[:6] + "…" + token_field[-4:]
+                return None
+
+            token0_symbol = _symbol_of(pos.get("token0"))
+            token1_symbol = _symbol_of(pos.get("token1"))
             pair_label = None
-            if token0.get("symbol") and token1.get("symbol"):
-                pair_label = f"{token0['symbol']}/{token1['symbol']}"
+            if token0_symbol and token1_symbol:
+                pair_label = f"{token0_symbol}/{token1_symbol}"
             rows.append({
                 "chain_name": chain_name,
                 "protocol": protocol,
@@ -385,7 +413,13 @@ def build_wallet_rows(wallet_data: dict) -> list[dict]:
                 "base_established": pos.get("base_established"),
                 "delta_note": pos.get("delta_note") or pos.get("observed_apr_note"),
                 "snapshot_time": chain_result.get("queried_at"),
-                "source": pos.get("fees_source") or pos.get("value_unsupported_reason") or pos.get("note") or pos.get("error"),
+                "source": (
+                    pos.get("fees_source")
+                    or pos.get("value_unsupported_reason")
+                    or pos.get("note")
+                    or pos.get("error")
+                    or chain_result.get("enumeration_source")
+                ),
                 "row_error": pos.get("error") or chain_error,
             })
         if not chain_result.get("positions") and chain_error:

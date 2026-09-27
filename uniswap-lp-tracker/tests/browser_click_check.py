@@ -280,6 +280,7 @@ _WALLET_MONOTONIC_CHECK_JS = """
     const badge = cell.querySelector('.badge');
     if (badge) {
       const cls = Array.from(badge.classList).find(c => c.startsWith('b-'));
+      if (th.dataset.key === 'in_range') return cls === 'b-live' ? 'true' : 'false';
       return cls ? cls.slice(2) : cell.textContent.trim();
     }
     return cell.textContent.trim();

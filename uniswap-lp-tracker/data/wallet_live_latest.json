@@ -1,0 +1,209 @@
+{
+  "wallet_address": "0x267EE34200b09Ea8b52D02EeC3300b84985B1eFd",
+  "generated_at": 1790490643,
+  "rpc_smoke": [
+    {
+      "chain_id": 1,
+      "chain_name": "Ethereum",
+      "ok": true,
+      "rpc_source": "public-rpc",
+      "reported_chain_id": 1,
+      "block_number": 26067009,
+      "error": null
+    },
+    {
+      "chain_id": 56,
+      "chain_name": "BNB Chain",
+      "ok": true,
+      "rpc_source": "public-rpc",
+      "reported_chain_id": 56,
+      "block_number": 124285022,
+      "error": null
+    },
+    {
+      "chain_id": 130,
+      "chain_name": "Unichain",
+      "ok": true,
+      "rpc_source": "public-rpc",
+      "reported_chain_id": 130,
+      "block_number": 59742234,
+      "error": null
+    },
+    {
+      "chain_id": 8453,
+      "chain_name": "Base",
+      "ok": true,
+      "rpc_source": "public-rpc",
+      "reported_chain_id": 8453,
+      "block_number": 51850625,
+      "error": null
+    },
+    {
+      "chain_id": 42161,
+      "chain_name": "Arbitrum",
+      "ok": true,
+      "rpc_source": "alchemy",
+      "reported_chain_id": 42161,
+      "block_number": 509310532,
+      "error": null
+    }
+  ],
+  "graph_api_key_present": true,
+  "v3": [
+    {
+      "chain_id": 1,
+      "chain_name": "Ethereum",
+      "protocol": "v3",
+      "queried_at": 1790490600,
+      "positions": [],
+      "error": null,
+      "rpc_source": "public-rpc",
+      "block_number": 26067010,
+      "position_count": 0
+    },
+    {
+      "chain_id": 42161,
+      "chain_name": "Arbitrum",
+      "protocol": "v3",
+      "queried_at": 1790490606,
+      "positions": [
+        {
+          "token_id": 3688542,
+          "fee_tier_raw": 3000,
+          "fee_tier_pct": 0.3,
+          "tick_lower": -78720,
+          "tick_upper": -67860,
+          "liquidity_raw": "0",
+          "tokens_owed_0_raw": "0",
+          "tokens_owed_1_raw": "0",
+          "token0": {
+            "address": "0x7189fb5b6504bbff6a852b13b7b82a3c118fdc27",
+            "symbol": "0x7189…dc27",
+            "decimals": 18,
+            "source": "on-chain decimals()（不在白名單，symbol 用縮寫位址代替，避免顯示未經核對的字串）"
+          },
+          "token1": {
+            "address": "0x82af49447d8a07e3bd95bd0d56f35241523fbab1",
+            "symbol": "WETH",
+            "decimals": 18,
+            "source": "well-known Arbitrum WETH deployment"
+          },
+          "pool_address": "0x7e9cb8ad4a7683070e233f3eb1d07d87272b9b26",
+          "current_tick": -82085,
+          "in_range": false,
+          "token0_amount": 0.0,
+          "token1_amount": 0.0,
+          "fees_owed_0_raw": "0",
+          "fees_owed_1_raw": "0",
+          "fees_source": "eth_call 模擬 collect()（唯讀，未廣播交易）",
+          "token0_usd_price": null,
+          "token1_usd_price": null,
+          "position_value_usd": null,
+          "fees_owed_usd": null,
+          "note": "部分/全部 token 無法從 Alchemy Prices API 取得 USD 報價，估值欄位為 None（非 0）",
+          "observed_apr_7d_pct": null,
+          "observed_apr_30d_pct": null,
+          "observed_apr_days_tracked": 4,
+          "observed_apr_note": "尚不足計算（目前已追蹤 4 天，7d APR 需要 7 天，30d APR 需要 30 天）",
+          "delta_24h_usd": null,
+          "base_established": false
+        }
+      ],
+      "error": null,
+      "rpc_source": "alchemy",
+      "block_number": 509310557,
+      "position_count": 1
+    },
+    {
+      "chain_id": 8453,
+      "chain_name": "Base",
+      "protocol": "v3",
+      "queried_at": 1790490610,
+      "positions": [],
+      "error": null,
+      "rpc_source": "public-rpc",
+      "block_number": 51850632,
+      "position_count": 0
+    },
+    {
+      "chain_id": 56,
+      "chain_name": "BNB Chain",
+      "protocol": "v3",
+      "queried_at": 1790490624,
+      "positions": [],
+      "error": null,
+      "rpc_source": "public-rpc",
+      "block_number": 124285097,
+      "position_count": 0
+    },
+    {
+      "chain_id": 130,
+      "chain_name": "Unichain",
+      "protocol": "v3",
+      "queried_at": 1790490625,
+      "positions": [],
+      "error": null,
+      "rpc_source": "public-rpc",
+      "block_number": 59742268,
+      "position_count": 0
+    }
+  ],
+  "v4": [
+    {
+      "chain_id": 1,
+      "chain_name": "Ethereum",
+      "protocol": "v4",
+      "queried_at": 1790490629,
+      "positions": [],
+      "error": null,
+      "rpc_source": "public-rpc",
+      "block_number": 26067013,
+      "position_count": 0
+    },
+    {
+      "chain_id": 42161,
+      "chain_name": "Arbitrum",
+      "protocol": "v4",
+      "queried_at": 1790490634,
+      "positions": [],
+      "error": "balanceOf() 查到 1 個 v4 部位，但 v4 PositionManager 未實作 ERC721Enumerable（Uniswap 官方文件證實 tokenOfOwnerByIndex 不可用），無法逐一列出 token_id：節點回報 eth_call 錯誤（https://arb-mainnet.g.alchemy.com/…（路徑與參數已遮蔽））：{'code': 3, 'message': 'execution reverted', 'data': '0x'}",
+      "rpc_source": "alchemy",
+      "block_number": 509310657,
+      "position_count": 1
+    },
+    {
+      "chain_id": 8453,
+      "chain_name": "Base",
+      "protocol": "v4",
+      "queried_at": 1790490636,
+      "positions": [],
+      "error": null,
+      "rpc_source": "public-rpc",
+      "block_number": 51850645,
+      "position_count": 0
+    },
+    {
+      "chain_id": 56,
+      "chain_name": "BNB Chain",
+      "protocol": "v4",
+      "queried_at": 1790490638,
+      "positions": [],
+      "error": null,
+      "rpc_source": "public-rpc",
+      "block_number": 124285128,
+      "position_count": 0
+    },
+    {
+      "chain_id": 130,
+      "chain_name": "Unichain",
+      "protocol": "v4",
+      "queried_at": 1790490639,
+      "positions": [],
+      "error": "balanceOf() 查到 15 個 v4 部位，但 v4 PositionManager 未實作 ERC721Enumerable（Uniswap 官方文件證實 tokenOfOwnerByIndex 不可用），無法逐一列出 token_id：節點回報 eth_call 錯誤（https://unichain.publicnode.com/…（路徑與參數已遮蔽））：{'code': 3, 'message': 'execution reverted'}",
+      "rpc_source": "public-rpc",
+      "block_number": 59742282,
+      "position_count": 15
+    }
+  ],
+  "snapshot_rows_written": 1
+}

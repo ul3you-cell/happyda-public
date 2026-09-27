@@ -56,13 +56,73 @@ import urllib.request
 from typing import Callable, Optional
 
 POSITION_MANAGER_ADDRESS_BY_CHAIN = {
-    # Ethereum mainnet；逐字核對來源見上方 module docstring。
-    1: "0xC36442b4a4522E871399CD717aBDD847Ab11FE88",
+    # 全部逐字核對自 developers.uniswap.org/docs/protocols/v3/deployments/*
+    # （2026-09-27 抓取，見 handoff.md「多鏈地址核對」段落），不憑記憶填寫。
+    1: "0xC36442b4a4522E871399CD717aBDD847Ab11FE88",      # Ethereum
+    42161: "0xC36442b4a4522E871399CD717aBDD847Ab11FE88",  # Arbitrum One
+    10: "0xC36442b4a4522E871399CD717aBDD847Ab11FE88",     # Optimism（同一地址，官方頁面逐字核對）
+    8453: "0x03a520b32C04BF3bEEf7BEb72E919cf822Ed34f1",   # Base
+    56: "0x7b8A01B39D58278b5DE7e48c8449c9f4F5170613",     # BNB Smart Chain
+    130: "0x943e6e07a7e8e791dafc44083e54041d743c46e9",    # Unichain
+}
+
+# UniswapV3Factory，用來由 (token0, token1, fee) 反查 pool 位址（getPool）。
+# 同樣逐字核對自官方 deployments 頁面，2026-09-27。
+V3_FACTORY_ADDRESS_BY_CHAIN = {
+    1: "0x1F98431c8aD98523631AE4a59f267346ea31F984",
+    42161: "0x1F98431c8aD98523631AE4a59f267346ea31F984",
+    10: "0x1F98431c8aD98523631AE4a59f267346ea31F984",  # Optimism
+    8453: "0x33128a8fC17869897dcE68Ed026d694621f6FDfD",
+    56: "0xdB1d10011AD0Ff90774D0C6Bb92e5C5c8b4461F7",
+    130: "0x1f98400000000000000000000000000000000003",
+}
+
+# Uniswap v4 PositionManager（ERC-721，逐字核對自
+# developers.uniswap.org/docs/protocols/v4/deployments，2026-09-27）。
+V4_POSITION_MANAGER_ADDRESS_BY_CHAIN = {
+    1: "0xbd216513d74c8cf14cf4747e6aaa6420ff64ee9e",
+    42161: "0xd88f38f930b7952f2db2432cb002e7abbf3dd869",
+    10: "0x3c3ea4b57a46241e54610e5f022e5c45859a1017",  # Optimism
+    8453: "0x7c5f5a4bbd8fd63184577525326123b519429bdc",
+    56: "0x7a4a5c919ae2541aed11041a1aeee68f1287f95b",
+    130: "0x4529a01c7a0410167c5740c487a8de60232617bf",
+}
+
+CHAIN_NAME_BY_ID = {
+    1: "Ethereum",
+    42161: "Arbitrum",
+    10: "Optimism",
+    8453: "Base",
+    56: "BNB Chain",
+    130: "Unichain",
+}
+
+# Alchemy JSON-RPC network slug（https://{slug}.g.alchemy.com/v2/{key}），
+# 逐字核對自 alchemy.com/docs/reference/node-supported-chains 與
+# alchemy.com/rpc/{chain} 系列頁面，2026-09-27 抓取。
+ALCHEMY_NETWORK_SLUG_BY_CHAIN = {
+    1: "eth-mainnet",
+    42161: "arb-mainnet",
+    10: "opt-mainnet",
+    8453: "base-mainnet",
+    56: "bnb-mainnet",
+    130: "unichain-mainnet",
 }
 
 SELECTOR_BALANCE_OF = "70a08231"
 SELECTOR_TOKEN_OF_OWNER_BY_INDEX = "2f745c59"
 SELECTOR_POSITIONS = "99fbab88"
+# 4byte.directory 核對來源見 handoff.md，非憑記憶：
+SELECTOR_COLLECT = "fc6f7865"          # collect((uint256,address,uint128,uint128))
+SELECTOR_SLOT0 = "3850c7bd"            # slot0()
+SELECTOR_GET_POOL = "1698ee82"         # getPool(address,address,uint24)
+SELECTOR_V4_GET_POOL_AND_POSITION_INFO = "7ba03aad"  # getPoolAndPositionInfo(uint256)
+SELECTOR_V4_GET_POSITION_LIQUIDITY = "1efeed33"      # getPositionLiquidity(uint256)
+SELECTOR_DECIMALS = "313ce567"         # decimals()，ERC-20 標準 selector（跟
+                                        # balanceOf/tokenOfOwnerByIndex 同等級的
+                                        # 穩定公開標準，不需另外查證）
+
+UINT128_MAX = 2**128 - 1
 
 _ADDRESS_RE = re.compile(r"^0x[0-9a-fA-F]{40}$")
 
@@ -135,6 +195,39 @@ def calldata_positions(token_id: int) -> str:
     return build_calldata(SELECTOR_POSITIONS, encode_uint_arg(token_id))
 
 
+def calldata_collect(token_id: int, recipient_addr: str, amount0_max: int = UINT128_MAX, amount1_max: int = UINT128_MAX) -> str:
+    """CollectParams{tokenId,recipient,amount0Max,amount1Max} 全部是靜態欄位，
+    ABI 編碼直接依序串接，不需要 offset header（跟 positions() 同一套邏輯）。"""
+    return build_calldata(
+        SELECTOR_COLLECT,
+        encode_uint_arg(token_id),
+        encode_address_arg(recipient_addr),
+        encode_uint_arg(amount0_max),
+        encode_uint_arg(amount1_max),
+    )
+
+
+def calldata_slot0() -> str:
+    return "0x" + SELECTOR_SLOT0
+
+
+def calldata_get_pool(token_a: str, token_b: str, fee: int) -> str:
+    return build_calldata(
+        SELECTOR_GET_POOL,
+        encode_address_arg(token_a),
+        encode_address_arg(token_b),
+        encode_uint_arg(fee),
+    )
+
+
+def calldata_v4_get_pool_and_position_info(token_id: int) -> str:
+    return build_calldata(SELECTOR_V4_GET_POOL_AND_POSITION_INFO, encode_uint_arg(token_id))
+
+
+def calldata_v4_get_position_liquidity(token_id: int) -> str:
+    return build_calldata(SELECTOR_V4_GET_POSITION_LIQUIDITY, encode_uint_arg(token_id))
+
+
 def _hex_words(result_hex: str) -> list[str]:
     """把 0x 開頭的 returndata 依 32-byte（64 hex）切成一格一格的 word 清單。"""
     body = result_hex[2:] if result_hex.startswith("0x") else result_hex
@@ -193,6 +286,81 @@ def decode_positions_result(result_hex: str) -> dict:
     }
 
 
+def decode_collect_result(result_hex: str) -> dict:
+    """collect() 回傳 (uint256 amount0, uint256 amount1) —— 這是本次唯讀 eth_call
+    模擬出來、@最新區塊當下若立即 collect 可拿到的實際金額（含 tokensOwed ＋
+    尚未寫入 tokensOwed 但已累積的 fee-growth 差額），比單純讀 positions() 的
+    tokensOwed 更準確、更即時。絕不廣播這筆交易，只做 eth_call 模擬。"""
+    words = _hex_words(result_hex)
+    if len(words) != 2:
+        raise ValueError(f"collect() returndata 應該是 2 個 32-byte slot，實際 {len(words)} 個")
+    return {"amount0": decode_uint_word(words[0]), "amount1": decode_uint_word(words[1])}
+
+
+def decode_slot0_result(result_hex: str) -> dict:
+    """UniswapV3Pool.slot0() —— 7 個 32-byte slot，順序來自官方原始碼（逐字核對，
+    見 module docstring 的來源核對紀錄）。"""
+    words = _hex_words(result_hex)
+    if len(words) != 7:
+        raise ValueError(f"slot0() returndata 應該是 7 個 32-byte slot，實際 {len(words)} 個")
+    return {
+        "sqrt_price_x96": decode_uint_word(words[0]),
+        "tick": decode_int_word(words[1]),
+        "observation_index": decode_uint_word(words[2]),
+        "observation_cardinality": decode_uint_word(words[3]),
+        "observation_cardinality_next": decode_uint_word(words[4]),
+        "fee_protocol": decode_uint_word(words[5]),
+        "unlocked": decode_uint_word(words[6]) != 0,
+    }
+
+
+def decode_get_pool_result(result_hex: str) -> str | None:
+    (word,) = _hex_words(result_hex)
+    addr = decode_address_word(word)
+    return None if addr == "0x" + "0" * 40 else addr
+
+
+def _extract_signed_bits(value: int, offset: int, width: int) -> int:
+    mask = (1 << width) - 1
+    raw = (value >> offset) & mask
+    if raw >= (1 << (width - 1)):
+        raw -= 1 << width
+    return raw
+
+
+def decode_v4_get_pool_and_position_info(result_hex: str) -> dict:
+    """v4 PositionManager.getPoolAndPositionInfo(uint256) —— 回傳
+    (PoolKey{currency0,currency1,fee,tickSpacing,hooks}, PositionInfo packed uint256)。
+    兩者都是全靜態欄位（無 dynamic 成員），共 6 個 32-byte slot，依序串接、不帶
+    offset header。PositionInfo 的 bit layout 逐字核對自
+    developers.uniswap.org/contracts/v4/reference/periphery/libraries/PositionInfoLibrary
+    （200 bits poolId | 24 bits tickUpper | 24 bits tickLower | 8 bits hasSubscriber，
+    由 LSB 方向數：hasSubscriber 在最低 8 bit，tickLower 接著 offset=8，
+    tickUpper offset=32，poolId 佔最高 200 bit），2026-09-27 抓取，非憑記憶。"""
+    words = _hex_words(result_hex)
+    if len(words) != 6:
+        raise ValueError(f"getPoolAndPositionInfo() returndata 應該是 6 個 32-byte slot，實際 {len(words)} 個")
+    packed_info = decode_uint_word(words[5])
+    return {
+        "pool_key": {
+            "currency0": decode_address_word(words[0]),
+            "currency1": decode_address_word(words[1]),
+            "fee": decode_uint_word(words[2]),
+            "tick_spacing": decode_int_word(words[3]),
+            "hooks": decode_address_word(words[4]),
+        },
+        "tick_lower": _extract_signed_bits(packed_info, 8, 24),
+        "tick_upper": _extract_signed_bits(packed_info, 32, 24),
+        "has_subscriber": (packed_info & 0xFF) != 0,
+        "pool_id_hex": "0x" + format(packed_info >> 56, "050x"),  # 高 200 bits = 25 bytes
+    }
+
+
+def decode_v4_get_position_liquidity_result(result_hex: str) -> int:
+    (word,) = _hex_words(result_hex)
+    return decode_uint_word(word)
+
+
 # ---------------------------------------------------------------------------
 # 有網路 I/O 的部分：全部走 `http_post` 這個可注入的參數，離線測試時餵假的
 # 實作進去，不必真的打 RPC；預設用 urllib 打真正的 JSON-RPC。
@@ -201,23 +369,63 @@ def decode_positions_result(result_hex: str) -> dict:
 HttpPost = Callable[[str, dict], dict]
 
 
-def _default_http_post(rpc_url: str, payload: dict) -> dict:
+_RETRYABLE_HTTP_STATUS = {429, 500, 502, 503, 504}
+_MAX_RETRY_ATTEMPTS = 3  # 首次嘗試 + 最多 2 次重試
+_RETRY_BASE_DELAY_SECONDS = 1.0  # 指數退避：1s, 2s（跟 fetch_pool_metrics.call_gateway 同一套邏輯）
+
+
+def _retry_delay_seconds(attempt_idx: int, retry_after_header: Optional[str]) -> float:
+    if retry_after_header:
+        try:
+            return max(0.0, float(retry_after_header))
+        except ValueError:
+            pass
+    return _RETRY_BASE_DELAY_SECONDS * (2**attempt_idx)
+
+
+def _default_http_post(
+    rpc_url: str,
+    payload: dict,
+    max_attempts: int = _MAX_RETRY_ATTEMPTS,
+    sleep_fn=None,
+) -> dict:
+    """免費公開唯讀 RPC（1rpc.io／publicnode 等）常見 429／503 限流，遇到才
+    重試（跟 fetch_pool_metrics.call_gateway 同一套 429/5xx 退避邏輯），
+    其他錯誤（如 403 network not enabled）直接往上拋，重試沒有意義。"""
+    import time as _time
+
+    sleeper = sleep_fn or _time.sleep
     body = json.dumps(payload).encode("utf-8")
-    req = urllib.request.Request(
-        rpc_url,
-        data=body,
-        headers={
-            "Content-Type": "application/json",
-            "Accept": "application/json",
-            "User-Agent": "uniswap-lp-tracker-wallet-rpc/1.0 (+https://github.com/ul3you-cell/happyda-public)",
-        },
-        method="POST",
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=20) as resp:
-            return json.loads(resp.read().decode("utf-8"))
-    except urllib.error.URLError as exc:
-        raise WalletRpcError(f"RPC 連線失敗（{_redact_rpc_url(rpc_url)}）：{exc}") from exc
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "User-Agent": "uniswap-lp-tracker-wallet-rpc/1.0 (+https://github.com/ul3you-cell/happyda-public)",
+    }
+    last_exc: Exception | None = None
+    for attempt_idx in range(max_attempts):
+        req = urllib.request.Request(rpc_url, data=body, headers=headers, method="POST")
+        try:
+            with urllib.request.urlopen(req, timeout=20) as resp:
+                return json.loads(resp.read().decode("utf-8"))
+        except urllib.error.HTTPError as exc:
+            last_exc = exc
+            if exc.code not in _RETRYABLE_HTTP_STATUS or attempt_idx == max_attempts - 1:
+                raise WalletRpcError(f"RPC 連線失敗（{_redact_rpc_url(rpc_url)}）：{exc}") from exc
+            retry_after = exc.headers.get("Retry-After") if exc.headers else None
+            sleeper(_retry_delay_seconds(attempt_idx, retry_after))
+        except urllib.error.URLError as exc:
+            last_exc = exc
+            if attempt_idx == max_attempts - 1:
+                raise WalletRpcError(f"RPC 連線失敗（{_redact_rpc_url(rpc_url)}）：{exc}") from exc
+            sleeper(_retry_delay_seconds(attempt_idx, None))
+        except OSError as exc:  # noqa: BLE001 — 含 socket.timeout：連線逾時也值得重試一次再放棄
+            last_exc = exc
+            if attempt_idx == max_attempts - 1:
+                raise WalletRpcError(f"RPC 連線失敗（{_redact_rpc_url(rpc_url)}）：{exc}") from exc
+            sleeper(_retry_delay_seconds(attempt_idx, None))
+    if last_exc is not None:
+        raise WalletRpcError(f"RPC 連線失敗（{_redact_rpc_url(rpc_url)}）：{last_exc}") from last_exc
+    raise WalletRpcError(f"RPC 連線失敗（{_redact_rpc_url(rpc_url)}）：重試迴圈未預期結束")
 
 
 def eth_call(
@@ -226,14 +434,22 @@ def eth_call(
     calldata_hex: str,
     block: str = "latest",
     http_post: Optional[HttpPost] = None,
+    from_address: Optional[str] = None,
 ) -> str:
-    """打一次唯讀 `eth_call`，回傳 hex returndata（含 0x 前綴）。"""
+    """打一次唯讀 `eth_call`，回傳 hex returndata（含 0x 前綴）。
+
+    `from_address`：eth_call 是純模擬，節點不驗證簽章，`from` 欄位可以填任意
+    位址——這是模擬 collect() 時故意帶上「部位持有人地址」的必要用法（讓合約的
+    isAuthorizedForToken 檢查通過），絕不代表真的用該地址簽過名或廣播過交易。"""
     poster = http_post or _default_http_post
+    call_obj = {"to": to_address, "data": calldata_hex}
+    if from_address:
+        call_obj["from"] = _validate_address(from_address)
     payload = {
         "jsonrpc": "2.0",
         "id": 1,
         "method": "eth_call",
-        "params": [{"to": to_address, "data": calldata_hex}, block],
+        "params": [call_obj, block],
     }
     response = poster(rpc_url, payload)
     if "error" in response:
@@ -293,3 +509,222 @@ def get_position(
     decoded["token_id"] = token_id
     decoded["chain_id"] = chain_id
     return decoded
+
+
+def simulate_collect(
+    rpc_url: str,
+    token_id: int,
+    owner_addr: str,
+    chain_id: int = 1,
+    http_post: Optional[HttpPost] = None,
+) -> dict:
+    """唯讀 eth_call 模擬 collect(tokenId, owner, uint128max, uint128max)——絕不
+    廣播交易。回傳「如果現在真的 collect，能拿到多少 token0/token1」，這是比
+    positions().tokensOwed 更即時的可領手續費估計（tokensOwed 只在上次
+    mint/increase/decrease 時才更新，中間累積的 fee-growth 差額不會反映在
+    tokensOwed 裡，但會反映在這次模擬呼叫的結果）。"""
+    if chain_id not in POSITION_MANAGER_ADDRESS_BY_CHAIN:
+        raise WalletRpcError(f"chain_id={chain_id} 沒有已核對過的 v3 NonfungiblePositionManager 位址")
+    to_address = POSITION_MANAGER_ADDRESS_BY_CHAIN[chain_id]
+    calldata = calldata_collect(token_id, owner_addr)
+    result_hex = eth_call(rpc_url, to_address, calldata, http_post=http_post, from_address=owner_addr)
+    return decode_collect_result(result_hex)
+
+
+def get_pool_address(
+    rpc_url: str,
+    token0: str,
+    token1: str,
+    fee: int,
+    chain_id: int = 1,
+    http_post: Optional[HttpPost] = None,
+) -> str | None:
+    if chain_id not in V3_FACTORY_ADDRESS_BY_CHAIN:
+        raise WalletRpcError(f"chain_id={chain_id} 沒有已核對過的 UniswapV3Factory 位址")
+    factory = V3_FACTORY_ADDRESS_BY_CHAIN[chain_id]
+    result_hex = eth_call(rpc_url, factory, calldata_get_pool(token0, token1, fee), http_post=http_post)
+    return decode_get_pool_result(result_hex)
+
+
+def get_slot0(rpc_url: str, pool_address: str, http_post: Optional[HttpPost] = None) -> dict:
+    result_hex = eth_call(rpc_url, pool_address, calldata_slot0(), http_post=http_post)
+    return decode_slot0_result(result_hex)
+
+
+def get_token_decimals(rpc_url: str, token_address: str, http_post: Optional[HttpPost] = None) -> int:
+    result_hex = eth_call(rpc_url, token_address, "0x" + SELECTOR_DECIMALS, http_post=http_post)
+    (word,) = _hex_words(result_hex)
+    return decode_uint_word(word)
+
+
+class V4EnumerationUnsupported(WalletRpcError):
+    """v4 PositionManager 不支援 tokenOfOwnerByIndex 列舉時丟出。
+    `balance_count` 帶著已成功查到的 balanceOf() 真實數字，讓呼叫端至少能
+    誠實回報「查到 N 個部位，但列不出明細」而不是完全消失。"""
+
+    def __init__(self, message: str, balance_count: int):
+        super().__init__(message)
+        self.balance_count = balance_count
+
+
+def list_wallet_v4_token_ids(
+    rpc_url: str,
+    wallet_addr: str,
+    chain_id: int = 1,
+    http_post: Optional[HttpPost] = None,
+) -> list[int]:
+    """balanceOf 是標準 ERC-721 selector，v4 PositionManager 通用。但
+    tokenOfOwnerByIndex 不通用——Uniswap 官方文件明確寫著：「The v4
+    PositionManager does not implement ERC721Enumerable, so
+    tokenOfOwnerByIndex is not available.」
+    （來源：developers.uniswap.org/docs/sdks/v4/guides/managing-liquidity/
+    position-fetching，2026-09-27 核對；官方建議改用 subgraph 列舉，但
+    多鏈 v4 subgraph 目前只有非 Uniswap Labs 維運的社群部署，未逐一核對
+    正確性前不接進來，故本次誠實回報「無法列舉明細」而不是猜测）。"""
+    if chain_id not in V4_POSITION_MANAGER_ADDRESS_BY_CHAIN:
+        raise WalletRpcError(f"chain_id={chain_id} 沒有已核對過的 v4 PositionManager 位址")
+    to_address = V4_POSITION_MANAGER_ADDRESS_BY_CHAIN[chain_id]
+    balance_result = eth_call(rpc_url, to_address, calldata_balance_of(wallet_addr), http_post=http_post)
+    count = decode_balance_of_result(balance_result)
+    if count == 0:
+        return []
+    try:
+        idx_result = eth_call(
+            rpc_url, to_address, calldata_token_of_owner_by_index(wallet_addr, 0), http_post=http_post
+        )
+    except WalletRpcError as exc:
+        raise V4EnumerationUnsupported(
+            f"balanceOf() 查到 {count} 個 v4 部位，但 v4 PositionManager 未實作 "
+            "ERC721Enumerable（Uniswap 官方文件證實 tokenOfOwnerByIndex 不可用），"
+            f"無法逐一列出 token_id：{exc}",
+            balance_count=count,
+        ) from exc
+    token_ids = [decode_token_of_owner_by_index_result(idx_result)]
+    for i in range(1, count):
+        idx_result = eth_call(
+            rpc_url, to_address, calldata_token_of_owner_by_index(wallet_addr, i), http_post=http_post
+        )
+        token_ids.append(decode_token_of_owner_by_index_result(idx_result))
+    return token_ids
+
+
+def get_v4_position(
+    rpc_url: str,
+    token_id: int,
+    chain_id: int = 1,
+    http_post: Optional[HttpPost] = None,
+) -> dict:
+    """v4 部位：pool key + tick range 用 getPoolAndPositionInfo，liquidity 用
+    getPositionLiquidity 另一次呼叫（官方 periphery 把這兩個資訊拆成兩個
+    view function，沒有單一函式一次回傳全部——不是本專案自己拆的）。
+
+    v4 的「可領手續費」刻意不在這裡計算：v4 的手續費透過 feeGrowthInside 差值
+    結算，需要額外呼叫 StateView.getFeeGrowthInside（每條鏈的 StateView 合約
+    位址雖然已核對到，但其回傳值到「這個部位當下可領 USD」之間的換算公式本次
+    未及逐字核對＋離線測試覆蓋），標示為「資料源不支援」，不猜測、不拿 v3 的
+    tokensOwed 邏輯硬套在 v4 部位上。"""
+    if chain_id not in V4_POSITION_MANAGER_ADDRESS_BY_CHAIN:
+        raise WalletRpcError(f"chain_id={chain_id} 沒有已核對過的 v4 PositionManager 位址")
+    to_address = V4_POSITION_MANAGER_ADDRESS_BY_CHAIN[chain_id]
+    info_hex = eth_call(rpc_url, to_address, calldata_v4_get_pool_and_position_info(token_id), http_post=http_post)
+    info = decode_v4_get_pool_and_position_info(info_hex)
+    liq_hex = eth_call(rpc_url, to_address, calldata_v4_get_position_liquidity(token_id), http_post=http_post)
+    liquidity = decode_v4_get_position_liquidity_result(liq_hex)
+    return {
+        "token_id": token_id,
+        "chain_id": chain_id,
+        "protocol": "v4",
+        "token0": info["pool_key"]["currency0"],
+        "token1": info["pool_key"]["currency1"],
+        "fee": info["pool_key"]["fee"],
+        "tick_spacing": info["pool_key"]["tick_spacing"],
+        "hooks": info["pool_key"]["hooks"],
+        "tick_lower": info["tick_lower"],
+        "tick_upper": info["tick_upper"],
+        "liquidity": liquidity,
+        "pool_id_hex": info["pool_id_hex"],
+        "fees_unsupported_reason": (
+            "v4 可領手續費需 StateView.getFeeGrowthInside 額外計算，本次未逐字核對"
+            "換算公式並補測試，標示為「資料源不支援」，不用 v3 邏輯或猜測值頂替。"
+        ),
+    }
+
+
+def require_alchemy_rpc_url(chain_id: int) -> str:
+    """從環境變數 ALCHEMY_API_KEY 組出指定鏈的 Alchemy JSON-RPC endpoint。
+    只讀環境變數、絕不印出/回傳含 key 的字串到例外以外的地方——呼叫端印錯誤
+    訊息一律要先過 `_redact_rpc_url()`。Alchemy 網域 slug 逐字核對來源見
+    module 內 `ALCHEMY_NETWORK_SLUG_BY_CHAIN` 註解。"""
+    if chain_id not in ALCHEMY_NETWORK_SLUG_BY_CHAIN:
+        raise WalletRpcError(f"chain_id={chain_id} 沒有已核對過的 Alchemy network slug")
+    api_key = os.environ.get("ALCHEMY_API_KEY", "").strip()
+    if not api_key:
+        raise WalletRpcError(
+            "缺少 ALCHEMY_API_KEY 環境變數。請到 dev-claude profile 的 .env 設定後再執行"
+            "（本工具絕不讀取/顯示 key 本身）。"
+        )
+    slug = ALCHEMY_NETWORK_SLUG_BY_CHAIN[chain_id]
+    return f"https://{slug}.g.alchemy.com/v2/{api_key}"
+
+
+# dev-claude 的 Alchemy app 目前只對 Arbitrum 啟用了網路（其餘鏈回報
+# 「NETWORK is not enabled for this app」，這是帳號層級設定，程式無法自行
+# 開通）。為了不讓其餘四條鏈永遠卡在「供應商不支援」，改用官方／知名唯讀
+# 公開 RPC 當退路——全部不需要 API key，2026-09-27 已用 eth_chainId 逐一
+# 連線核對過回傳的 chain_id 正確：
+PUBLIC_RPC_URL_BY_CHAIN = {
+    # 2026-09-27：1rpc.io/eth 執行期間曾短暫回過 HTTP 410（CDN 節點故障），
+    # 隔幾分鐘後用 curl 重測 eth_chainId／eth_blockNumber 皆恢復正常，
+    # 判定是暫時性問題非永久下線，保留原本已核對過的位址。
+    # （備選 cloudflare-eth.com 的 eth_blockNumber 會穩定回
+    #  {"code":-32046,"message":"Cannot fulfill request"}，不適合當退路。）
+    1: "https://1rpc.io/eth",
+    42161: "https://arb1.arbitrum.io/rpc",
+    10: "https://mainnet.optimism.io",
+    8453: "https://base.publicnode.com",
+    56: "https://bsc-dataseed.binance.org",
+    130: "https://unichain.publicnode.com",
+}
+
+
+def _probe_chain_id(rpc_url: str, http_post: Optional[HttpPost] = None) -> int:
+    """打一次真實 eth_chainId，回傳節點回報的 chain_id（int）；失敗就讓例外往外丟，
+    由呼叫端（resolve_rpc_url）決定要不要換下一個候選 URL。"""
+    poster = http_post or _default_http_post
+    response = poster(rpc_url, {"jsonrpc": "2.0", "id": 1, "method": "eth_chainId", "params": []})
+    if "error" in response:
+        raise WalletRpcError(f"節點回報 eth_chainId 錯誤（{_redact_rpc_url(rpc_url)}）：{response['error']}")
+    result = response.get("result")
+    if not isinstance(result, str):
+        raise WalletRpcError(f"eth_chainId 回應格式異常（{_redact_rpc_url(rpc_url)}）：{result!r}")
+    return int(result, 16)
+
+
+def resolve_rpc_url(chain_id: int, http_post: Optional[HttpPost] = None) -> tuple[str, str, dict]:
+    """依序嘗試 Alchemy（唯讀 API key）→ 公開唯讀 RPC，回傳
+    (可用的 rpc_url, 來源標籤, 各候選的嘗試結果)。來源標籤只會是
+    "alchemy" 或 "public-rpc"，絕不把 URL 本身（含 key）放進回傳的
+    attempts 紀錄裡，一律先過 `_redact_rpc_url()`。兩個候選都失敗時丟出
+    WalletRpcError，訊息附上兩邊各自的錯誤原因，方便誠實回報「這條鏈確實
+    查不到」而不是默默吞掉。"""
+    attempts: dict[str, str] = {}
+    try:
+        alchemy_url = require_alchemy_rpc_url(chain_id)
+        _probe_chain_id(alchemy_url, http_post=http_post)
+        return alchemy_url, "alchemy", attempts
+    except WalletRpcError as exc:
+        attempts["alchemy"] = str(exc)
+
+    public_url = PUBLIC_RPC_URL_BY_CHAIN.get(chain_id)
+    if public_url is None:
+        attempts["public-rpc"] = f"chain_id={chain_id} 沒有已核對過的公開 RPC 候選"
+        raise WalletRpcError(f"chain_id={chain_id} 的 Alchemy 與公開 RPC 皆不可用：{attempts}")
+    try:
+        reported = _probe_chain_id(public_url, http_post=http_post)
+        if reported != chain_id:
+            attempts["public-rpc"] = f"節點回報 chain_id={reported}，與預期 {chain_id} 不符"
+            raise WalletRpcError(f"chain_id={chain_id} 的 Alchemy 與公開 RPC 皆不可用：{attempts}")
+        return public_url, "public-rpc", attempts
+    except WalletRpcError as exc:
+        attempts.setdefault("public-rpc", str(exc))
+        raise WalletRpcError(f"chain_id={chain_id} 的 Alchemy 與公開 RPC 皆不可用：{attempts}") from exc

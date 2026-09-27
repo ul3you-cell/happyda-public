@@ -98,6 +98,7 @@ def main() -> int:
     steps = [
         [sys.executable, str(SCRIPTS_DIR / "fetch_pool_info.py")],
         [sys.executable, str(SCRIPTS_DIR / "normalize.py")],
+        [sys.executable, str(SCRIPTS_DIR / "wallet_live_fetch.py")],
         [sys.executable, str(SCRIPTS_DIR / "build_dashboard.py")],
     ]
     for step in steps:

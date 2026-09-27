@@ -88,6 +88,16 @@ V4_POSITION_MANAGER_ADDRESS_BY_CHAIN = {
     130: "0x4529a01c7a0410167c5740c487a8de60232617bf",
 }
 
+# StateView deployments from the official Uniswap v4 deployment table.
+V4_STATE_VIEW_ADDRESS_BY_CHAIN = {
+    1: "0x7ffe42c4a5deea5b0fec41c94c136cf115597227",
+    42161: "0x76fd297e2d437cd7f76d50f01afe6160f86e9990",
+    10: "0xc18a3169788f4f75a170290584eca6395c75ecdb",
+    8453: "0xa3c0c9b65bad0b08107aa264b0f3db444b867a71",
+    56: "0xd13dd3d6e93f276fafc9db9e6bb47c1180aee0c4",
+    130: "0x86e8631a016f9068c3f085faf484ee3f5fdee8f2",
+}
+
 CHAIN_NAME_BY_ID = {
     1: "Ethereum",
     42161: "Arbitrum",
@@ -124,6 +134,69 @@ SELECTOR_DECIMALS = "313ce567"         # decimals()，ERC-20 標準 selector（�
                                         # 穩定公開標準，不需另外查證）
 
 UINT128_MAX = 2**128 - 1
+
+_KECCAK_ROUND_CONSTANTS = (
+    0x0000000000000001, 0x0000000000008082, 0x800000000000808A,
+    0x8000000080008000, 0x000000000000808B, 0x0000000080000001,
+    0x8000000080008081, 0x8000000000008009, 0x000000000000008A,
+    0x0000000000000088, 0x0000000080008009, 0x000000008000000A,
+    0x000000008000808B, 0x800000000000008B, 0x8000000000008089,
+    0x8000000000008003, 0x8000000000008002, 0x8000000000000080,
+    0x000000000000800A, 0x800000008000000A, 0x8000000080008081,
+    0x8000000000008080, 0x0000000080000001, 0x8000000080008008,
+)
+_KECCAK_ROTATIONS = (
+    (0, 36, 3, 41, 18), (1, 44, 10, 45, 2), (62, 6, 43, 15, 61),
+    (28, 55, 25, 21, 56), (27, 20, 39, 8, 14),
+)
+_KECCAK_MASK = (1 << 64) - 1
+
+
+def keccak256(data: bytes) -> bytes:
+    """Ethereum Keccak-256 (not FIPS SHA3-256), implemented with Python only."""
+    rate = 136
+    padded = bytearray(data)
+    padded.append(0x01)
+    padded.extend(b"\0" * ((rate - len(padded) % rate) % rate))
+    padded[-1] |= 0x80
+    state = [0] * 25
+    for offset in range(0, len(padded), rate):
+        block = padded[offset:offset + rate]
+        for i in range(rate // 8):
+            state[i] ^= int.from_bytes(block[i * 8:(i + 1) * 8], "little")
+        for rc in _KECCAK_ROUND_CONSTANTS:
+            c = [state[x] ^ state[x + 5] ^ state[x + 10] ^ state[x + 15] ^ state[x + 20] for x in range(5)]
+            d = [c[(x - 1) % 5] ^ ((c[(x + 1) % 5] << 1 | c[(x + 1) % 5] >> 63) & _KECCAK_MASK) for x in range(5)]
+            for y in range(5):
+                for x in range(5):
+                    state[x + 5 * y] ^= d[x]
+            rotated = [0] * 25
+            for y in range(5):
+                for x in range(5):
+                    value = state[x + 5 * y]
+                    n = _KECCAK_ROTATIONS[x][y]
+                    rotated[y + 5 * ((2 * x + 3 * y) % 5)] = ((value << n) | (value >> ((64 - n) % 64))) & _KECCAK_MASK
+            for y in range(5):
+                for x in range(5):
+                    state[x + 5 * y] = rotated[x + 5 * y] ^ ((~rotated[(x + 1) % 5 + 5 * y]) & rotated[(x + 2) % 5 + 5 * y])
+            state[0] ^= rc
+    return b"".join(state[i].to_bytes(8, "little") for i in range(rate // 8))[:32]
+
+
+def keccak256_hex(data: bytes) -> str:
+    return "0x" + keccak256(data).hex()
+
+
+def v4_pool_id(pool_key: dict) -> str:
+    """poolId = keccak256(abi.encode(currency0,currency1,fee,tickSpacing,hooks))."""
+    words = (
+        encode_address_arg(pool_key["currency0"]),
+        encode_address_arg(pool_key["currency1"]),
+        encode_uint_arg(pool_key["fee"]),
+        format(pool_key["tick_spacing"] % (2**256), "064x"),
+        encode_address_arg(pool_key["hooks"]),
+    )
+    return keccak256_hex(bytes.fromhex("".join(words)))
 
 _ADDRESS_RE = re.compile(r"^0x[0-9a-fA-F]{40}$")
 
@@ -241,6 +314,61 @@ def calldata_collect(token_id: int, recipient_addr: str, amount0_max: int = UINT
 
 def calldata_slot0() -> str:
     return "0x" + SELECTOR_SLOT0
+
+
+def calldata_v4_slot0(pool_id: str) -> str:
+    if not re.fullmatch(r"0x[0-9a-fA-F]{64}", pool_id):
+        raise ValueError("pool_id 必須是 0x 開頭的 bytes32")
+    selector = keccak256(b"getSlot0(bytes32)")[:4].hex()
+    return "0x" + selector + pool_id[2:].lower()
+
+
+def decode_v4_slot0_result(result_hex: str) -> dict:
+    words = _hex_words(result_hex)
+    if len(words) != 4:
+        raise ValueError(f"StateView.getSlot0() 應回傳 4 個 slot，實際 {len(words)} 個")
+    return {
+        "sqrt_price_x96": decode_uint_word(words[0]),
+        "tick": decode_int_word(words[1]),
+        "protocol_fee": decode_uint_word(words[2]),
+        "lp_fee": decode_uint_word(words[3]),
+    }
+
+
+def get_v4_slot0(rpc_url: str, pool_id: str, chain_id: int, http_post: Optional[HttpPost] = None) -> dict:
+    if chain_id not in V4_STATE_VIEW_ADDRESS_BY_CHAIN:
+        raise WalletRpcError(f"chain_id={chain_id} 沒有已核對過的 v4 StateView 位址")
+    raw = eth_call(
+        rpc_url, V4_STATE_VIEW_ADDRESS_BY_CHAIN[chain_id], calldata_v4_slot0(pool_id), http_post=http_post
+    )
+    return decode_v4_slot0_result(raw)
+
+
+def get_v4_position_fee_growth(
+    rpc_url: str, pool_id: str, token_id: int, tick_lower: int, tick_upper: int,
+    chain_id: int, http_post: Optional[HttpPost] = None,
+) -> dict:
+    """Read position checkpoint and current in-range fee growth via StateView."""
+    if chain_id not in V4_STATE_VIEW_ADDRESS_BY_CHAIN:
+        raise WalletRpcError(f"chain_id={chain_id} 沒有已核對過的 v4 StateView 位址")
+    pm = V4_POSITION_MANAGER_ADDRESS_BY_CHAIN[chain_id]
+    position_selector = keccak256(b"getPositionInfo(bytes32,address,int24,int24,bytes32)")[:4].hex()
+    growth_selector = keccak256(b"getFeeGrowthInside(bytes32,int24,int24)")[:4].hex()
+    signed_word = lambda v: format(v % (2**256), "064x")
+    pos_data = "0x" + position_selector + pool_id[2:] + encode_address_arg(pm) + signed_word(tick_lower) + signed_word(tick_upper) + encode_uint_arg(token_id)
+    growth_data = "0x" + growth_selector + pool_id[2:] + signed_word(tick_lower) + signed_word(tick_upper)
+    state_view = V4_STATE_VIEW_ADDRESS_BY_CHAIN[chain_id]
+    pos_words = _hex_words(eth_call(rpc_url, state_view, pos_data, http_post=http_post))
+    growth_words = _hex_words(eth_call(rpc_url, state_view, growth_data, http_post=http_post))
+    if len(pos_words) != 3 or len(growth_words) != 2:
+        raise ValueError("StateView fee-growth 回應長度不符合官方 ABI")
+    return {
+        "liquidity": decode_uint_word(pos_words[0]),
+        "fee_growth_inside_last_0_x128": decode_uint_word(pos_words[1]),
+        "fee_growth_inside_last_1_x128": decode_uint_word(pos_words[2]),
+        "fee_growth_inside_0_x128": decode_uint_word(growth_words[0]),
+        "fee_growth_inside_1_x128": decode_uint_word(growth_words[1]),
+    }
 
 
 def calldata_get_pool(token_a: str, token_b: str, fee: int) -> str:

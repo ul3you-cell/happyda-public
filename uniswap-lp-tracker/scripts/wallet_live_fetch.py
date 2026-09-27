@@ -18,6 +18,7 @@ from __future__ import annotations
 import json
 import sys
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 
 import common
@@ -33,6 +34,9 @@ V3_CHAINS = [1, 42161, 10, 8453, 56, 130]
 V4_CHAINS = [1, 42161, 10, 8453, 56, 130]
 
 OUTPUT_PATH = common.DATA_DIR / "wallet_live_latest.json"
+V4_NATIVE_PRICE_ADDRESS_BY_CHAIN = {
+    130: "0x4200000000000000000000000000000000000006",
+}
 
 
 def _redact(exc: Exception) -> str:
@@ -47,6 +51,17 @@ def _eth_call_post(rpc_url: str, payload: dict) -> dict:
 
 def _rpc_simple(rpc_url: str, method: str) -> dict:
     return _eth_call_post(rpc_url, {"jsonrpc": "2.0", "id": 1, "method": method, "params": []})
+
+
+def _rpc_quantity(value) -> int:
+    """Decode an RPC quantity while tolerating providers returning JSON integers."""
+    if isinstance(value, bool):
+        raise ValueError("RPC quantity 回應為布林值")
+    if isinstance(value, int):
+        return value
+    if isinstance(value, str):
+        return int(value, 16) if value.startswith("0x") else int(value)
+    raise ValueError(f"RPC quantity 回應型別不支援：{type(value).__name__}")
 
 
 def chain_smoke(chain_id: int) -> dict:
@@ -102,7 +117,7 @@ def resolve_token_meta(rpc_url: str, chain_id: int, whitelist: dict, address: st
         return {"symbol": address[:6] + "…" + address[-4:], "decimals": None, "error": _redact(exc)}
 
 
-def fetch_v3_chain(chain_id: int, whitelist: dict) -> dict:
+def fetch_v3_chain(chain_id: int, whitelist: dict, smoke_block_number: int | None = None) -> dict:
     name = rpc.CHAIN_NAME_BY_ID.get(chain_id, f"chain-{chain_id}")
     result = {
         "chain_id": chain_id,
@@ -121,7 +136,16 @@ def fetch_v3_chain(chain_id: int, whitelist: dict) -> dict:
 
     try:
         block_resp = _rpc_simple(rpc_url, "eth_blockNumber")
-        result["block_number"] = int(block_resp["result"], 16)
+        if "error" in block_resp:
+            raise rpc.WalletRpcError(f"節點回報 eth_blockNumber 錯誤：{block_resp['error']}")
+        result["block_number"] = _rpc_quantity(block_resp.get("result"))
+    except Exception as exc:  # noqa: BLE001
+        if smoke_block_number is None:
+            result["error"] = _redact(exc)
+            return result
+        result["block_number"] = smoke_block_number
+        result["block_number_source"] = "同次 eth_chainId smoke 成功回應（eth_blockNumber 本次異常）"
+    try:
         token_ids = rpc.list_wallet_token_ids(rpc_url, WALLET_ADDRESS, chain_id=chain_id)
     except Exception as exc:  # noqa: BLE001
         result["error"] = _redact(exc)
@@ -186,7 +210,7 @@ def fetch_v3_chain(chain_id: int, whitelist: dict) -> dict:
     return result
 
 
-def fetch_v4_chain(chain_id: int) -> dict:
+def fetch_v4_chain(chain_id: int, smoke_block_number: int | None = None) -> dict:
     name = rpc.CHAIN_NAME_BY_ID.get(chain_id, f"chain-{chain_id}")
     result = {
         "chain_id": chain_id,
@@ -204,7 +228,16 @@ def fetch_v4_chain(chain_id: int) -> dict:
         return result
     try:
         block_resp = _rpc_simple(rpc_url, "eth_blockNumber")
-        result["block_number"] = int(block_resp["result"], 16)
+        if "error" in block_resp:
+            raise rpc.WalletRpcError(f"節點回報 eth_blockNumber 錯誤：{block_resp['error']}")
+        result["block_number"] = _rpc_quantity(block_resp.get("result"))
+    except Exception as exc:  # noqa: BLE001
+        if smoke_block_number is None:
+            result["error"] = _redact(exc)
+            return result
+        result["block_number"] = smoke_block_number
+        result["block_number_source"] = "同次 eth_chainId smoke 成功回應（eth_blockNumber 本次異常）"
+    try:
         token_ids = rpc.list_wallet_v4_token_ids(rpc_url, WALLET_ADDRESS, chain_id=chain_id)
     except rpc.V4EnumerationUnsupported as exc:
         # tokenOfOwnerByIndex 不可用是協定本身限制，改用 eth_getLogs 掃
@@ -237,11 +270,53 @@ def fetch_v4_chain(chain_id: int) -> dict:
             pos["in_range"] = None
             pos["position_value_usd"] = None
             pos["fees_owed_usd"] = None
-            pos["value_unsupported_reason"] = (
-                "v4 poolId(bytes32) 需 keccak256(poolKey) 才能查 StateView，"
-                "本環境未安裝 keccak 套件（未經使用者同意不新增依賴），"
-                "故 current_tick／in_range／USD 估值／fee 一律標示不支援，不猜測。"
+            pos["active"] = int(pos.get("liquidity", 0)) > 0
+            if not pos["active"]:
+                pos["position_status"] = "已退出／無流動性（liquidity=0）"
+                pos["token0_amount"] = 0
+                pos["token1_amount"] = 0
+                pos["fees_unsupported_reason"] = "StateView 無此歷史部位的可領費用；liquidity=0，列為已退出／無流動性。"
+                result["positions"].append(pos)
+                continue
+            pool_key = {
+                "currency0": pos["token0"], "currency1": pos["token1"],
+                "fee": pos["fee"], "tick_spacing": pos["tick_spacing"], "hooks": pos["hooks"],
+            }
+            pos["pool_id_hex"] = rpc.v4_pool_id(pool_key)
+            state = rpc.get_v4_slot0(rpc_url, pos["pool_id_hex"], chain_id)
+            pos["current_tick"] = state["tick"]
+            pos["in_range"] = math3.in_range(state["tick"], pos["tick_lower"], pos["tick_upper"])
+            pos["position_status"] = "活躍（非零 liquidity）"
+            pos["lp_fee_raw"] = state["lp_fee"]
+            pos["pool_state_source"] = "Uniswap v4 StateView.getSlot0(bytes32)；RPC eth_call"
+            amt0_raw, amt1_raw = math3.amounts_for_liquidity(
+                int(pos["liquidity"]), state["tick"], state["sqrt_price_x96"],
+                pos["tick_lower"], pos["tick_upper"],
             )
+            whitelist = common.build_token_whitelist(common.load_config())
+            meta0 = ({"symbol": "ETH", "decimals": 18, "source": "Uniswap native currency (zero address)"}
+                     if pos["token0"].lower() == "0x" + "0" * 40
+                     else resolve_token_meta(rpc_url, chain_id, whitelist, pos["token0"]))
+            meta1 = ({"symbol": "ETH", "decimals": 18, "source": "Uniswap native currency (zero address)"}
+                     if pos["token1"].lower() == "0x" + "0" * 40
+                     else resolve_token_meta(rpc_url, chain_id, whitelist, pos["token1"]))
+            pos["token0"] = {"address": pool_key["currency0"], **meta0}
+            pos["token1"] = {"address": pool_key["currency1"], **meta1}
+            pos["token0_amount"] = amt0_raw / (10 ** meta0["decimals"]) if meta0.get("decimals") is not None else None
+            pos["token1_amount"] = amt1_raw / (10 ** meta1["decimals"]) if meta1.get("decimals") is not None else None
+            try:
+                growth = rpc.get_v4_position_fee_growth(
+                    rpc_url, pos["pool_id_hex"], token_id, pos["tick_lower"], pos["tick_upper"], chain_id
+                )
+                pos["position_liquidity_stateview"] = str(growth["liquidity"])
+                delta0 = max(0, growth["fee_growth_inside_0_x128"] - growth["fee_growth_inside_last_0_x128"])
+                delta1 = max(0, growth["fee_growth_inside_1_x128"] - growth["fee_growth_inside_last_1_x128"])
+                pos["fees_owed_0_raw"] = str(delta0 * growth["liquidity"] // (2**128))
+                pos["fees_owed_1_raw"] = str(delta1 * growth["liquidity"] // (2**128))
+                pos["fees_source"] = "StateView current feeGrowthInside − position checkpoint，乘以鏈上 liquidity 再除 2^128；估算可領 token base units"
+                pos.pop("fees_unsupported_reason", None)
+            except Exception as exc:  # noqa: BLE001 — 保留已查得的部位狀態與估值
+                pos["fees_unsupported_reason"] = f"StateView fee-growth 讀取失敗，無法計算個人可領 fee：{_redact(exc)}"
         except Exception as exc:  # noqa: BLE001
             pos = {"token_id": token_id, "error": _redact(exc)}
         result["positions"].append(pos)
@@ -281,19 +356,34 @@ def enrich_with_usd(v3_results: list[dict]) -> None:
             price1 = prices.get((slug, addr1)) if addr1 else None
             pos["token0_usd_price"] = price0
             pos["token1_usd_price"] = price1
-            value_usd = None
-            if price0 is not None and pos.get("token0_amount") is not None:
-                value_usd = (value_usd or 0.0) + price0 * pos["token0_amount"]
-            if price1 is not None and pos.get("token1_amount") is not None:
-                value_usd = (value_usd or 0.0) + price1 * pos["token1_amount"]
+            value_usd = 0.0
+            value_complete = True
+            for price, amount in ((price0, pos.get("token0_amount")), (price1, pos.get("token1_amount"))):
+                if amount is None:
+                    value_complete = False
+                elif amount != 0:
+                    if price is None:
+                        value_complete = False
+                    else:
+                        value_usd += price * amount
+            if not value_complete:
+                value_usd = None
             pos["position_value_usd"] = value_usd
             fees_usd = None
             fee0 = pos.pop("_fee0_amount", None)
             fee1 = pos.pop("_fee1_amount", None)
-            if price0 is not None and fee0 is not None:
-                fees_usd = (fees_usd or 0.0) + price0 * fee0
-            if price1 is not None and fee1 is not None:
-                fees_usd = (fees_usd or 0.0) + price1 * fee1
+            fees_usd = 0.0
+            fees_complete = True
+            for price, amount in ((price0, fee0), (price1, fee1)):
+                if amount is None:
+                    fees_complete = False
+                elif amount != 0:
+                    if price is None:
+                        fees_complete = False
+                    else:
+                        fees_usd += price * amount
+            if not fees_complete:
+                fees_usd = None
             pos["fees_owed_usd"] = fees_usd
             pos.pop("_token0_addr_for_price", None)
             pos.pop("_token1_addr_for_price", None)
@@ -301,17 +391,90 @@ def enrich_with_usd(v3_results: list[dict]) -> None:
                 pos.setdefault("note", "部分/全部 token 無法從 Alchemy Prices API 取得 USD 報價，估值欄位為 None（非 0）")
 
 
-def write_snapshots(v3_results: list[dict]) -> int:
-    """把這次查到的每個 v3 部位寫進本機每日快照 SQLite；回傳寫入筆數。
+def enrich_v4_with_usd(v4_results: list[dict]) -> None:
+    pairs: set[tuple[str, str]] = set()
+    for chain_result in v4_results:
+        slug = rpc.ALCHEMY_NETWORK_SLUG_BY_CHAIN.get(chain_result["chain_id"])
+        if not slug:
+            continue
+        for pos in chain_result.get("positions", []):
+            if not pos.get("active"):
+                continue
+            for i in (0, 1):
+                token = pos.get(f"token{i}") or {}
+                addr = token.get("address", "").lower()
+                if addr == "0x" + "0" * 40:
+                    addr = V4_NATIVE_PRICE_ADDRESS_BY_CHAIN.get(chain_result["chain_id"], "")
+                if addr:
+                    pos[f"_v4_price_addr_{i}"] = addr
+                    pairs.add((slug, addr))
+    try:
+        prices = wallet_price_client.fetch_usd_prices_by_address(sorted(pairs)) if pairs else {}
+    except wallet_price_client.PriceClientError as exc:
+        for chain_result in v4_results:
+            for pos in chain_result.get("positions", []):
+                if pos.get("active"):
+                    pos["usd_pricing_error"] = _redact(exc)
+        return
+    for chain_result in v4_results:
+        slug = rpc.ALCHEMY_NETWORK_SLUG_BY_CHAIN.get(chain_result["chain_id"])
+        if not slug:
+            continue
+        for pos in chain_result.get("positions", []):
+            if not pos.get("active"):
+                continue
+            value = fees = 0.0
+            value_complete = fees_complete = True
+            for i in (0, 1):
+                price = prices.get((slug, pos.get(f"_v4_price_addr_{i}")))
+                amount = pos.get(f"token{i}_amount")
+                raw_fee = int(pos.get(f"fees_owed_{i}_raw", "0"))
+                decimals = (pos.get(f"token{i}") or {}).get("decimals")
+                pos[f"token{i}_usd_price"] = price
+                if amount is None:
+                    value_complete = False
+                elif amount != 0:
+                    if price is None:
+                        value_complete = False
+                    else:
+                        value += price * amount
+                if raw_fee:
+                    if price is None or decimals is None:
+                        fees_complete = False
+                    else:
+                        fees += price * raw_fee / (10 ** decimals)
+            pos["position_value_usd"] = value if value_complete else None
+            pos["fees_owed_usd"] = fees if fees_complete else None
+            missing_prices = [
+                (pos.get(f"token{i}") or {}).get("symbol") or f"token{i}"
+                for i in (0, 1)
+                if pos.get(f"token{i}_amount") and pos.get(f"token{i}_usd_price") is None
+            ]
+            if missing_prices:
+                pos["value_unsupported_reason"] = (
+                    "Alchemy Prices API 未回傳 USD 報價：" + ", ".join(missing_prices)
+                    + "；不以部分代幣估值冒充整筆 LP 價值。"
+                )
+            pos.pop("_v4_price_addr_0", None)
+            pos.pop("_v4_price_addr_1", None)
+
+
+def write_snapshots(chain_results: list[dict]) -> int:
+    """把這次查到的活躍 V3/V4 部位寫進本機每日快照 SQLite；回傳寫入筆數。
     快照本身是不是「第一筆」由 wallet_snapshot_store/wallet_apr_calc 依歷史
     筆數判斷，本函式不做任何造數字的事。"""
     conn = store.get_connection()
     ts = int(time.time())
     count = 0
-    for chain_result in v3_results:
+    for chain_result in chain_results:
         chain_id = chain_result["chain_id"]
+        protocol = chain_result.get("protocol")
         for pos in chain_result.get("positions", []):
-            if "error" in pos or "token_id" not in pos or "pool_address" not in pos or pos.get("pool_address") is None:
+            liquidity = pos.get("liquidity_raw", pos.get("liquidity", 0))
+            if "error" in pos or "token_id" not in pos or int(liquidity or 0) <= 0:
+                continue
+            pool_addr = pos.get("pool_address") if protocol == "v3" else pos.get("pool_id_hex")
+            if not pool_addr:
                 continue
             store.insert_snapshot(
                 conn,
@@ -319,10 +482,10 @@ def write_snapshots(v3_results: list[dict]) -> int:
                 wallet_addr=WALLET_ADDRESS,
                 chain_id=chain_id,
                 token_id=pos["token_id"],
-                pool_addr=pos["pool_address"],
+                pool_addr=pool_addr,
                 tick_lower=pos["tick_lower"],
                 tick_upper=pos["tick_upper"],
-                liquidity=pos["liquidity_raw"],
+                liquidity=str(liquidity),
                 in_range=bool(pos.get("in_range")),
                 fees_accrued_usd=pos.get("fees_owed_usd"),
                 position_value_usd=pos.get("position_value_usd"),
@@ -339,13 +502,16 @@ def _sum_value_fees(row: dict) -> float | None:
     return (v or 0.0) + (f or 0.0)
 
 
-def attach_observed_apr(v3_results: list[dict]) -> None:
+def attach_observed_apr(chain_results: list[dict]) -> None:
     """依本機快照歷史算「快照實測個人 APR」，跟池子級估算 APR 分欄。"""
     conn = store.get_connection()
-    for chain_result in v3_results:
+    for chain_result in chain_results:
         chain_id = chain_result["chain_id"]
         for pos in chain_result.get("positions", []):
-            if "token_id" not in pos or pos.get("pool_address") is None:
+            if "token_id" not in pos or "error" in pos:
+                continue
+            liquidity = pos.get("liquidity_raw", pos.get("liquidity", 0))
+            if int(liquidity or 0) <= 0:
                 continue
             history = store.fetch_position_history(
                 conn, wallet_addr=WALLET_ADDRESS, chain_id=chain_id, token_id=pos["token_id"]
@@ -398,6 +564,11 @@ def build_wallet_rows(wallet_data: dict) -> list[dict]:
             pair_label = None
             if token0_symbol and token1_symbol:
                 pair_label = f"{token0_symbol}/{token1_symbol}"
+            source_notes = [
+                pos.get("fees_source"), pos.get("fees_unsupported_reason"),
+                pos.get("pool_state_source"), pos.get("value_unsupported_reason"),
+                pos.get("note"), pos.get("error"), chain_result.get("enumeration_source"),
+            ]
             rows.append({
                 "chain_name": chain_name,
                 "protocol": protocol,
@@ -406,6 +577,17 @@ def build_wallet_rows(wallet_data: dict) -> list[dict]:
                 "token_id": pos.get("token_id"),
                 "position_value_usd": pos.get("position_value_usd"),
                 "fees_owed_usd": pos.get("fees_owed_usd"),
+                "position_status": pos.get("position_status") or (
+                    "活躍（非零 liquidity）"
+                    if pos.get("active") is True or int(pos.get("liquidity_raw", pos.get("liquidity", "0")) or 0) > 0
+                    else "已退出／無流動性"
+                ) if (pos.get("liquidity_raw") is not None or pos.get("liquidity") is not None
+                      or pos.get("active") is not None) else None,
+                "token0_amount": pos.get("token0_amount"),
+                "token1_amount": pos.get("token1_amount"),
+                "token0_symbol": _symbol_of(pos.get("token0")),
+                "token1_symbol": _symbol_of(pos.get("token1")),
+                "current_tick": pos.get("current_tick"),
                 "in_range": pos.get("in_range"),
                 "delta_24h_usd": pos.get("delta_24h_usd"),
                 "observed_apr_7d_pct": pos.get("observed_apr_7d_pct"),
@@ -413,18 +595,16 @@ def build_wallet_rows(wallet_data: dict) -> list[dict]:
                 "base_established": pos.get("base_established"),
                 "delta_note": pos.get("delta_note") or pos.get("observed_apr_note"),
                 "snapshot_time": chain_result.get("queried_at"),
-                "source": (
-                    pos.get("fees_source")
-                    or pos.get("value_unsupported_reason")
-                    or pos.get("note")
-                    or pos.get("error")
-                    or chain_result.get("enumeration_source")
-                ),
+                "source": "；".join(dict.fromkeys(str(note) for note in source_notes if note)),
                 "row_error": pos.get("error") or chain_error,
             })
-        if not chain_result.get("positions") and chain_error:
-            # 這條鏈整批查詢失敗（例如供應商 network not enabled）：仍要出現
-            # 一列，讓使用者看得到「這條鏈查了、但失敗，原因是什麼」，不能默默消失。
+        if not chain_result.get("positions"):
+            # 0 部位與查詢失敗都必須逐鏈可見；0 是成功查詢結果，不能隱藏。
+            zero_status = "查詢錯誤" if chain_error else "已查詢＝0"
+            query_note = chain_error or (
+                f"{zero_status}；block {chain_result.get('block_number', 'N/A')}；"
+                f"{datetime.fromtimestamp(chain_result.get('queried_at', 0), tz=timezone.utc).isoformat()}"
+            )
             rows.append({
                 "chain_name": chain_name,
                 "protocol": protocol,
@@ -433,6 +613,12 @@ def build_wallet_rows(wallet_data: dict) -> list[dict]:
                 "token_id": None,
                 "position_value_usd": None,
                 "fees_owed_usd": None,
+                "position_status": zero_status,
+                "token0_amount": None,
+                "token1_amount": None,
+                "token0_symbol": None,
+                "token1_symbol": None,
+                "current_tick": None,
                 "in_range": None,
                 "delta_24h_usd": None,
                 "observed_apr_7d_pct": None,
@@ -440,7 +626,7 @@ def build_wallet_rows(wallet_data: dict) -> list[dict]:
                 "base_established": None,
                 "delta_note": None,
                 "snapshot_time": chain_result.get("queried_at"),
-                "source": chain_error,
+                "source": query_note,
                 "row_error": chain_error,
             })
     return rows
@@ -448,20 +634,22 @@ def build_wallet_rows(wallet_data: dict) -> list[dict]:
 
 def main() -> int:
     smoke = [chain_smoke(cid) for cid in sorted(set(V3_CHAINS + V4_CHAINS))]
+    smoke_blocks = {r["chain_id"]: r.get("block_number") for r in smoke if r.get("ok")}
     graph_key_present = bool(__import__("os").environ.get("GRAPH_API_KEY", "").strip())
 
     whitelist = common.build_token_whitelist(common.load_config())
 
-    v3_results = [fetch_v3_chain(cid, whitelist) for cid in V3_CHAINS]
-    v4_results = [fetch_v4_chain(cid) for cid in V4_CHAINS]
+    v3_results = [fetch_v3_chain(cid, whitelist, smoke_blocks.get(cid)) for cid in V3_CHAINS]
+    v4_results = [fetch_v4_chain(cid, smoke_blocks.get(cid)) for cid in V4_CHAINS]
 
     enrich_with_usd(v3_results)
+    enrich_v4_with_usd(v4_results)
     snapshot_count = 0
     try:
-        snapshot_count = write_snapshots(v3_results)
-        attach_observed_apr(v3_results)
+        snapshot_count = write_snapshots(v3_results + v4_results)
+        attach_observed_apr(v3_results + v4_results)
     except store.WalletTrackerMigrationError as exc:
-        for r in v3_results:
+        for r in v3_results + v4_results:
             r["snapshot_error"] = str(exc)
 
     output = {

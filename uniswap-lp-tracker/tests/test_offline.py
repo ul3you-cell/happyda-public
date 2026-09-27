@@ -952,6 +952,39 @@ class TestWalletRpcClient(unittest.TestCase):
         with self.assertRaises(ValueError):
             wallet_rpc_client.calldata_balance_of("0x123")  # 太短
 
+    def test_ethereum_keccak256_known_vectors_and_pool_id_shape(self):
+        # Ethereum Keccak-256 (not FIPS SHA3-256) empty-input vector.
+        self.assertEqual(
+            wallet_rpc_client.keccak256_hex(b""),
+            "0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470",
+        )
+        pool_key = {
+            "currency0": "0x0000000000000000000000000000000000000000",
+            "currency1": "0x078d782b760474a361dda0af3839290b0ef57ad6",
+            "fee": 500,
+            "tick_spacing": 10,
+            "hooks": "0x0000000000000000000000000000000000000000",
+        }
+        pool_id = wallet_rpc_client.v4_pool_id(pool_key)
+        self.assertRegex(pool_id, r"^0x[0-9a-f]{64}$")
+        self.assertEqual(pool_id[:52], "0x" + "3258f413c7a88cda2fa8709a589d221a80f6574f63df5a5b67")
+
+    def test_v4_state_view_slot0_decode_and_calldata(self):
+        pool_id = "0x" + "12" * 32
+        calldata = wallet_rpc_client.calldata_v4_slot0(pool_id)
+        self.assertEqual(len(calldata), 2 + 8 + 64)
+        words = [wallet_rpc_client.encode_uint_arg(7), _encode_signed_word(-123),
+                 wallet_rpc_client.encode_uint_arg(1), wallet_rpc_client.encode_uint_arg(500)]
+        state = wallet_rpc_client.decode_v4_slot0_result("0x" + "".join(words))
+        self.assertEqual(state["tick"], -123)
+        self.assertEqual(state["lp_fee"], 500)
+
+    def test_v3_rpc_quantity_accepts_hex_and_integer_values(self):
+        self.assertEqual(wallet_live_fetch._rpc_quantity("0x10"), 16)
+        self.assertEqual(wallet_live_fetch._rpc_quantity(16), 16)
+        with self.assertRaises(ValueError):
+            wallet_live_fetch._rpc_quantity(None)
+
     # ---- decode：正負號、address 截取都要對 ----
 
     def test_decode_int_word_handles_negative_tick_two_complement(self):
@@ -1628,7 +1661,7 @@ class TestBuildWalletRows(unittest.TestCase):
         rows = wallet_live_fetch.build_wallet_rows(wallet_data)
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["pair_label"], "0x0000…0000/0x4200…0006")
-        self.assertEqual(rows[0]["source"], "v4 poolId 換算未支援")
+        self.assertEqual(rows[0]["source"], "v4 poolId 換算未支援；eth_getLogs 掃描")
 
     def test_v4_position_without_token_fields_gets_none_pair_label(self):
         wallet_data = {
@@ -1643,6 +1676,34 @@ class TestBuildWalletRows(unittest.TestCase):
         self.assertEqual(len(rows), 1)
         self.assertIsNone(rows[0]["pair_label"])
         self.assertEqual(rows[0]["source"], "取得部位詳情失敗")
+
+    def test_zero_position_query_is_explicit_with_block_and_query_time(self):
+        wallet_data = {
+            "v3": [{"chain_name": "Ethereum", "protocol": "v3", "error": None,
+                    "queried_at": 1790500000, "block_number": 26068000, "position_count": 0,
+                    "positions": []}],
+            "v4": [],
+        }
+        rows = wallet_live_fetch.build_wallet_rows(wallet_data)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["position_status"], "已查詢＝0")
+        self.assertIn("block 26068000", rows[0]["source"])
+        self.assertIn("2026-", rows[0]["source"])
+
+    def test_active_and_zero_liquidity_v4_are_labeled_differently(self):
+        wallet_data = {
+            "v3": [],
+            "v4": [{"chain_name": "Unichain", "protocol": "v4", "error": None,
+                    "queried_at": 1790500000, "positions": [
+                        {"token_id": 1, "liquidity": 100, "active": True,
+                         "token0": {"symbol": "ETH"}, "token1": {"symbol": "USDC"}},
+                        {"token_id": 2, "liquidity": 0, "active": False,
+                         "position_status": "已退出／無流動性（liquidity=0）"},
+                    ]}],
+        }
+        rows = wallet_live_fetch.build_wallet_rows(wallet_data)
+        self.assertEqual(rows[0]["position_status"], "活躍（非零 liquidity）")
+        self.assertEqual(rows[1]["position_status"], "已退出／無流動性（liquidity=0）")
 
 
 if __name__ == "__main__":

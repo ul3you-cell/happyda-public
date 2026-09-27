@@ -51,8 +51,8 @@ COLUMNS = [
 # #wallet-table thead（見 wCols 定義），跟 #pool-table 用同一顆 CDP 連線，
 # 不是另開一份離線 fixture 驗證。
 WALLET_COLUMNS = [
-    "chain_name", "protocol", "pair_label", "fee_tier_pct", "token_id",
-    "position_value_usd", "fees_owed_usd", "in_range", "delta_24h_usd",
+    "chain_name", "protocol", "pair_label", "fee_tier_pct", "token_id", "position_status",
+    "token0_amount", "token1_amount", "current_tick", "position_value_usd", "fees_owed_usd", "in_range", "delta_24h_usd",
     "observed_apr_7d_pct", "observed_apr_30d_pct", "snapshot_time", "source",
 ]
 

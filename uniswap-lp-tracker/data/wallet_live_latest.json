@@ -1,6 +1,6 @@
 {
   "wallet_address": "0x267EE34200b09Ea8b52D02EeC3300b84985B1eFd",
-  "generated_at": 1790499026,
+  "generated_at": 1790501698,
   "rpc_smoke": [
     {
       "chain_id": 1,
@@ -8,7 +8,7 @@
       "ok": true,
       "rpc_source": "public-rpc",
       "reported_chain_id": 1,
-      "block_number": 26067702,
+      "block_number": 26067920,
       "error": null
     },
     {
@@ -17,7 +17,7 @@
       "ok": true,
       "rpc_source": "public-rpc",
       "reported_chain_id": 10,
-      "block_number": 157450087,
+      "block_number": 157451412,
       "error": null
     },
     {
@@ -26,7 +26,7 @@
       "ok": true,
       "rpc_source": "public-rpc",
       "reported_chain_id": 56,
-      "block_number": 124303597,
+      "block_number": 124309485,
       "error": null
     },
     {
@@ -35,7 +35,7 @@
       "ok": true,
       "rpc_source": "public-rpc",
       "reported_chain_id": 130,
-      "block_number": 59750595,
+      "block_number": 59753246,
       "error": null
     },
     {
@@ -44,7 +44,7 @@
       "ok": true,
       "rpc_source": "public-rpc",
       "reported_chain_id": 8453,
-      "block_number": 51854804,
+      "block_number": 51856130,
       "error": null
     },
     {
@@ -53,7 +53,7 @@
       "ok": true,
       "rpc_source": "alchemy",
       "reported_chain_id": 42161,
-      "block_number": 509341119,
+      "block_number": 509350776,
       "error": null
     }
   ],
@@ -63,16 +63,18 @@
       "chain_id": 1,
       "chain_name": "Ethereum",
       "protocol": "v3",
-      "queried_at": 1790498957,
+      "queried_at": 1790501609,
       "positions": [],
-      "error": "int() can't convert non-string with explicit base",
-      "rpc_source": "public-rpc"
+      "error": null,
+      "rpc_source": "public-rpc",
+      "block_number": 26067922,
+      "position_count": 0
     },
     {
       "chain_id": 42161,
       "chain_name": "Arbitrum",
       "protocol": "v3",
-      "queried_at": 1790498966,
+      "queried_at": 1790501625,
       "positions": [
         {
           "token_id": 3688542,
@@ -96,7 +98,7 @@
             "source": "well-known Arbitrum WETH deployment"
           },
           "pool_address": "0x7e9cb8ad4a7683070e233f3eb1d07d87272b9b26",
-          "current_tick": -82111,
+          "current_tick": -82140,
           "in_range": false,
           "token0_amount": 0.0,
           "token1_amount": 0.0,
@@ -105,64 +107,57 @@
           "fees_source": "eth_call 模擬 collect()（唯讀，未廣播交易）",
           "token0_usd_price": null,
           "token1_usd_price": null,
-          "position_value_usd": null,
-          "fees_owed_usd": null,
-          "note": "部分/全部 token 無法從 Alchemy Prices API 取得 USD 報價，估值欄位為 None（非 0）",
-          "observed_apr_7d_pct": null,
-          "observed_apr_30d_pct": null,
-          "observed_apr_days_tracked": 16,
-          "observed_apr_note": "7d 視窗內有 7 天缺 fees_accrued_usd，7d APR 暫不可信；7d APR 已可計算；30d APR 尚不足計算（目前已追蹤 16 天，需要 30 天）",
-          "delta_24h_usd": null,
-          "base_established": false
+          "position_value_usd": 0.0,
+          "fees_owed_usd": 0.0
         }
       ],
       "error": null,
       "rpc_source": "alchemy",
-      "block_number": 509341156,
+      "block_number": 509350846,
       "position_count": 1
     },
     {
       "chain_id": 10,
       "chain_name": "Optimism",
       "protocol": "v3",
-      "queried_at": 1790498970,
+      "queried_at": 1790501630,
       "positions": [],
       "error": null,
       "rpc_source": "public-rpc",
-      "block_number": 157450097,
+      "block_number": 157451427,
       "position_count": 0
     },
     {
       "chain_id": 8453,
       "chain_name": "Base",
       "protocol": "v3",
-      "queried_at": 1790498971,
+      "queried_at": 1790501632,
       "positions": [],
       "error": null,
       "rpc_source": "public-rpc",
-      "block_number": 51854812,
+      "block_number": 51856143,
       "position_count": 0
     },
     {
       "chain_id": 56,
       "chain_name": "BNB Chain",
       "protocol": "v3",
-      "queried_at": 1790498973,
+      "queried_at": 1790501635,
       "positions": [],
       "error": null,
       "rpc_source": "public-rpc",
-      "block_number": 124303643,
+      "block_number": 124309557,
       "position_count": 0
     },
     {
       "chain_id": 130,
       "chain_name": "Unichain",
       "protocol": "v3",
-      "queried_at": 1790498974,
+      "queried_at": 1790501636,
       "positions": [],
       "error": null,
       "rpc_source": "public-rpc",
-      "block_number": 59750616,
+      "block_number": 59753279,
       "position_count": 0
     }
   ],
@@ -171,18 +166,18 @@
       "chain_id": 1,
       "chain_name": "Ethereum",
       "protocol": "v4",
-      "queried_at": 1790498975,
+      "queried_at": 1790501639,
       "positions": [],
       "error": null,
       "rpc_source": "public-rpc",
-      "block_number": 26067704,
+      "block_number": 26067924,
       "position_count": 0
     },
     {
       "chain_id": 42161,
       "chain_name": "Arbitrum",
       "protocol": "v4",
-      "queried_at": 1790498995,
+      "queried_at": 1790501646,
       "positions": [
         {
           "token_id": 55626,
@@ -197,18 +192,21 @@
           "tick_upper": 73140,
           "liquidity": 0,
           "pool_id_hex": "0x41b1e6b28a39199365f5348a2bf71d0f785167e920d05254b3",
-          "fees_unsupported_reason": "v4 可領手續費需 StateView.getFeeGrowthInside 額外計算，本次未逐字核對換算公式並補測試，標示為「資料源不支援」，不用 v3 邏輯或猜測值頂替。",
+          "fees_unsupported_reason": "StateView 無此歷史部位的可領費用；liquidity=0，列為已退出／無流動性。",
           "fee_tier_pct": 0.05,
           "current_tick": null,
           "in_range": null,
           "position_value_usd": null,
           "fees_owed_usd": null,
-          "value_unsupported_reason": "v4 poolId(bytes32) 需 keccak256(poolKey) 才能查 StateView，本環境未安裝 keccak 套件（未經使用者同意不新增依賴），故 current_tick／in_range／USD 估值／fee 一律標示不支援，不猜測。"
+          "active": false,
+          "position_status": "已退出／無流動性（liquidity=0）",
+          "token0_amount": 0,
+          "token1_amount": 0
         }
       ],
       "error": null,
       "rpc_source": "alchemy",
-      "block_number": 509341261,
+      "block_number": 509350921,
       "enumeration_source": "eth_getLogs 掃描 Transfer(to=wallet) 事件＋ownerOf() 驗證現況（v4 PositionManager 本身不支援 tokenOfOwnerByIndex，此為替代方案）",
       "position_count": 1
     },
@@ -216,40 +214,40 @@
       "chain_id": 10,
       "chain_name": "Optimism",
       "protocol": "v4",
-      "queried_at": 1790498999,
+      "queried_at": 1790501653,
       "positions": [],
       "error": null,
       "rpc_source": "public-rpc",
-      "block_number": 157450111,
+      "block_number": 157451438,
       "position_count": 0
     },
     {
       "chain_id": 8453,
       "chain_name": "Base",
       "protocol": "v4",
-      "queried_at": 1790499001,
+      "queried_at": 1790501655,
       "positions": [],
       "error": null,
       "rpc_source": "public-rpc",
-      "block_number": 51854827,
+      "block_number": 51856155,
       "position_count": 0
     },
     {
       "chain_id": 56,
       "chain_name": "BNB Chain",
       "protocol": "v4",
-      "queried_at": 1790499002,
+      "queried_at": 1790501658,
       "positions": [],
       "error": null,
       "rpc_source": "public-rpc",
-      "block_number": 124303709,
+      "block_number": 124309609,
       "position_count": 0
     },
     {
       "chain_id": 130,
       "chain_name": "Unichain",
       "protocol": "v4",
-      "queried_at": 1790499003,
+      "queried_at": 1790501659,
       "positions": [
         {
           "token_id": 997894,
@@ -264,13 +262,16 @@
           "tick_upper": -192480,
           "liquidity": 0,
           "pool_id_hex": "0x04b7dd024db64cfbe325191c818266e4776918cd9eaf021c26",
-          "fees_unsupported_reason": "v4 可領手續費需 StateView.getFeeGrowthInside 額外計算，本次未逐字核對換算公式並補測試，標示為「資料源不支援」，不用 v3 邏輯或猜測值頂替。",
+          "fees_unsupported_reason": "StateView 無此歷史部位的可領費用；liquidity=0，列為已退出／無流動性。",
           "fee_tier_pct": 0.05,
           "current_tick": null,
           "in_range": null,
           "position_value_usd": null,
           "fees_owed_usd": null,
-          "value_unsupported_reason": "v4 poolId(bytes32) 需 keccak256(poolKey) 才能查 StateView，本環境未安裝 keccak 套件（未經使用者同意不新增依賴），故 current_tick／in_range／USD 估值／fee 一律標示不支援，不猜測。"
+          "active": false,
+          "position_status": "已退出／無流動性（liquidity=0）",
+          "token0_amount": 0,
+          "token1_amount": 0
         },
         {
           "token_id": 997970,
@@ -285,13 +286,16 @@
           "tick_upper": -191260,
           "liquidity": 0,
           "pool_id_hex": "0x04b7dd024db64cfbe325191c818266e4776918cd9eaf021c26",
-          "fees_unsupported_reason": "v4 可領手續費需 StateView.getFeeGrowthInside 額外計算，本次未逐字核對換算公式並補測試，標示為「資料源不支援」，不用 v3 邏輯或猜測值頂替。",
+          "fees_unsupported_reason": "StateView 無此歷史部位的可領費用；liquidity=0，列為已退出／無流動性。",
           "fee_tier_pct": 0.05,
           "current_tick": null,
           "in_range": null,
           "position_value_usd": null,
           "fees_owed_usd": null,
-          "value_unsupported_reason": "v4 poolId(bytes32) 需 keccak256(poolKey) 才能查 StateView，本環境未安裝 keccak 套件（未經使用者同意不新增依賴），故 current_tick／in_range／USD 估值／fee 一律標示不支援，不猜測。"
+          "active": false,
+          "position_status": "已退出／無流動性（liquidity=0）",
+          "token0_amount": 0,
+          "token1_amount": 0
         },
         {
           "token_id": 1009641,
@@ -306,13 +310,16 @@
           "tick_upper": 76030,
           "liquidity": 0,
           "pool_id_hex": "0x05dbb214bd7b9461f9c2f6690b612629b65b9f81d7312fdd3e",
-          "fees_unsupported_reason": "v4 可領手續費需 StateView.getFeeGrowthInside 額外計算，本次未逐字核對換算公式並補測試，標示為「資料源不支援」，不用 v3 邏輯或猜測值頂替。",
+          "fees_unsupported_reason": "StateView 無此歷史部位的可領費用；liquidity=0，列為已退出／無流動性。",
           "fee_tier_pct": 0.05,
           "current_tick": null,
           "in_range": null,
           "position_value_usd": null,
           "fees_owed_usd": null,
-          "value_unsupported_reason": "v4 poolId(bytes32) 需 keccak256(poolKey) 才能查 StateView，本環境未安裝 keccak 套件（未經使用者同意不新增依賴），故 current_tick／in_range／USD 估值／fee 一律標示不支援，不猜測。"
+          "active": false,
+          "position_status": "已退出／無流動性（liquidity=0）",
+          "token0_amount": 0,
+          "token1_amount": 0
         },
         {
           "token_id": 1070490,
@@ -327,13 +334,16 @@
           "tick_upper": 3,
           "liquidity": 0,
           "pool_id_hex": "0x77ea9d2be50eb3e82b62db928a1bcc573064dd2a14f5026847",
-          "fees_unsupported_reason": "v4 可領手續費需 StateView.getFeeGrowthInside 額外計算，本次未逐字核對換算公式並補測試，標示為「資料源不支援」，不用 v3 邏輯或猜測值頂替。",
+          "fees_unsupported_reason": "StateView 無此歷史部位的可領費用；liquidity=0，列為已退出／無流動性。",
           "fee_tier_pct": 0.01,
           "current_tick": null,
           "in_range": null,
           "position_value_usd": null,
           "fees_owed_usd": null,
-          "value_unsupported_reason": "v4 poolId(bytes32) 需 keccak256(poolKey) 才能查 StateView，本環境未安裝 keccak 套件（未經使用者同意不新增依賴），故 current_tick／in_range／USD 估值／fee 一律標示不支援，不猜測。"
+          "active": false,
+          "position_status": "已退出／無流動性（liquidity=0）",
+          "token0_amount": 0,
+          "token1_amount": 0
         },
         {
           "token_id": 1305990,
@@ -348,13 +358,16 @@
           "tick_upper": -190210,
           "liquidity": 0,
           "pool_id_hex": "0x04b7dd024db64cfbe325191c818266e4776918cd9eaf021c26",
-          "fees_unsupported_reason": "v4 可領手續費需 StateView.getFeeGrowthInside 額外計算，本次未逐字核對換算公式並補測試，標示為「資料源不支援」，不用 v3 邏輯或猜測值頂替。",
+          "fees_unsupported_reason": "StateView 無此歷史部位的可領費用；liquidity=0，列為已退出／無流動性。",
           "fee_tier_pct": 0.05,
           "current_tick": null,
           "in_range": null,
           "position_value_usd": null,
           "fees_owed_usd": null,
-          "value_unsupported_reason": "v4 poolId(bytes32) 需 keccak256(poolKey) 才能查 StateView，本環境未安裝 keccak 套件（未經使用者同意不新增依賴），故 current_tick／in_range／USD 估值／fee 一律標示不支援，不猜測。"
+          "active": false,
+          "position_status": "已退出／無流動性（liquidity=0）",
+          "token0_amount": 0,
+          "token1_amount": 0
         },
         {
           "token_id": 1425233,
@@ -369,13 +382,16 @@
           "tick_upper": -191560,
           "liquidity": 0,
           "pool_id_hex": "0x04b7dd024db64cfbe325191c818266e4776918cd9eaf021c26",
-          "fees_unsupported_reason": "v4 可領手續費需 StateView.getFeeGrowthInside 額外計算，本次未逐字核對換算公式並補測試，標示為「資料源不支援」，不用 v3 邏輯或猜測值頂替。",
+          "fees_unsupported_reason": "StateView 無此歷史部位的可領費用；liquidity=0，列為已退出／無流動性。",
           "fee_tier_pct": 0.05,
           "current_tick": null,
           "in_range": null,
           "position_value_usd": null,
           "fees_owed_usd": null,
-          "value_unsupported_reason": "v4 poolId(bytes32) 需 keccak256(poolKey) 才能查 StateView，本環境未安裝 keccak 套件（未經使用者同意不新增依賴），故 current_tick／in_range／USD 估值／fee 一律標示不支援，不猜測。"
+          "active": false,
+          "position_status": "已退出／無流動性（liquidity=0）",
+          "token0_amount": 0,
+          "token1_amount": 0
         },
         {
           "token_id": 1427004,
@@ -390,13 +406,16 @@
           "tick_upper": -192540,
           "liquidity": 0,
           "pool_id_hex": "0x04b7dd024db64cfbe325191c818266e4776918cd9eaf021c26",
-          "fees_unsupported_reason": "v4 可領手續費需 StateView.getFeeGrowthInside 額外計算，本次未逐字核對換算公式並補測試，標示為「資料源不支援」，不用 v3 邏輯或猜測值頂替。",
+          "fees_unsupported_reason": "StateView 無此歷史部位的可領費用；liquidity=0，列為已退出／無流動性。",
           "fee_tier_pct": 0.05,
           "current_tick": null,
           "in_range": null,
           "position_value_usd": null,
           "fees_owed_usd": null,
-          "value_unsupported_reason": "v4 poolId(bytes32) 需 keccak256(poolKey) 才能查 StateView，本環境未安裝 keccak 套件（未經使用者同意不新增依賴），故 current_tick／in_range／USD 估值／fee 一律標示不支援，不猜測。"
+          "active": false,
+          "position_status": "已退出／無流動性（liquidity=0）",
+          "token0_amount": 0,
+          "token1_amount": 0
         },
         {
           "token_id": 1673731,
@@ -411,13 +430,16 @@
           "tick_upper": -191690,
           "liquidity": 0,
           "pool_id_hex": "0x3258f413c7a88cda2fa8709a589d221a80f6574f63df5a5b67",
-          "fees_unsupported_reason": "v4 可領手續費需 StateView.getFeeGrowthInside 額外計算，本次未逐字核對換算公式並補測試，標示為「資料源不支援」，不用 v3 邏輯或猜測值頂替。",
+          "fees_unsupported_reason": "StateView 無此歷史部位的可領費用；liquidity=0，列為已退出／無流動性。",
           "fee_tier_pct": 0.05,
           "current_tick": null,
           "in_range": null,
           "position_value_usd": null,
           "fees_owed_usd": null,
-          "value_unsupported_reason": "v4 poolId(bytes32) 需 keccak256(poolKey) 才能查 StateView，本環境未安裝 keccak 套件（未經使用者同意不新增依賴），故 current_tick／in_range／USD 估值／fee 一律標示不支援，不猜測。"
+          "active": false,
+          "position_status": "已退出／無流動性（liquidity=0）",
+          "token0_amount": 0,
+          "token1_amount": 0
         },
         {
           "token_id": 2064885,
@@ -432,13 +454,16 @@
           "tick_upper": -192430,
           "liquidity": 0,
           "pool_id_hex": "0x04b7dd024db64cfbe325191c818266e4776918cd9eaf021c26",
-          "fees_unsupported_reason": "v4 可領手續費需 StateView.getFeeGrowthInside 額外計算，本次未逐字核對換算公式並補測試，標示為「資料源不支援」，不用 v3 邏輯或猜測值頂替。",
+          "fees_unsupported_reason": "StateView 無此歷史部位的可領費用；liquidity=0，列為已退出／無流動性。",
           "fee_tier_pct": 0.05,
           "current_tick": null,
           "in_range": null,
           "position_value_usd": null,
           "fees_owed_usd": null,
-          "value_unsupported_reason": "v4 poolId(bytes32) 需 keccak256(poolKey) 才能查 StateView，本環境未安裝 keccak 套件（未經使用者同意不新增依賴），故 current_tick／in_range／USD 估值／fee 一律標示不支援，不猜測。"
+          "active": false,
+          "position_status": "已退出／無流動性（liquidity=0）",
+          "token0_amount": 0,
+          "token1_amount": 0
         },
         {
           "token_id": 2357705,
@@ -453,13 +478,16 @@
           "tick_upper": 70900,
           "liquidity": 0,
           "pool_id_hex": "0x05dbb214bd7b9461f9c2f6690b612629b65b9f81d7312fdd3e",
-          "fees_unsupported_reason": "v4 可領手續費需 StateView.getFeeGrowthInside 額外計算，本次未逐字核對換算公式並補測試，標示為「資料源不支援」，不用 v3 邏輯或猜測值頂替。",
+          "fees_unsupported_reason": "StateView 無此歷史部位的可領費用；liquidity=0，列為已退出／無流動性。",
           "fee_tier_pct": 0.05,
           "current_tick": null,
           "in_range": null,
           "position_value_usd": null,
           "fees_owed_usd": null,
-          "value_unsupported_reason": "v4 poolId(bytes32) 需 keccak256(poolKey) 才能查 StateView，本環境未安裝 keccak 套件（未經使用者同意不新增依賴），故 current_tick／in_range／USD 估值／fee 一律標示不支援，不猜測。"
+          "active": false,
+          "position_status": "已退出／無流動性（liquidity=0）",
+          "token0_amount": 0,
+          "token1_amount": 0
         },
         {
           "token_id": 2442123,
@@ -474,13 +502,16 @@
           "tick_upper": -192470,
           "liquidity": 0,
           "pool_id_hex": "0x04b7dd024db64cfbe325191c818266e4776918cd9eaf021c26",
-          "fees_unsupported_reason": "v4 可領手續費需 StateView.getFeeGrowthInside 額外計算，本次未逐字核對換算公式並補測試，標示為「資料源不支援」，不用 v3 邏輯或猜測值頂替。",
+          "fees_unsupported_reason": "StateView 無此歷史部位的可領費用；liquidity=0，列為已退出／無流動性。",
           "fee_tier_pct": 0.05,
           "current_tick": null,
           "in_range": null,
           "position_value_usd": null,
           "fees_owed_usd": null,
-          "value_unsupported_reason": "v4 poolId(bytes32) 需 keccak256(poolKey) 才能查 StateView，本環境未安裝 keccak 套件（未經使用者同意不新增依賴），故 current_tick／in_range／USD 估值／fee 一律標示不支援，不猜測。"
+          "active": false,
+          "position_status": "已退出／無流動性（liquidity=0）",
+          "token0_amount": 0,
+          "token1_amount": 0
         },
         {
           "token_id": 2443197,
@@ -495,13 +526,16 @@
           "tick_upper": 70900,
           "liquidity": 0,
           "pool_id_hex": "0x05dbb214bd7b9461f9c2f6690b612629b65b9f81d7312fdd3e",
-          "fees_unsupported_reason": "v4 可領手續費需 StateView.getFeeGrowthInside 額外計算，本次未逐字核對換算公式並補測試，標示為「資料源不支援」，不用 v3 邏輯或猜測值頂替。",
+          "fees_unsupported_reason": "StateView 無此歷史部位的可領費用；liquidity=0，列為已退出／無流動性。",
           "fee_tier_pct": 0.05,
           "current_tick": null,
           "in_range": null,
           "position_value_usd": null,
           "fees_owed_usd": null,
-          "value_unsupported_reason": "v4 poolId(bytes32) 需 keccak256(poolKey) 才能查 StateView，本環境未安裝 keccak 套件（未經使用者同意不新增依賴），故 current_tick／in_range／USD 估值／fee 一律標示不支援，不猜測。"
+          "active": false,
+          "position_status": "已退出／無流動性（liquidity=0）",
+          "token0_amount": 0,
+          "token1_amount": 0
         },
         {
           "token_id": 2449693,
@@ -516,63 +550,120 @@
           "tick_upper": -194860,
           "liquidity": 0,
           "pool_id_hex": "0x3258f413c7a88cda2fa8709a589d221a80f6574f63df5a5b67",
-          "fees_unsupported_reason": "v4 可領手續費需 StateView.getFeeGrowthInside 額外計算，本次未逐字核對換算公式並補測試，標示為「資料源不支援」，不用 v3 邏輯或猜測值頂替。",
+          "fees_unsupported_reason": "StateView 無此歷史部位的可領費用；liquidity=0，列為已退出／無流動性。",
           "fee_tier_pct": 0.05,
           "current_tick": null,
           "in_range": null,
           "position_value_usd": null,
           "fees_owed_usd": null,
-          "value_unsupported_reason": "v4 poolId(bytes32) 需 keccak256(poolKey) 才能查 StateView，本環境未安裝 keccak 套件（未經使用者同意不新增依賴），故 current_tick／in_range／USD 估值／fee 一律標示不支援，不猜測。"
+          "active": false,
+          "position_status": "已退出／無流動性（liquidity=0）",
+          "token0_amount": 0,
+          "token1_amount": 0
         },
         {
           "token_id": 2464087,
           "chain_id": 130,
           "protocol": "v4",
-          "token0": "0x0000000000000000000000000000000000000000",
-          "token1": "0x078d782b760474a361dda0af3839290b0ef57ad6",
+          "token0": {
+            "address": "0x0000000000000000000000000000000000000000",
+            "symbol": "ETH",
+            "decimals": 18,
+            "source": "Uniswap native currency (zero address)"
+          },
+          "token1": {
+            "address": "0x078d782b760474a361dda0af3839290b0ef57ad6",
+            "symbol": "0x078d…7ad6",
+            "decimals": 6,
+            "source": "on-chain decimals()（不在白名單，symbol 用縮寫位址代替，避免顯示未經核對的字串）"
+          },
           "fee": 500,
           "tick_spacing": 10,
           "hooks": "0x0000000000000000000000000000000000000000",
           "tick_lower": -201310,
           "tick_upper": -194430,
           "liquidity": 131526347793224,
-          "pool_id_hex": "0x3258f413c7a88cda2fa8709a589d221a80f6574f63df5a5b67",
-          "fees_unsupported_reason": "v4 可領手續費需 StateView.getFeeGrowthInside 額外計算，本次未逐字核對換算公式並補測試，標示為「資料源不支援」，不用 v3 邏輯或猜測值頂替。",
+          "pool_id_hex": "0x3258f413c7a88cda2fa8709a589d221a80f6574f63df5a5b6774485d8acc39d9",
           "fee_tier_pct": 0.05,
-          "current_tick": null,
-          "in_range": null,
+          "current_tick": -197268,
+          "in_range": true,
           "position_value_usd": null,
           "fees_owed_usd": null,
-          "value_unsupported_reason": "v4 poolId(bytes32) 需 keccak256(poolKey) 才能查 StateView，本環境未安裝 keccak 套件（未經使用者同意不新增依賴），故 current_tick／in_range／USD 估值／fee 一律標示不支援，不猜測。"
+          "active": true,
+          "position_status": "活躍（非零 liquidity）",
+          "lp_fee_raw": 500,
+          "pool_state_source": "Uniswap v4 StateView.getSlot0(bytes32)；RPC eth_call",
+          "token0_amount": 0.3340594190648542,
+          "token1_amount": 1253.386975,
+          "position_liquidity_stateview": "131526347793224",
+          "fees_owed_0_raw": "40570909040848",
+          "fees_owed_1_raw": "123398",
+          "fees_source": "StateView current feeGrowthInside − position checkpoint，乘以鏈上 liquidity 再除 2^128；估算可領 token base units",
+          "token0_usd_price": null,
+          "token1_usd_price": null,
+          "value_unsupported_reason": "Alchemy Prices API 未回傳 USD 報價：ETH, 0x078d…7ad6；不以部分代幣估值冒充整筆 LP 價值。",
+          "observed_apr_7d_pct": null,
+          "observed_apr_30d_pct": null,
+          "observed_apr_days_tracked": 2,
+          "observed_apr_note": "尚不足計算（目前已追蹤 2 天，7d APR 需要 7 天，30d APR 需要 30 天）",
+          "delta_24h_usd": null,
+          "base_established": false
         },
         {
           "token_id": 2464170,
           "chain_id": 130,
           "protocol": "v4",
-          "token0": "0x0555e30da8f98308edb960aa94c0db47230d2b9c",
-          "token1": "0x078d782b760474a361dda0af3839290b0ef57ad6",
+          "token0": {
+            "address": "0x0555e30da8f98308edb960aa94c0db47230d2b9c",
+            "symbol": "0x0555…2b9c",
+            "decimals": 8,
+            "source": "on-chain decimals()（不在白名單，symbol 用縮寫位址代替，避免顯示未經核對的字串）"
+          },
+          "token1": {
+            "address": "0x078d782b760474a361dda0af3839290b0ef57ad6",
+            "symbol": "0x078d…7ad6",
+            "decimals": 6,
+            "source": "on-chain decimals()（不在白名單，symbol 用縮寫位址代替，避免顯示未經核對的字串）"
+          },
           "fee": 3000,
           "tick_spacing": 60,
           "hooks": "0x0000000000000000000000000000000000000000",
           "tick_lower": 64320,
           "tick_upper": 68280,
           "liquidity": 757135082,
-          "pool_id_hex": "0xbd0f3a7cf4cf5f48ebe850474c8c0012fa5fe893ab811a8b87",
-          "fees_unsupported_reason": "v4 可領手續費需 StateView.getFeeGrowthInside 額外計算，本次未逐字核對換算公式並補測試，標示為「資料源不支援」，不用 v3 邏輯或猜測值頂替。",
+          "pool_id_hex": "0xbd0f3a7cf4cf5f48ebe850474c8c0012fa5fe893ab811a8b8743a52b83aa8939",
           "fee_tier_pct": 0.3,
-          "current_tick": null,
-          "in_range": null,
+          "current_tick": 67406,
+          "in_range": true,
           "position_value_usd": null,
           "fees_owed_usd": null,
-          "value_unsupported_reason": "v4 poolId(bytes32) 需 keccak256(poolKey) 才能查 StateView，本環境未安裝 keccak 套件（未經使用者同意不新增依賴），故 current_tick／in_range／USD 估值／fee 一律標示不支援，不猜測。"
+          "active": true,
+          "position_status": "活躍（非零 liquidity）",
+          "lp_fee_raw": 3000,
+          "pool_state_source": "Uniswap v4 StateView.getSlot0(bytes32)；RPC eth_call",
+          "token0_amount": 0.0111199,
+          "token1_amount": 3149.253247,
+          "position_liquidity_stateview": "757135082",
+          "fees_owed_0_raw": "26",
+          "fees_owed_1_raw": "246049",
+          "fees_source": "StateView current feeGrowthInside − position checkpoint，乘以鏈上 liquidity 再除 2^128；估算可領 token base units",
+          "token0_usd_price": null,
+          "token1_usd_price": null,
+          "value_unsupported_reason": "Alchemy Prices API 未回傳 USD 報價：0x0555…2b9c, 0x078d…7ad6；不以部分代幣估值冒充整筆 LP 價值。",
+          "observed_apr_7d_pct": null,
+          "observed_apr_30d_pct": null,
+          "observed_apr_days_tracked": 2,
+          "observed_apr_note": "尚不足計算（目前已追蹤 2 天，7d APR 需要 7 天，30d APR 需要 30 天）",
+          "delta_24h_usd": null,
+          "base_established": false
         }
       ],
       "error": null,
       "rpc_source": "public-rpc",
-      "block_number": 59750645,
+      "block_number": 59753301,
       "enumeration_source": "eth_getLogs 掃描 Transfer(to=wallet) 事件＋ownerOf() 驗證現況（v4 PositionManager 本身不支援 tokenOfOwnerByIndex，此為替代方案）",
       "position_count": 15
     }
   ],
-  "snapshot_rows_written": 1
+  "snapshot_rows_written": 2
 }

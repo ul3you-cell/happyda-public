@@ -111,12 +111,13 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         因此本頁不顯示該欄，判斷池子大小請直接看 TVL。</li>
       <li>目前顯示的是<strong>池子級 fee APR</strong>：以完整日 fees 與池子 TVL 年化推算，非保證報酬；
         <strong>不等於你的個人收益</strong>，也不含代幣漲跌與無常損失（Impermanent Loss）。小 TVL 池的年化數字可能極端，需特別審慎。</li>
-      <li>下方「我的 LP 部位」表格是唯讀 RPC（Alchemy eth_call）直接查詢錢包
+      <li>下方「我的 LP 部位」表格是唯讀 RPC（eth_call）直接查詢錢包
         <code>0x267EE34200b09Ea8b52D02EeC3300b84985B1eFd</code> 的 Uniswap v3／v4 部位，
-        逐鏈查詢＝0 或供應商不支援時會如實顯示原因，不留「尚未擷取」。可領 fee 用唯讀
-        <code>eth_call</code> 模擬 <code>collect()</code> 取得；v4 因缺少已核對的
-        poolId(bytes32) 換算（需 keccak256，本次未新增依賴），現況只列出部位基本資料，
-        USD 估值／fee／in-range 標示「資料源不支援」。每日 delta／observed APR 需要至少
+        逐鏈查詢＝0 或供應商不支援時會如實顯示區塊與原因。V3 fee 以唯讀
+        <code>eth_call</code> 模擬 <code>collect()</code> 取得；V4 poolId 用純 Python
+        Ethereum Keccak-256 計算並以 Unichain StateView 交叉驗證，非零 liquidity 部位顯示
+        current tick、區間內狀態、token 數量、USD 價值及 fee-growth 估算可領 fee；liquidity=0
+        的歷史 NFT 明確標示已退出。每日 delta／observed APR 需要至少
         兩筆快照才能算，第一筆快照一律顯示「基準已建立」，不造數字。</li>
       <li>「⚠️ token 不在白名單」列代表官方回應內含本專案 <code>config/pools_targets.json</code> 未預先驗證的合約位址，
         已停用數值顯示，需人工複核（防止假幣/釣魚合約誤植）。</li>
@@ -124,10 +125,9 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   </div>
 
   <div class="wallet-box" id="wallet-box">
-    <strong>錢包位址（選填，僅供之後錢包 LP／每日 delta／個人 APR 功能使用）：</strong>
-    <p class="wallet-note">目前這個欄位只把位址存在此瀏覽器的 <code>localStorage</code>，
-      <strong>尚未發出任何網路查詢，也不進 log／repo</strong>。錢包追蹤接通後，位址會由本機追蹤程式讀取、
-      寫入本機 SQLite，且所選 RPC 供應商會看到位址與查詢內容；查詢功能目前尚未實作。</p>
+    <strong>瀏覽器位址備忘（不會更改上方固定追蹤錢包）：</strong>
+    <p class="wallet-note">此欄僅存在本機瀏覽器 <code>localStorage</code>，不會發出網路查詢；
+      儀表板上方錢包結果由唯讀排程快照提供。</p>
     <div class="wallet-input-row">
       <input type="text" id="wallet-address-input" placeholder="0x..." spellcheck="false" autocomplete="off">
       <button type="button" id="wallet-address-save-btn" class="pager-btn">儲存</button>
@@ -197,6 +197,10 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         <th data-key="pair_label" data-type="text" aria-sort="none">Pair</th>
         <th data-key="fee_tier_pct" data-type="num" aria-sort="none">Fee Tier</th>
         <th data-key="token_id" data-type="text" aria-sort="none">Token ID</th>
+        <th data-key="position_status" data-type="text" aria-sort="none">流動性狀態</th>
+        <th data-key="token0_amount" data-type="num" aria-sort="none">Token0 數量</th>
+        <th data-key="token1_amount" data-type="num" aria-sort="none">Token1 數量</th>
+        <th data-key="current_tick" data-type="num" aria-sort="none">Current Tick</th>
         <th data-key="position_value_usd" data-type="num" aria-sort="none">部位價值 USD</th>
         <th data-key="fees_owed_usd" data-type="num" aria-sort="none">可領 Fee USD</th>
         <th data-key="in_range" data-type="text" aria-sort="none">In-range</th>
@@ -476,13 +480,17 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     let wCurrentPage = 1;
     let wCurrentSorted = wRows;
     const W_PAGE_SIZE = 20;
-    const wCols = ['chain_name','protocol','pair_label','fee_tier_pct','token_id',
-                   'position_value_usd','fees_owed_usd','in_range','delta_24h_usd',
+    const wCols = ['chain_name','protocol','pair_label','fee_tier_pct','token_id','position_status',
+                   'token0_amount','token1_amount','current_tick','position_value_usd','fees_owed_usd','in_range','delta_24h_usd',
                    'observed_apr_7d_pct','observed_apr_30d_pct','snapshot_time','source'];
 
     function wFmtCell(row, key) {{
       let v = row[key];
       if (key === 'fee_tier_pct') return (v === null || v === undefined) ? null : (Number(v).toFixed(2) + '%');
+      if (key === 'token0_amount' || key === 'token1_amount') {{
+        if (v === null || v === undefined) return null;
+        return Number(v).toLocaleString('en-US', {{ maximumFractionDigits: 8 }});
+      }}
       if (key === 'observed_apr_7d_pct' || key === 'observed_apr_30d_pct') {{
         if (v === null || v === undefined) {{
           return row.base_established ? '<span class="badge">基準已建立</span>' : null;
@@ -660,10 +668,32 @@ def main() -> int:
         wallet_rows = wallet_live_fetch.build_wallet_rows(wallet_data)
         addr = wallet_data.get("wallet_address", "")
         wallet_address_short = (addr[:6] + "…" + addr[-4:]) if addr else "（未知）"
-        failed_chains = [
-            r["chain_name"] for r in wallet_data.get("v3", []) + wallet_data.get("v4", []) if r.get("error")
+        chains = wallet_data.get("v3", []) + wallet_data.get("v4", [])
+        nft_total = sum(r.get("position_count", len(r.get("positions", []))) for r in chains)
+        active_total = sum(
+            1 for r in chains for pos in r.get("positions", [])
+            if (pos.get("active") is True or
+                (pos.get("liquidity_raw") is not None and int(pos.get("liquidity_raw", "0")) > 0))
+        )
+        active_positions = [
+            pos for r in chains for pos in r.get("positions", [])
+            if pos.get("active") is True or
+            (pos.get("liquidity_raw") is not None and int(pos.get("liquidity_raw", "0")) > 0)
         ]
-        note_parts = [f"最後查詢時間：{datetime.fromtimestamp(wallet_data.get('generated_at', 0), tz=timezone.utc).isoformat()}"]
+        value_known = [p["position_value_usd"] for p in active_positions if p.get("position_value_usd") is not None]
+        fees_known = [p["fees_owed_usd"] for p in active_positions if p.get("fees_owed_usd") is not None]
+        value_summary = (f"${sum(value_known):,.2f}" if len(value_known) == active_total
+                         else f"N/A（僅 {len(value_known)}/{active_total} 個活躍部位有完整 USD 價格）")
+        fee_summary = (f"${sum(fees_known):,.6f}" if len(fees_known) == active_total
+                       else f"N/A（僅 {len(fees_known)}/{active_total} 個活躍部位可完整換算 USD fee）")
+        failed_chains = [
+            r["chain_name"] for r in chains if r.get("error")
+        ]
+        note_parts = [
+            f"NFT 持有總數：{nft_total}；非零 liquidity 活躍部位：{active_total}",
+            f"活躍部位總估值：{value_summary}；可領 fee：{fee_summary}",
+            f"最後查詢時間：{datetime.fromtimestamp(wallet_data.get('generated_at', 0), tz=timezone.utc).isoformat()}",
+        ]
         if failed_chains:
             note_parts.append(f"查詢失敗（詳見下表來源欄的真實錯誤訊息）：{', '.join(failed_chains)}")
         wallet_summary_note = "；".join(note_parts)

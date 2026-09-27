@@ -1,6 +1,6 @@
 {
   "wallet_address": "0x267EE34200b09Ea8b52D02EeC3300b84985B1eFd",
-  "generated_at": 1790498880,
+  "generated_at": 1790499026,
   "rpc_smoke": [
     {
       "chain_id": 1,
@@ -8,7 +8,7 @@
       "ok": true,
       "rpc_source": "public-rpc",
       "reported_chain_id": 1,
-      "block_number": 26067688,
+      "block_number": 26067702,
       "error": null
     },
     {
@@ -17,7 +17,7 @@
       "ok": true,
       "rpc_source": "public-rpc",
       "reported_chain_id": 10,
-      "block_number": 157450009,
+      "block_number": 157450087,
       "error": null
     },
     {
@@ -26,7 +26,7 @@
       "ok": true,
       "rpc_source": "public-rpc",
       "reported_chain_id": 56,
-      "block_number": 124303252,
+      "block_number": 124303597,
       "error": null
     },
     {
@@ -35,7 +35,7 @@
       "ok": true,
       "rpc_source": "public-rpc",
       "reported_chain_id": 130,
-      "block_number": 59750440,
+      "block_number": 59750595,
       "error": null
     },
     {
@@ -44,7 +44,7 @@
       "ok": true,
       "rpc_source": "public-rpc",
       "reported_chain_id": 8453,
-      "block_number": 51854727,
+      "block_number": 51854804,
       "error": null
     },
     {
@@ -53,7 +53,7 @@
       "ok": true,
       "rpc_source": "alchemy",
       "reported_chain_id": 42161,
-      "block_number": 509340552,
+      "block_number": 509341119,
       "error": null
     }
   ],
@@ -63,17 +63,16 @@
       "chain_id": 1,
       "chain_name": "Ethereum",
       "protocol": "v3",
-      "queried_at": 1790498804,
+      "queried_at": 1790498957,
       "positions": [],
-      "error": "RPC 連線失敗（https://1rpc.io/…（路徑與參數已遮蔽））：HTTP Error 410: Gone",
-      "rpc_source": "public-rpc",
-      "block_number": 26067690
+      "error": "int() can't convert non-string with explicit base",
+      "rpc_source": "public-rpc"
     },
     {
       "chain_id": 42161,
       "chain_name": "Arbitrum",
       "protocol": "v3",
-      "queried_at": 1790498817,
+      "queried_at": 1790498966,
       "positions": [
         {
           "token_id": 3688542,
@@ -111,59 +110,59 @@
           "note": "部分/全部 token 無法從 Alchemy Prices API 取得 USD 報價，估值欄位為 None（非 0）",
           "observed_apr_7d_pct": null,
           "observed_apr_30d_pct": null,
-          "observed_apr_days_tracked": 15,
-          "observed_apr_note": "7d 視窗內有 7 天缺 fees_accrued_usd，7d APR 暫不可信；7d APR 已可計算；30d APR 尚不足計算（目前已追蹤 15 天，需要 30 天）",
+          "observed_apr_days_tracked": 16,
+          "observed_apr_note": "7d 視窗內有 7 天缺 fees_accrued_usd，7d APR 暫不可信；7d APR 已可計算；30d APR 尚不足計算（目前已追蹤 16 天，需要 30 天）",
           "delta_24h_usd": null,
           "base_established": false
         }
       ],
       "error": null,
       "rpc_source": "alchemy",
-      "block_number": 509340602,
+      "block_number": 509341156,
       "position_count": 1
     },
     {
       "chain_id": 10,
       "chain_name": "Optimism",
       "protocol": "v3",
-      "queried_at": 1790498821,
+      "queried_at": 1790498970,
       "positions": [],
       "error": null,
       "rpc_source": "public-rpc",
-      "block_number": 157450023,
+      "block_number": 157450097,
       "position_count": 0
     },
     {
       "chain_id": 8453,
       "chain_name": "Base",
       "protocol": "v3",
-      "queried_at": 1790498823,
+      "queried_at": 1790498971,
       "positions": [],
       "error": null,
       "rpc_source": "public-rpc",
-      "block_number": 51854739,
+      "block_number": 51854812,
       "position_count": 0
     },
     {
       "chain_id": 56,
       "chain_name": "BNB Chain",
       "protocol": "v3",
-      "queried_at": 1790498825,
+      "queried_at": 1790498973,
       "positions": [],
       "error": null,
       "rpc_source": "public-rpc",
-      "block_number": 124303316,
+      "block_number": 124303643,
       "position_count": 0
     },
     {
       "chain_id": 130,
       "chain_name": "Unichain",
       "protocol": "v3",
-      "queried_at": 1790498826,
+      "queried_at": 1790498974,
       "positions": [],
       "error": null,
       "rpc_source": "public-rpc",
-      "block_number": 59750469,
+      "block_number": 59750616,
       "position_count": 0
     }
   ],
@@ -172,18 +171,18 @@
       "chain_id": 1,
       "chain_name": "Ethereum",
       "protocol": "v4",
-      "queried_at": 1790498828,
+      "queried_at": 1790498975,
       "positions": [],
       "error": null,
       "rpc_source": "public-rpc",
-      "block_number": 26067693,
+      "block_number": 26067704,
       "position_count": 0
     },
     {
       "chain_id": 42161,
       "chain_name": "Arbitrum",
       "protocol": "v4",
-      "queried_at": 1790498841,
+      "queried_at": 1790498995,
       "positions": [
         {
           "token_id": 55626,
@@ -209,7 +208,7 @@
       ],
       "error": null,
       "rpc_source": "alchemy",
-      "block_number": 509340693,
+      "block_number": 509341261,
       "enumeration_source": "eth_getLogs 掃描 Transfer(to=wallet) 事件＋ownerOf() 驗證現況（v4 PositionManager 本身不支援 tokenOfOwnerByIndex，此為替代方案）",
       "position_count": 1
     },
@@ -217,40 +216,40 @@
       "chain_id": 10,
       "chain_name": "Optimism",
       "protocol": "v4",
-      "queried_at": 1790498846,
+      "queried_at": 1790498999,
       "positions": [],
       "error": null,
       "rpc_source": "public-rpc",
-      "block_number": 157450035,
+      "block_number": 157450111,
       "position_count": 0
     },
     {
       "chain_id": 8453,
       "chain_name": "Base",
       "protocol": "v4",
-      "queried_at": 1790498848,
+      "queried_at": 1790499001,
       "positions": [],
       "error": null,
       "rpc_source": "public-rpc",
-      "block_number": 51854751,
+      "block_number": 51854827,
       "position_count": 0
     },
     {
       "chain_id": 56,
       "chain_name": "BNB Chain",
       "protocol": "v4",
-      "queried_at": 1790498851,
+      "queried_at": 1790499002,
       "positions": [],
       "error": null,
       "rpc_source": "public-rpc",
-      "block_number": 124303374,
+      "block_number": 124303709,
       "position_count": 0
     },
     {
       "chain_id": 130,
       "chain_name": "Unichain",
       "protocol": "v4",
-      "queried_at": 1790498852,
+      "queried_at": 1790499003,
       "positions": [
         {
           "token_id": 997894,
@@ -570,7 +569,7 @@
       ],
       "error": null,
       "rpc_source": "public-rpc",
-      "block_number": 59750495,
+      "block_number": 59750645,
       "enumeration_source": "eth_getLogs 掃描 Transfer(to=wallet) 事件＋ownerOf() 驗證現況（v4 PositionManager 本身不支援 tokenOfOwnerByIndex，此為替代方案）",
       "position_count": 15
     }

@@ -1,0 +1,658 @@
+{
+  "generated_at": "2026-09-26T09:40:45.502015+00:00",
+  "chain_id": 1,
+  "deployment_id": "5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV",
+  "source": "https://gateway.thegraph.com/api/<key>/subgraphs/id/5zvR82QoaXYFyDEKLZ9t6v9adgnptxYpKpSbxtgVENFV (poolDayDatas + pool.totalValueLockedUSD)",
+  "pools": {
+    "0x88e6a0c2ddd26feeb64f039a2c41296fcb3f5640": {
+      "tvl_usd": 422559166.2168459,
+      "volume_24h_usd": 41949846.962739624,
+      "volume_7d_usd": 440217695.3964219,
+      "fee_apr_24h_pct": 1.8118,
+      "fee_apr_7d_pct": 2.7161,
+      "income_change_direction": "down",
+      "days_available": 7,
+      "note": null
+    },
+    "0x11b815efb8f581194ae79006d24e0d814b7697f6": {
+      "tvl_usd": 79101409.89433375,
+      "volume_24h_usd": 13641025.836627671,
+      "volume_7d_usd": 107259537.33987,
+      "fee_apr_24h_pct": 3.1472,
+      "fee_apr_7d_pct": 3.5352,
+      "income_change_direction": "down",
+      "days_available": 7,
+      "note": null
+    },
+    "0x9a772018fbd77fcd2d25657e5c547baff3fd7d16": {
+      "tvl_usd": 8089102.253767482,
+      "volume_24h_usd": 97416.59155943737,
+      "volume_7d_usd": 2158112.272533141,
+      "fee_apr_24h_pct": 0.2198,
+      "fee_apr_7d_pct": 0.6956,
+      "income_change_direction": "down",
+      "days_available": 7,
+      "note": null
+    },
+    "0x56534741cd8b152df6d48adf7ac51f75169a83b2": {
+      "tvl_usd": 36181953.11860617,
+      "volume_24h_usd": 31640289.516609643,
+      "volume_7d_usd": 265369898.91887188,
+      "fee_apr_24h_pct": 15.9592,
+      "fee_apr_7d_pct": 19.1216,
+      "income_change_direction": "down",
+      "days_available": 7,
+      "note": null
+    },
+    "0x54e58c986818903d2d86dafe03f5f5e6c2ca6710": {
+      "tvl_usd": 76057.72666418906,
+      "volume_24h_usd": 150.111106,
+      "volume_7d_usd": 5356.350316,
+      "fee_apr_24h_pct": 0.036,
+      "fee_apr_7d_pct": 0.1836,
+      "income_change_direction": "down",
+      "days_available": 7,
+      "note": null
+    },
+    "0x8e39fb52033b97d303387ba01ec4c3c0afc7bda4": {
+      "tvl_usd": 808.8047870728309,
+      "volume_24h_usd": 6.850004,
+      "volume_7d_usd": 63.634762,
+      "fee_apr_24h_pct": 0.1546,
+      "fee_apr_7d_pct": 0.2051,
+      "income_change_direction": "down",
+      "days_available": 8,
+      "note": null
+    },
+    "0xa4aea66fae214161ce2a8398798f5dbf57b67909": {
+      "tvl_usd": 0.15173275276793072,
+      "volume_24h_usd": 0.0,
+      "volume_7d_usd": 199.0590443195467,
+      "fee_apr_24h_pct": 0.0,
+      "fee_apr_7d_pct": 3420.3253,
+      "income_change_direction": "down",
+      "days_available": 8,
+      "note": null
+    },
+    "0x493035412520336ff4719d4cee527bea55eca844": {
+      "tvl_usd": 134.95580268093073,
+      "volume_24h_usd": 259732.7086604927,
+      "volume_7d_usd": null,
+      "fee_apr_24h_pct": 35123.5133,
+      "fee_apr_7d_pct": null,
+      "income_change_direction": "up",
+      "days_available": 5,
+      "note": "尚不足計算（該池 The Graph poolDayDatas 完整天數不足，見 fee_apr_note 的天數說明）（目前只有 5 個完整天，需要 7 天）"
+    },
+    "0x46ef4b6ff8772d71245253320da1fc5d776504d5": {
+      "tvl_usd": 133.54019748953505,
+      "volume_24h_usd": 265357.26343063504,
+      "volume_7d_usd": null,
+      "fee_apr_24h_pct": 36264.5117,
+      "fee_apr_7d_pct": null,
+      "income_change_direction": null,
+      "days_available": 1,
+      "note": "尚不足計算（該池 The Graph poolDayDatas 完整天數不足，見 fee_apr_note 的天數說明）（目前只有 1 個完整天，需要 7 天）"
+    },
+    "0xab2044f105c43c25b1de3ee27504f0b889ce5953": {
+      "tvl_usd": 1179.1775935972087,
+      "volume_24h_usd": 1e-06,
+      "volume_7d_usd": 2.287325,
+      "fee_apr_24h_pct": 0.0,
+      "fee_apr_7d_pct": 0.0051,
+      "income_change_direction": "down",
+      "days_available": 8,
+      "note": null
+    },
+    "0x36f7273afb18a3f2fdd07e3ac1c28e65d7ea8f07": {
+      "tvl_usd": 441.1785359351966,
+      "volume_24h_usd": 0.000115,
+      "volume_7d_usd": 0.016711,
+      "fee_apr_24h_pct": 0.0,
+      "fee_apr_7d_pct": 0.0001,
+      "income_change_direction": "up",
+      "days_available": 8,
+      "note": null
+    },
+    "0x8ad599c3a0ff1de082011efddc58f1908eb6e6d8": {
+      "tvl_usd": 327584499.7049297,
+      "volume_24h_usd": 9476509.00154952,
+      "volume_7d_usd": 64717503.09572634,
+      "fee_apr_24h_pct": 3.1677,
+      "fee_apr_7d_pct": 3.0904,
+      "income_change_direction": "down",
+      "days_available": 7,
+      "note": null
+    },
+    "0x4e68ccd3e89f51c3074ca5072bbac773960dfa36": {
+      "tvl_usd": 306339851.3405984,
+      "volume_24h_usd": 43117430.69401944,
+      "volume_7d_usd": 336695334.83874184,
+      "fee_apr_24h_pct": 15.4122,
+      "fee_apr_7d_pct": 17.1929,
+      "income_change_direction": "down",
+      "days_available": 7,
+      "note": null
+    },
+    "0x99ac8ca7087fa4a2a1fb6357269965a2014abc35": {
+      "tvl_usd": 142067590.89953882,
+      "volume_24h_usd": 1188251.7219072953,
+      "volume_7d_usd": 10229123.762453005,
+      "fee_apr_24h_pct": 0.9159,
+      "fee_apr_7d_pct": 1.1263,
+      "income_change_direction": "down",
+      "days_available": 7,
+      "note": null
+    },
+    "0x9db9e0e53058c89e5b94e29621a205198648425b": {
+      "tvl_usd": 58383672.961996175,
+      "volume_24h_usd": 2145029.1793949567,
+      "volume_7d_usd": 17717725.596504163,
+      "fee_apr_24h_pct": 4.0231,
+      "fee_apr_7d_pct": 4.7471,
+      "income_change_direction": "down",
+      "days_available": 7,
+      "note": null
+    },
+    "0x4548280ac92507c9092a511c7396cbea78fa9e49": {
+      "tvl_usd": 851608.8339817863,
+      "volume_24h_usd": 16785.676881,
+      "volume_7d_usd": 177717.251043,
+      "fee_apr_24h_pct": 2.1583,
+      "fee_apr_7d_pct": 3.2644,
+      "income_change_direction": "down",
+      "days_available": 7,
+      "note": null
+    },
+    "0x3696ed1d5a75694dd9779976bc9e7c22e555f934": {
+      "tvl_usd": 4446.79103040339,
+      "volume_24h_usd": 495.020563,
+      "volume_7d_usd": 6948.734221731481,
+      "fee_apr_24h_pct": 12.1896,
+      "fee_apr_7d_pct": 24.4442,
+      "income_change_direction": "up",
+      "days_available": 8,
+      "note": null
+    },
+    "0xb44c1973ab4948fb8fdda2313d9f28b1edc461ed": {
+      "tvl_usd": 35.84203339476047,
+      "volume_24h_usd": 0.0,
+      "volume_7d_usd": 46.330819000000005,
+      "fee_apr_24h_pct": 0.0,
+      "fee_apr_7d_pct": 20.2206,
+      "income_change_direction": "down",
+      "days_available": 8,
+      "note": null
+    },
+    "0x3735fab379c75db7a423178182b60bf6ae451850": {
+      "tvl_usd": 37510.929138182,
+      "volume_24h_usd": 137.505513,
+      "volume_7d_usd": 973.9452694192508,
+      "fee_apr_24h_pct": 0.4014,
+      "fee_apr_7d_pct": 0.4062,
+      "income_change_direction": "up",
+      "days_available": 7,
+      "note": null
+    },
+    "0xdceaf5d0e5e0db9596a47c0c4120654e80b1d706": {
+      "tvl_usd": 572985.9508703913,
+      "volume_24h_usd": 13262.595531521505,
+      "volume_7d_usd": 86593.3259072647,
+      "fee_apr_24h_pct": 2.5345,
+      "fee_apr_7d_pct": 2.364,
+      "income_change_direction": "up",
+      "days_available": 7,
+      "note": null
+    },
+    "0x4d1ad4a9e61bc0e5529d64f38199ccfca56f5a42": {
+      "tvl_usd": 340741.4846146906,
+      "volume_24h_usd": 35219.26238109459,
+      "volume_7d_usd": 214609.34433473268,
+      "fee_apr_24h_pct": 11.318,
+      "fee_apr_7d_pct": 9.8523,
+      "income_change_direction": "up",
+      "days_available": 7,
+      "note": null
+    },
+    "0xd0fc8ba7e267f2bc56044a7715a489d851dc6d78": {
+      "tvl_usd": 3544739.0560425264,
+      "volume_24h_usd": 1111689.665223,
+      "volume_7d_usd": 9268570.168802999,
+      "fee_apr_24h_pct": 34.341,
+      "fee_apr_7d_pct": 40.902,
+      "income_change_direction": "up",
+      "days_available": 7,
+      "note": null
+    },
+    "0x3470447f3cecffac709d3e783a307790b0208d60": {
+      "tvl_usd": 4491287.115612983,
+      "volume_24h_usd": 3283303.9425248373,
+      "volume_7d_usd": 22881446.735249955,
+      "fee_apr_24h_pct": 80.0487,
+      "fee_apr_7d_pct": 79.6946,
+      "income_change_direction": "up",
+      "days_available": 7,
+      "note": null
+    },
+    "0x7bea39867e4169dbe237d55c8242a8f2fcdcc387": {
+      "tvl_usd": 10927116.00472866,
+      "volume_24h_usd": 4524.773697484588,
+      "volume_7d_usd": 71074.74977136064,
+      "fee_apr_24h_pct": 0.1511,
+      "fee_apr_7d_pct": 0.3392,
+      "income_change_direction": "down",
+      "days_available": 8,
+      "note": null
+    },
+    "0xc5af84701f98fa483ece78af83f11b6c38aca71d": {
+      "tvl_usd": 3817950.8780782395,
+      "volume_24h_usd": 976.1676900381798,
+      "volume_7d_usd": 17609.937762728543,
+      "fee_apr_24h_pct": 0.0933,
+      "fee_apr_7d_pct": 0.2405,
+      "income_change_direction": "up",
+      "days_available": 7,
+      "note": null
+    },
+    "0xcbfb0745b8489973bf7b334d54fdbd573df7ef3c": {
+      "tvl_usd": 862252.0618207701,
+      "volume_24h_usd": 1202.6372402164902,
+      "volume_7d_usd": 11181.814906436339,
+      "fee_apr_24h_pct": 0.5091,
+      "fee_apr_7d_pct": 0.6762,
+      "income_change_direction": "up",
+      "days_available": 8,
+      "note": null
+    },
+    "0x5a59e4e647a3acc42b01715f3a1d271c1f7e7aeb": {
+      "tvl_usd": 13490.723986419645,
+      "volume_24h_usd": 2.1625576631321213,
+      "volume_7d_usd": 6.581663490004014,
+      "fee_apr_24h_pct": 0.0585,
+      "fee_apr_7d_pct": 0.0254,
+      "income_change_direction": "up",
+      "days_available": 8,
+      "note": null
+    },
+    "0x83b89eb587b7a6742022009aac28ba701c15ec5e": {
+      "tvl_usd": 1e-06,
+      "volume_24h_usd": 0.0,
+      "volume_7d_usd": null,
+      "fee_apr_24h_pct": 0.0,
+      "fee_apr_7d_pct": null,
+      "income_change_direction": "flat",
+      "days_available": 2,
+      "note": "尚不足計算（該池 The Graph poolDayDatas 完整天數不足，見 fee_apr_note 的天數說明）（目前只有 2 個完整天，需要 7 天）"
+    },
+    "0xef9eaa9493695c71eb7cb307b3bb8cbf20b92804": {
+      "tvl_usd": 1243.7470433537655,
+      "volume_24h_usd": 0.0,
+      "volume_7d_usd": 2255.473204,
+      "fee_apr_24h_pct": 0.0,
+      "fee_apr_7d_pct": 94.5585,
+      "income_change_direction": "flat",
+      "days_available": 8,
+      "note": null
+    },
+    "0x832a33bfbd3720efff5ba76a9e8e244ca3a8ce93": {
+      "tvl_usd": 1.1310116261390348e-06,
+      "volume_24h_usd": 0.0,
+      "volume_7d_usd": null,
+      "fee_apr_24h_pct": 0.0,
+      "fee_apr_7d_pct": null,
+      "income_change_direction": null,
+      "days_available": 1,
+      "note": "尚不足計算（該池 The Graph poolDayDatas 完整天數不足，見 fee_apr_note 的天數說明）（目前只有 1 個完整天，需要 7 天）"
+    },
+    "0xa8e45fe78bcf372d8f0a8f6a25868e66088a1365": {
+      "tvl_usd": 130.43892719014772,
+      "volume_24h_usd": 1661.750886055579,
+      "volume_7d_usd": 13863.846028399963,
+      "fee_apr_24h_pct": 4649.9851,
+      "fee_apr_7d_pct": 5542.0614,
+      "income_change_direction": "down",
+      "days_available": 8,
+      "note": null
+    },
+    "0x7161e6f4babc4ec23e78865c09f1e5c095f84e47": {
+      "tvl_usd": 132.613183,
+      "volume_24h_usd": 0.0,
+      "volume_7d_usd": null,
+      "fee_apr_24h_pct": 0.0,
+      "fee_apr_7d_pct": null,
+      "income_change_direction": "down",
+      "days_available": 2,
+      "note": "尚不足計算（該池 The Graph poolDayDatas 完整天數不足，見 fee_apr_note 的天數說明）（目前只有 2 個完整天，需要 7 天）"
+    },
+    "0xe845469aae04f8823202b011a848cf199420b4c1": {
+      "tvl_usd": 1175.037985105013,
+      "volume_24h_usd": 0.027959,
+      "volume_7d_usd": 0.040011,
+      "fee_apr_24h_pct": 0.0087,
+      "fee_apr_7d_pct": 0.0018,
+      "income_change_direction": "up",
+      "days_available": 8,
+      "note": null
+    },
+    "0xfe47dad3d8072a7c5e38202bc4b82d322163e2b6": {
+      "tvl_usd": 101954.85981124088,
+      "volume_24h_usd": 4966.12692,
+      "volume_7d_usd": 52793.67015260961,
+      "fee_apr_24h_pct": 17.7788,
+      "fee_apr_7d_pct": 27.0003,
+      "income_change_direction": "up",
+      "days_available": 7,
+      "note": null
+    },
+    "0x4f88f7c99022eace4740c6898f59ce6a2e798a1e64ce54589720b7153eb224a7": {
+      "tvl_usd": null,
+      "volume_24h_usd": null,
+      "volume_7d_usd": null,
+      "fee_apr_24h_pct": null,
+      "fee_apr_7d_pct": null,
+      "income_change_direction": null,
+      "days_available": 0,
+      "note": "資料不足：The Graph 目前只有當日未結束的資料，尚無完整一天可用於計算"
+    },
+    "0x1dc6f99e8bf15e8b62c8e7eb03b67291e6bc5accf2970a55a7068a7fc0b33a46": {
+      "tvl_usd": null,
+      "volume_24h_usd": null,
+      "volume_7d_usd": null,
+      "fee_apr_24h_pct": null,
+      "fee_apr_7d_pct": null,
+      "income_change_direction": null,
+      "days_available": 0,
+      "note": "資料不足：The Graph 目前只有當日未結束的資料，尚無完整一天可用於計算"
+    },
+    "0x3ea74c37fbb79dfcd6d760870f0f4e00cf4c3960b3259d0d43f211c0547394c1": {
+      "tvl_usd": null,
+      "volume_24h_usd": null,
+      "volume_7d_usd": null,
+      "fee_apr_24h_pct": null,
+      "fee_apr_7d_pct": null,
+      "income_change_direction": null,
+      "days_available": 0,
+      "note": "資料不足：The Graph 目前只有當日未結束的資料，尚無完整一天可用於計算"
+    },
+    "0x4a24fcf3c1cbebd80d09537c7aa15adf2d228aa1b9ba1b0e5fb82e66dc96c0d2": {
+      "tvl_usd": null,
+      "volume_24h_usd": null,
+      "volume_7d_usd": null,
+      "fee_apr_24h_pct": null,
+      "fee_apr_7d_pct": null,
+      "income_change_direction": null,
+      "days_available": 0,
+      "note": "資料不足：The Graph 目前只有當日未結束的資料，尚無完整一天可用於計算"
+    },
+    "0x991b2329e1ad19755e493990d4911199b49dc5b0aaa6fea22b7f88407e316bb8": {
+      "tvl_usd": null,
+      "volume_24h_usd": null,
+      "volume_7d_usd": null,
+      "fee_apr_24h_pct": null,
+      "fee_apr_7d_pct": null,
+      "income_change_direction": null,
+      "days_available": 0,
+      "note": "資料不足：The Graph 目前只有當日未結束的資料，尚無完整一天可用於計算"
+    },
+    "0x6230510579be16f0f073e9e61b28dcbc4e9fa91216327a3a46a2f785d027257f": {
+      "tvl_usd": null,
+      "volume_24h_usd": null,
+      "volume_7d_usd": null,
+      "fee_apr_24h_pct": null,
+      "fee_apr_7d_pct": null,
+      "income_change_direction": null,
+      "days_available": 0,
+      "note": "資料不足：The Graph 目前只有當日未結束的資料，尚無完整一天可用於計算"
+    },
+    "0xc97acdb67b92c6c05c1ffc25aa03e14fc1ddc0349ddeddea561ff4ba4f946d8c": {
+      "tvl_usd": null,
+      "volume_24h_usd": null,
+      "volume_7d_usd": null,
+      "fee_apr_24h_pct": null,
+      "fee_apr_7d_pct": null,
+      "income_change_direction": null,
+      "days_available": 0,
+      "note": "資料不足：The Graph 目前只有當日未結束的資料，尚無完整一天可用於計算"
+    },
+    "0xe273cec440889b7340e6b3c99d9fe7acbd46d2f469c6204b0a66f774b5b21d71": {
+      "tvl_usd": null,
+      "volume_24h_usd": null,
+      "volume_7d_usd": null,
+      "fee_apr_24h_pct": null,
+      "fee_apr_7d_pct": null,
+      "income_change_direction": null,
+      "days_available": 0,
+      "note": "資料不足：The Graph 目前只有當日未結束的資料，尚無完整一天可用於計算"
+    },
+    "0x4248630f6efb319938960a607fea38ab0b537687c29a21fb25b1ec4c83b633a5": {
+      "tvl_usd": null,
+      "volume_24h_usd": null,
+      "volume_7d_usd": null,
+      "fee_apr_24h_pct": null,
+      "fee_apr_7d_pct": null,
+      "income_change_direction": null,
+      "days_available": 0,
+      "note": "資料不足：The Graph 目前只有當日未結束的資料，尚無完整一天可用於計算"
+    },
+    "0xc8ea3e362ebcb6750b91fbc2752c22e4696ec7b086071cc93dd2454f2c6d9cbd": {
+      "tvl_usd": null,
+      "volume_24h_usd": null,
+      "volume_7d_usd": null,
+      "fee_apr_24h_pct": null,
+      "fee_apr_7d_pct": null,
+      "income_change_direction": null,
+      "days_available": 0,
+      "note": "資料不足：The Graph 目前只有當日未結束的資料，尚無完整一天可用於計算"
+    },
+    "0xb9fd8b8b6580b80432037a379071b6fb22bbceff6bafbd57390889c01d8757b9": {
+      "tvl_usd": null,
+      "volume_24h_usd": null,
+      "volume_7d_usd": null,
+      "fee_apr_24h_pct": null,
+      "fee_apr_7d_pct": null,
+      "income_change_direction": null,
+      "days_available": 0,
+      "note": "資料不足：The Graph 目前只有當日未結束的資料，尚無完整一天可用於計算"
+    },
+    "0x934b0a6d4403764491adc512269ce9ea217f2f7f274043631eb1dd9ac2109a16": {
+      "tvl_usd": null,
+      "volume_24h_usd": null,
+      "volume_7d_usd": null,
+      "fee_apr_24h_pct": null,
+      "fee_apr_7d_pct": null,
+      "income_change_direction": null,
+      "days_available": 0,
+      "note": "資料不足：The Graph 目前只有當日未結束的資料，尚無完整一天可用於計算"
+    },
+    "0xb98437c7ba28c6590dd4e1cc46aa89eed181f97108e5b6221730d41347bc817f": {
+      "tvl_usd": null,
+      "volume_24h_usd": null,
+      "volume_7d_usd": null,
+      "fee_apr_24h_pct": null,
+      "fee_apr_7d_pct": null,
+      "income_change_direction": null,
+      "days_available": 0,
+      "note": "資料不足：The Graph 目前只有當日未結束的資料，尚無完整一天可用於計算"
+    },
+    "0x20c3a15e34e5d88aeba004b0753af69e4f6bea80eae2263f7a92e919cd33cc56": {
+      "tvl_usd": null,
+      "volume_24h_usd": null,
+      "volume_7d_usd": null,
+      "fee_apr_24h_pct": null,
+      "fee_apr_7d_pct": null,
+      "income_change_direction": null,
+      "days_available": 0,
+      "note": "資料不足：The Graph 目前只有當日未結束的資料，尚無完整一天可用於計算"
+    },
+    "0x7067a500ad68cf5129b957fa62c97042cddccaa15d16cb91e3720d97971109bb": {
+      "tvl_usd": null,
+      "volume_24h_usd": null,
+      "volume_7d_usd": null,
+      "fee_apr_24h_pct": null,
+      "fee_apr_7d_pct": null,
+      "income_change_direction": null,
+      "days_available": 0,
+      "note": "資料不足：The Graph 目前只有當日未結束的資料，尚無完整一天可用於計算"
+    },
+    "0x689a8ae902a4ff22d6294cfcdcb38a7cd3faf883ac98776af0ae37eefce44b2c": {
+      "tvl_usd": null,
+      "volume_24h_usd": null,
+      "volume_7d_usd": null,
+      "fee_apr_24h_pct": null,
+      "fee_apr_7d_pct": null,
+      "income_change_direction": null,
+      "days_available": 0,
+      "note": "資料不足：The Graph 目前只有當日未結束的資料，尚無完整一天可用於計算"
+    },
+    "0xe331341fc90223cfd082f79fbdf63b2fbef5464bac7707490ee176d7e0b26086": {
+      "tvl_usd": null,
+      "volume_24h_usd": null,
+      "volume_7d_usd": null,
+      "fee_apr_24h_pct": null,
+      "fee_apr_7d_pct": null,
+      "income_change_direction": null,
+      "days_available": 0,
+      "note": "資料不足：The Graph 目前只有當日未結束的資料，尚無完整一天可用於計算"
+    },
+    "0x353fe718d462b99fb4f95ca11d17367b4385a8667b339117240dc72bf454c1ef": {
+      "tvl_usd": null,
+      "volume_24h_usd": null,
+      "volume_7d_usd": null,
+      "fee_apr_24h_pct": null,
+      "fee_apr_7d_pct": null,
+      "income_change_direction": null,
+      "days_available": 0,
+      "note": "資料不足：The Graph 目前只有當日未結束的資料，尚無完整一天可用於計算"
+    },
+    "0x2187d779d9b173dd7202b38b54dca6eb04d1b32ca261980869195b5b9fa97ef8": {
+      "tvl_usd": null,
+      "volume_24h_usd": null,
+      "volume_7d_usd": null,
+      "fee_apr_24h_pct": null,
+      "fee_apr_7d_pct": null,
+      "income_change_direction": null,
+      "days_available": 0,
+      "note": "資料不足：The Graph 目前只有當日未結束的資料，尚無完整一天可用於計算"
+    },
+    "0xba2b2a8995d4698d7a8be56cf686bee3da8aa9b10b11535c43e91c1a670f7021": {
+      "tvl_usd": null,
+      "volume_24h_usd": null,
+      "volume_7d_usd": null,
+      "fee_apr_24h_pct": null,
+      "fee_apr_7d_pct": null,
+      "income_change_direction": null,
+      "days_available": 0,
+      "note": "資料不足：The Graph 目前只有當日未結束的資料，尚無完整一天可用於計算"
+    },
+    "0x9a5c1d2f4a7a7962a63259de6fcc1afb1d0aa1abdf5d19c23d22fd78953c5167": {
+      "tvl_usd": null,
+      "volume_24h_usd": null,
+      "volume_7d_usd": null,
+      "fee_apr_24h_pct": null,
+      "fee_apr_7d_pct": null,
+      "income_change_direction": null,
+      "days_available": 0,
+      "note": "資料不足：The Graph 目前只有當日未結束的資料，尚無完整一天可用於計算"
+    },
+    "0xa20defd792341526615afff100c79c27a635e8693d0cb13c8864a3e04180175a": {
+      "tvl_usd": null,
+      "volume_24h_usd": null,
+      "volume_7d_usd": null,
+      "fee_apr_24h_pct": null,
+      "fee_apr_7d_pct": null,
+      "income_change_direction": null,
+      "days_available": 0,
+      "note": "資料不足：The Graph 目前只有當日未結束的資料，尚無完整一天可用於計算"
+    },
+    "0xb66c8a4a60a9287df83c186f3c37204cbb4e3553e28b453f8f3e26f19c1bd835": {
+      "tvl_usd": null,
+      "volume_24h_usd": null,
+      "volume_7d_usd": null,
+      "fee_apr_24h_pct": null,
+      "fee_apr_7d_pct": null,
+      "income_change_direction": null,
+      "days_available": 0,
+      "note": "資料不足：The Graph 目前只有當日未結束的資料，尚無完整一天可用於計算"
+    },
+    "0x34fd3a9f4c512964e1b6ccd91a84d774ccd96c1fb65bf3b36387f1fe80b90b8b": {
+      "tvl_usd": null,
+      "volume_24h_usd": null,
+      "volume_7d_usd": null,
+      "fee_apr_24h_pct": null,
+      "fee_apr_7d_pct": null,
+      "income_change_direction": null,
+      "days_available": 0,
+      "note": "資料不足：The Graph 目前只有當日未結束的資料，尚無完整一天可用於計算"
+    },
+    "0xb93e6332b9fdedb04648f737836ee86cb0392b7d196afe0a9eb8541593704aa8": {
+      "tvl_usd": null,
+      "volume_24h_usd": null,
+      "volume_7d_usd": null,
+      "fee_apr_24h_pct": null,
+      "fee_apr_7d_pct": null,
+      "income_change_direction": null,
+      "days_available": 0,
+      "note": "資料不足：The Graph 目前只有當日未結束的資料，尚無完整一天可用於計算"
+    },
+    "0x0a691346a9142eb564ca2d5cf591f3eb9a57d6192786ca6037151c3ad0ad8a05": {
+      "tvl_usd": null,
+      "volume_24h_usd": null,
+      "volume_7d_usd": null,
+      "fee_apr_24h_pct": null,
+      "fee_apr_7d_pct": null,
+      "income_change_direction": null,
+      "days_available": 0,
+      "note": "資料不足：The Graph 目前只有當日未結束的資料，尚無完整一天可用於計算"
+    },
+    "0x6d7e35c9da0b31661baa2b56767550a17fa9d21e42d8f3fca053d26b45e4f690": {
+      "tvl_usd": null,
+      "volume_24h_usd": null,
+      "volume_7d_usd": null,
+      "fee_apr_24h_pct": null,
+      "fee_apr_7d_pct": null,
+      "income_change_direction": null,
+      "days_available": 0,
+      "note": "資料不足：The Graph 目前只有當日未結束的資料，尚無完整一天可用於計算"
+    },
+    "0x64fe6bf382201fedd11e5577f1312bd5b230229f3d7e98a85c9e6031123fa8be": {
+      "tvl_usd": null,
+      "volume_24h_usd": null,
+      "volume_7d_usd": null,
+      "fee_apr_24h_pct": null,
+      "fee_apr_7d_pct": null,
+      "income_change_direction": null,
+      "days_available": 0,
+      "note": "資料不足：The Graph 目前只有當日未結束的資料，尚無完整一天可用於計算"
+    },
+    "0x5f62504bf28563db8f07fe18cd72cc6f5846950cc4f609a623e8d91204910433": {
+      "tvl_usd": null,
+      "volume_24h_usd": null,
+      "volume_7d_usd": null,
+      "fee_apr_24h_pct": null,
+      "fee_apr_7d_pct": null,
+      "income_change_direction": null,
+      "days_available": 0,
+      "note": "資料不足：The Graph 目前只有當日未結束的資料，尚無完整一天可用於計算"
+    },
+    "0xaf20ab76bcb496ca149a9f20298052a386c202bd6a301d07abfbf6d3e0863f32": {
+      "tvl_usd": null,
+      "volume_24h_usd": null,
+      "volume_7d_usd": null,
+      "fee_apr_24h_pct": null,
+      "fee_apr_7d_pct": null,
+      "income_change_direction": null,
+      "days_available": 0,
+      "note": "資料不足：The Graph 目前只有當日未結束的資料，尚無完整一天可用於計算"
+    },
+    "0x152ac82e0b2459adc974e46a167a0d637eee9ad01e73bdfbd592c644c50051b0": {
+      "tvl_usd": null,
+      "volume_24h_usd": null,
+      "volume_7d_usd": null,
+      "fee_apr_24h_pct": null,
+      "fee_apr_7d_pct": null,
+      "income_change_direction": null,
+      "days_available": 0,
+      "note": "資料不足：The Graph 目前只有當日未結束的資料，尚無完整一天可用於計算"
+    }
+  }
+}

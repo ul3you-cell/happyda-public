@@ -111,9 +111,13 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         因此本頁不顯示該欄，判斷池子大小請直接看 TVL。</li>
       <li>目前顯示的是<strong>池子級 fee APR</strong>：以完整日 fees 與池子 TVL 年化推算，非保證報酬；
         <strong>不等於你的個人收益</strong>，也不含代幣漲跌與無常損失（Impermanent Loss）。小 TVL 池的年化數字可能極端，需特別審慎。</li>
-      <li>本頁<strong>尚未顯示個別錢包 LP 部位、每日 delta 或個人 APR</strong>；這些功能需要另接
-        Uniswap v3 NFT 的唯讀 RPC 快照與本機歷史資料庫，目前仍在建置中。</li>
-
+      <li>下方「我的 LP 部位」表格是唯讀 RPC（Alchemy eth_call）直接查詢錢包
+        <code>0x267EE34200b09Ea8b52D02EeC3300b84985B1eFd</code> 的 Uniswap v3／v4 部位，
+        逐鏈查詢＝0 或供應商不支援時會如實顯示原因，不留「尚未擷取」。可領 fee 用唯讀
+        <code>eth_call</code> 模擬 <code>collect()</code> 取得；v4 因缺少已核對的
+        poolId(bytes32) 換算（需 keccak256，本次未新增依賴），現況只列出部位基本資料，
+        USD 估值／fee／in-range 標示「資料源不支援」。每日 delta／observed APR 需要至少
+        兩筆快照才能算，第一筆快照一律顯示「基準已建立」，不造數字。</li>
       <li>「⚠️ token 不在白名單」列代表官方回應內含本專案 <code>config/pools_targets.json</code> 未預先驗證的合約位址，
         已停用數值顯示，需人工複核（防止假幣/釣魚合約誤植）。</li>
     </ul>
@@ -181,6 +185,35 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   <p class="footer-count" id="footer-count">本頁顯示：<span id="visible-count">0</span> 筆 ／ 共 <span id="total-count">0</span> 筆（每頁 25 筆，排序只改變順序與分頁內容，不改變總筆數）</p>
   <div class="pager-bar" id="pager"></div>
 
+  <h2>我的 LP 部位（唯讀 RPC 直接查詢錢包 <code>{wallet_address_short}</code>）</h2>
+  <p class="filter-note">{wallet_summary_note}</p>
+  <div class="table-wrap">
+  <table id="wallet-table" aria-describedby="wallet-footer-count">
+    <caption>錢包在各鏈的 Uniswap v3／v4 部位（點欄名排序）</caption>
+    <thead>
+      <tr>
+        <th data-key="chain_name" data-type="text" aria-sort="none">鏈</th>
+        <th data-key="protocol" data-type="text" aria-sort="none">協定</th>
+        <th data-key="pair_label" data-type="text" aria-sort="none">Pair</th>
+        <th data-key="fee_tier_pct" data-type="num" aria-sort="none">Fee Tier</th>
+        <th data-key="token_id" data-type="text" aria-sort="none">Token ID</th>
+        <th data-key="position_value_usd" data-type="num" aria-sort="none">部位價值 USD</th>
+        <th data-key="fees_owed_usd" data-type="num" aria-sort="none">可領 Fee USD</th>
+        <th data-key="in_range" data-type="text" aria-sort="none">In-range</th>
+        <th data-key="delta_24h_usd" data-type="num" aria-sort="none">24h Delta</th>
+        <th data-key="observed_apr_7d_pct" data-type="num" aria-sort="none">實測 APR 7d</th>
+        <th data-key="observed_apr_30d_pct" data-type="num" aria-sort="none">實測 APR 30d</th>
+        <th data-key="snapshot_time" data-type="date" aria-sort="none">查詢時間</th>
+        <th data-key="source" data-type="text" aria-sort="none">來源／備註</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  </div>
+  <p class="footer-count" id="wallet-footer-count">本頁顯示：<span id="wallet-visible-count">0</span> 筆 ／ 共 <span id="wallet-total-count">0</span> 筆</p>
+  <div class="pager-bar" id="wallet-pager"></div>
+
+  <script type="application/json" id="wallet-data">{wallet_rows_json}</script>
   <script type="application/json" id="pool-data">{rows_json}</script>
   <script>
   /* PURE_SORT_START -- 純函式，無 DOM 依賴，供 tests/ 以 Node.js 直接抽取執行驗證 */
@@ -434,6 +467,114 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   }})();
 
   (function() {{
+    // 「我的 LP 部位」表格：資料來自後端 wallet_live_fetch.py 唯讀 RPC 查詢結果，
+    // 重用上面已定義的 sortRowsPure / compareValues 純函式，邏輯不重寫。
+    const wRows = JSON.parse(document.getElementById('wallet-data').textContent);
+    const wTbody = document.querySelector('#wallet-table tbody');
+    if (!wTbody) return;
+    let wSortState = {{ key: null, dir: 1 }};
+    let wCurrentPage = 1;
+    let wCurrentSorted = wRows;
+    const W_PAGE_SIZE = 20;
+    const wCols = ['chain_name','protocol','pair_label','fee_tier_pct','token_id',
+                   'position_value_usd','fees_owed_usd','in_range','delta_24h_usd',
+                   'observed_apr_7d_pct','observed_apr_30d_pct','snapshot_time','source'];
+
+    function wFmtCell(row, key) {{
+      let v = row[key];
+      if (key === 'fee_tier_pct') return (v === null || v === undefined) ? null : (Number(v).toFixed(2) + '%');
+      if (key === 'observed_apr_7d_pct' || key === 'observed_apr_30d_pct') {{
+        if (v === null || v === undefined) {{
+          return row.base_established ? '<span class="badge">基準已建立</span>' : null;
+        }}
+        return trimFixed(Number(v)) + '%';
+      }}
+      if (key === 'position_value_usd' || key === 'fees_owed_usd' || key === 'delta_24h_usd') {{
+        if (v === null || v === undefined) {{
+          if (key === 'delta_24h_usd' && row.base_established) return '<span class="badge">基準已建立</span>';
+          return null;
+        }}
+        const exact = '$' + Number(v).toLocaleString('en-US', {{ maximumFractionDigits: 6 }});
+        return '<span title="精確值：' + exact + '">' + formatUsdCompact(v) + '</span>';
+      }}
+      if (key === 'in_range') {{
+        if (v === null || v === undefined) return null;
+        return v ? '<span class="badge b-live">in-range</span>' : '<span class="badge b-not_found">out-of-range</span>';
+      }}
+      if (key === 'source') {{
+        if (!v) return null;
+        return '<span title="' + String(v).replace(/"/g, '&quot;') + '">' + (String(v).length > 46 ? String(v).slice(0, 46) + '…' : v) + '</span>';
+      }}
+      return v;
+    }}
+
+    function wRenderRows(data) {{
+      wTbody.innerHTML = '';
+      const start = (wCurrentPage - 1) * W_PAGE_SIZE;
+      const pageData = data.slice(start, start + W_PAGE_SIZE);
+      const frag = document.createDocumentFragment();
+      for (const row of pageData) {{
+        const tr = document.createElement('tr');
+        for (const key of wCols) {{
+          const th = document.querySelector('#wallet-table th[data-key="' + key + '"]');
+          const type = th ? th.dataset.type : 'text';
+          const td = document.createElement('td');
+          if (type === 'num') td.classList.add('num');
+          const rendered = wFmtCell(row, key);
+          td.innerHTML = (rendered === null || rendered === undefined || rendered === '') ? '<span class="null">—</span>' : rendered;
+          tr.appendChild(td);
+        }}
+        frag.appendChild(tr);
+      }}
+      wTbody.appendChild(frag);
+      document.getElementById('wallet-visible-count').textContent = pageData.length;
+      document.getElementById('wallet-total-count').textContent = data.length;
+      wRenderPager(data.length);
+    }}
+
+    function wRenderPager(total) {{
+      const totalPages = Math.max(1, Math.ceil(total / W_PAGE_SIZE));
+      if (wCurrentPage > totalPages) wCurrentPage = totalPages;
+      const pager = document.getElementById('wallet-pager');
+      pager.innerHTML = '';
+      const rangeStart = total === 0 ? 0 : (wCurrentPage - 1) * W_PAGE_SIZE + 1;
+      const rangeEnd = Math.min(wCurrentPage * W_PAGE_SIZE, total);
+      const info = document.createElement('span');
+      info.className = 'pager-info';
+      info.textContent = '第 ' + rangeStart + '–' + rangeEnd + ' 筆／共 ' + total + ' 筆．第 ' + wCurrentPage + ' / ' + totalPages + ' 頁';
+      function mkBtn(label, targetPage, disabled) {{
+        const b = document.createElement('button');
+        b.type = 'button'; b.textContent = label; b.disabled = disabled; b.className = 'pager-btn';
+        b.addEventListener('click', () => {{ wCurrentPage = targetPage; wRenderRows(wCurrentSorted); }});
+        return b;
+      }}
+      pager.appendChild(mkBtn('« 上一頁', wCurrentPage - 1, wCurrentPage <= 1));
+      pager.appendChild(info);
+      pager.appendChild(mkBtn('下一頁 »', wCurrentPage + 1, wCurrentPage >= totalPages));
+    }}
+
+    document.querySelectorAll('#wallet-table thead th').forEach(th => {{
+      th.addEventListener('click', () => {{
+        const key = th.dataset.key;
+        if (wSortState.key === key) wSortState.dir *= -1; else {{ wSortState.key = key; wSortState.dir = 1; }}
+        document.querySelectorAll('#wallet-table thead th').forEach(h => {{
+          h.setAttribute('aria-sort', 'none');
+          const old = h.querySelector('.arrow'); if (old) old.remove();
+        }});
+        th.setAttribute('aria-sort', wSortState.dir === 1 ? 'ascending' : 'descending');
+        const arrow = document.createElement('span'); arrow.className = 'arrow';
+        arrow.textContent = wSortState.dir === 1 ? '▲' : '▼';
+        th.appendChild(arrow);
+        wCurrentSorted = sortRowsPure(wRows, wSortState.key, wSortState.dir, th.dataset.type);
+        wCurrentPage = 1;
+        wRenderRows(wCurrentSorted);
+      }});
+    }});
+
+    wRenderRows(wRows);
+  }})();
+
+  (function() {{
     // 錢包位址輸入：純前端 localStorage，不送出到任何伺服器／log／repo（見
     // research 的建議：位址雖非 secret，但足以被 7x24 監控，比 key 還敏感，
     // 應由瀏覽器端處理，不要伺服器端處理）。下一階段的錢包 LP／每日 fee
@@ -507,6 +648,26 @@ def main() -> int:
     rows = data["rows"]
     meta = data["meta"]
 
+    import wallet_live_fetch
+
+    wallet_live_path = DATA_DIR / "wallet_live_latest.json"
+    wallet_rows: list[dict] = []
+    wallet_address_short = "（尚未查詢）"
+    wallet_summary_note = "尚未執行過 wallet_live_fetch.py，本節暫無資料。"
+    if wallet_live_path.exists():
+        with open(wallet_live_path, "r", encoding="utf-8") as wf:
+            wallet_data = json.load(wf)
+        wallet_rows = wallet_live_fetch.build_wallet_rows(wallet_data)
+        addr = wallet_data.get("wallet_address", "")
+        wallet_address_short = (addr[:6] + "…" + addr[-4:]) if addr else "（未知）"
+        failed_chains = [
+            r["chain_name"] for r in wallet_data.get("v3", []) + wallet_data.get("v4", []) if r.get("error")
+        ]
+        note_parts = [f"最後查詢時間：{datetime.fromtimestamp(wallet_data.get('generated_at', 0), tz=timezone.utc).isoformat()}"]
+        if failed_chains:
+            note_parts.append(f"查詢失敗（詳見下表來源欄的真實錯誤訊息）：{', '.join(failed_chains)}")
+        wallet_summary_note = "；".join(note_parts)
+
     html = HTML_TEMPLATE.format(
         generated_date=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
         generated_at=data["generated_at"],
@@ -520,6 +681,9 @@ def main() -> int:
         untrusted_rows=meta["untrusted_rows"],
         rows_json=json.dumps(rows, ensure_ascii=False),
         status_labels_json=json.dumps(STATUS_LABELS, ensure_ascii=False),
+        wallet_address_short=wallet_address_short,
+        wallet_summary_note=wallet_summary_note,
+        wallet_rows_json=json.dumps(wallet_rows, ensure_ascii=False),
     )
 
     OUTPUT_PATH.write_text(html, encoding="utf-8")

@@ -1052,12 +1052,13 @@ class TestWalletRpcClient(unittest.TestCase):
         self.assertEqual(len(calls), 4)  # 1 次 balanceOf + 3 次 tokenOfOwnerByIndex
 
     def test_list_wallet_token_ids_unsupported_chain_does_not_guess_address(self):
+        unsupported_chain_id = 999999
         with self.assertRaises(wallet_rpc_client.WalletRpcError) as ctx:
             wallet_rpc_client.list_wallet_token_ids(
-                "https://example-rpc.test/v1/secret", self.WALLET, chain_id=42161,
+                "https://example-rpc.test/v1/secret", self.WALLET, chain_id=unsupported_chain_id,
                 http_post=lambda url, payload: {"result": "0x" + "00" * 32},
             )
-        self.assertIn("42161", str(ctx.exception))
+        self.assertIn(str(unsupported_chain_id), str(ctx.exception))
 
     def test_get_position_attaches_token_id_and_chain_id(self):
         words = [wallet_rpc_client.encode_uint_arg(0)] * 12

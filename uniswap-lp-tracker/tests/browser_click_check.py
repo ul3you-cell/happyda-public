@@ -47,6 +47,15 @@ COLUMNS = [
     "status", "snapshot_time", "source",
 ]
 
+# AC8「錢包區塊可見、排序、分頁」——欄位對應 build_dashboard.py 的
+# #wallet-table thead（見 wCols 定義），跟 #pool-table 用同一顆 CDP 連線，
+# 不是另開一份離線 fixture 驗證。
+WALLET_COLUMNS = [
+    "chain_name", "protocol", "pair_label", "fee_tier_pct", "token_id",
+    "position_value_usd", "fees_owed_usd", "in_range", "delta_24h_usd",
+    "observed_apr_7d_pct", "observed_apr_30d_pct", "snapshot_time", "source",
+]
+
 
 # ---------------------------------------------------------------------------
 # 最小可用 WebSocket client（僅供本機 CDP 溝通，非通用實作）
@@ -151,16 +160,16 @@ class CDPSession:
             raise RuntimeError(f"頁面 JS 執行例外：{result['exceptionDetails']}")
         return result.get("result", {}).get("value")
 
-    def click_header(self, col_index: int) -> None:
+    def click_header(self, col_index: int, table_selector: str = "#pool-table") -> None:
         # 用真實滑鼠事件點擊（Input.dispatchMouseEvent），不是模擬呼叫 .click()。
         # 頁面內容有 max-width，14 欄不一定全部同時落在可視寬度內（.table-wrap
         # 可水平捲動）；點擊前先把該欄 scrollIntoView，再量測 bounding rect，
         # 確保點在真正可見、可互動的位置上。
         box = self.evaluate(
-            "(() => { const th = document.querySelectorAll('#pool-table thead th')[%d];"
+            "(() => { const th = document.querySelectorAll('%s thead th')[%d];"
             " th.scrollIntoView({block: 'center', inline: 'center'});"
             " const r = th.getBoundingClientRect();"
-            " return {x: r.left + r.width/2, y: r.top + r.height/2}; })()" % col_index
+            " return {x: r.left + r.width/2, y: r.top + r.height/2}; })()" % (table_selector, col_index)
         )
         x, y = box["x"], box["y"]
         self.call("Input.dispatchMouseEvent", {"type": "mouseMoved", "x": x, "y": y})
@@ -254,6 +263,56 @@ _MONOTONIC_CHECK_JS = """
     rowCount: rows.length,
     visible: document.getElementById('visible-count').textContent,
     total: document.getElementById('total-count').textContent,
+    monotonic, nullsLast,
+    nonNullCount: nonNull.length,
+  };
+})()
+"""
+
+
+_WALLET_MONOTONIC_CHECK_JS = """
+(() => {
+  const th = document.querySelectorAll('#wallet-table thead th')[%(idx)d];
+  const type = th.dataset.type;
+  const rows = Array.from(document.querySelectorAll('#wallet-table tbody tr'));
+  const raw = rows.map(r => {
+    const cell = r.cells[%(idx)d];
+    const badge = cell.querySelector('.badge');
+    if (badge) {
+      const cls = Array.from(badge.classList).find(c => c.startsWith('b-'));
+      return cls ? cls.slice(2) : cell.textContent.trim();
+    }
+    return cell.textContent.trim();
+  });
+  const isEmpty = v => v === '' || v === '\\u2014';
+  const nonNull = raw.filter(v => !isEmpty(v));
+  const nullTail = raw.slice(nonNull.length);
+  const nullsLast = nullTail.every(isEmpty);
+  function cmp(a, b) {
+    if (type === 'bigint') {
+      try { const x = BigInt(a), y = BigInt(b); return x < y ? -1 : (x > y ? 1 : 0); }
+      catch (e) { return a.localeCompare(b); }
+    }
+    if (type === 'num') {
+      const x = parseFloat(a), y = parseFloat(b);
+      return x < y ? -1 : (x > y ? 1 : 0);
+    }
+    if (type === 'date') {
+      const x = Date.parse(a), y = Date.parse(b);
+      return x < y ? -1 : (x > y ? 1 : 0);
+    }
+    return a.localeCompare(b);
+  }
+  const dir = th.getAttribute('aria-sort') === 'ascending' ? 1 : -1;
+  let monotonic = true;
+  for (let i = 1; i < nonNull.length; i++) {
+    if (cmp(nonNull[i - 1], nonNull[i]) * dir > 0) monotonic = false;
+  }
+  return {
+    ariaSort: th.getAttribute('aria-sort'),
+    rowCount: rows.length,
+    visible: document.getElementById('wallet-visible-count').textContent,
+    total: document.getElementById('wallet-total-count').textContent,
     monotonic, nullsLast,
     nonNullCount: nonNull.length,
   };
@@ -400,7 +459,56 @@ def main() -> int:
                     if not ok:
                         failures += 1
 
-            print(f"\n總計欄位×方向組合：{len(COLUMNS) * 2}，失敗：{failures}")
+            # AC8：「我的 LP 部位」錢包區塊要在真實瀏覽器中可見、可排序、
+            # 分頁不變列數——跟上面的池子表用同一顆已載入頁面的 CDP session，
+            # 不是另開一份離線 fixture 驗證。
+            wallet_visible = session.evaluate(
+                "(() => { const t = document.getElementById('wallet-table');"
+                " if (!t) return null;"
+                " const r = t.getBoundingClientRect();"
+                " return { present: true, hasArea: r.width > 0 && r.height > 0,"
+                " rowCount: t.querySelectorAll('tbody tr').length }; })()"
+            )
+            if not isinstance(wallet_visible, dict) or not wallet_visible.get("present"):
+                print("FAIL [錢包區塊可見性] #wallet-table 不存在於已發布頁面")
+                failures += 1
+            else:
+                wallet_ok = wallet_visible["hasArea"] and wallet_visible["rowCount"] > 0
+                print(
+                    ("OK  " if wallet_ok else "FAIL")
+                    + f" [錢包區塊可見性] hasArea={wallet_visible['hasArea']} rowCount={wallet_visible['rowCount']}"
+                )
+                if not wallet_ok:
+                    failures += 1
+
+                wallet_total_before = session.evaluate(
+                    "document.getElementById('wallet-total-count').textContent"
+                )
+                wallet_total_int = int(wallet_total_before)
+                for idx, col_key in enumerate(WALLET_COLUMNS):
+                    for _ in range(2):  # 正向／反向各點一次
+                        session.click_header(idx, table_selector="#wallet-table")
+                        state = session.evaluate(_WALLET_MONOTONIC_CHECK_JS % {"idx": idx})
+                        WALLET_PAGE_SIZE = 20
+                        ok = (
+                            state["ariaSort"] in ("ascending", "descending")
+                            and int(state["rowCount"]) == int(state["visible"])
+                            and int(state["rowCount"]) == min(WALLET_PAGE_SIZE, int(state["total"]))
+                            and int(state["total"]) == wallet_total_int
+                            and state["monotonic"]
+                            and state["nullsLast"]
+                        )
+                        status = "OK  " if ok else "FAIL"
+                        print(
+                            f"{status} [wallet:{col_key:20s} {state['ariaSort']:10s}] "
+                            f"rows={state['rowCount']} visible={state['visible']} total={state['total']} "
+                            f"nonNull={state['nonNullCount']} monotonic={state['monotonic']} "
+                            f"nulls_last={state['nullsLast']}"
+                        )
+                        if not ok:
+                            failures += 1
+
+            print(f"\n總計欄位×方向組合：{len(COLUMNS) * 2 + len(WALLET_COLUMNS) * 2}，失敗：{failures}")
             return 1 if failures else 0
         finally:
             chrome_proc.terminate()

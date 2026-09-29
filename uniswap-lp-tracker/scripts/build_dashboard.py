@@ -196,11 +196,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         <th data-key="protocol" data-type="text" aria-sort="none">協定</th>
         <th data-key="pair_label" data-type="text" aria-sort="none">Pair</th>
         <th data-key="fee_tier_pct" data-type="num" aria-sort="none">Fee Tier</th>
-        <th data-key="token_id" data-type="text" aria-sort="none">Token ID</th>
         <th data-key="position_status" data-type="text" aria-sort="none">流動性狀態</th>
-        <th data-key="token0_amount" data-type="num" aria-sort="none">Token0 數量</th>
-        <th data-key="token1_amount" data-type="num" aria-sort="none">Token1 數量</th>
-        <th data-key="current_tick" data-type="num" aria-sort="none">Current Tick</th>
         <th data-key="position_value_usd" data-type="num" aria-sort="none">部位價值 USD</th>
         <th data-key="fees_owed_usd" data-type="num" aria-sort="none">可領 Fee USD</th>
         <th data-key="in_range" data-type="text" aria-sort="none">In-range</th>
@@ -480,17 +476,13 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     let wCurrentPage = 1;
     let wCurrentSorted = wRows;
     const W_PAGE_SIZE = 20;
-    const wCols = ['chain_name','protocol','pair_label','fee_tier_pct','token_id','position_status',
-                   'token0_amount','token1_amount','current_tick','position_value_usd','fees_owed_usd','in_range','delta_24h_usd',
+    const wCols = ['chain_name','protocol','pair_label','fee_tier_pct','position_status',
+                   'position_value_usd','fees_owed_usd','in_range','delta_24h_usd',
                    'observed_apr_7d_pct','observed_apr_30d_pct','snapshot_time','source'];
 
     function wFmtCell(row, key) {{
       let v = row[key];
       if (key === 'fee_tier_pct') return (v === null || v === undefined) ? null : (Number(v).toFixed(2) + '%');
-      if (key === 'token0_amount' || key === 'token1_amount') {{
-        if (v === null || v === undefined) return null;
-        return Number(v).toLocaleString('en-US', {{ maximumFractionDigits: 8 }});
-      }}
       if (key === 'observed_apr_7d_pct' || key === 'observed_apr_30d_pct') {{
         if (v === null || v === undefined) {{
           return row.base_established ? '<span class="badge">基準已建立</span>' : null;

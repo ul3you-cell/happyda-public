@@ -116,8 +116,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         逐鏈查詢＝0 或供應商不支援時會如實顯示區塊與原因。V3 fee 以唯讀
         <code>eth_call</code> 模擬 <code>collect()</code> 取得；V4 poolId 用純 Python
         Ethereum Keccak-256 計算並以 Unichain StateView 交叉驗證，非零 liquidity 部位顯示
-        current tick、區間內狀態、token 數量、USD 價值及 fee-growth 估算可領 fee；liquidity=0
-        的歷史 NFT 明確標示已退出。每日 delta／observed APR 需要至少
+        區間內狀態、可取得的 USD 價值及 fee-growth 估算可領 fee；零流動性歷史部位
+        僅保留在內部稽核資料，不列於使用者明細。每日 delta／observed APR 需要至少
         兩筆快照才能算，第一筆快照一律顯示「基準已建立」，不造數字。</li>
       <li>「⚠️ token 不在白名單」列代表官方回應內含本專案 <code>config/pools_targets.json</code> 未預先驗證的合約位址，
         已停用數值顯示，需人工複核（防止假幣/釣魚合約誤植）。</li>
@@ -661,7 +661,6 @@ def main() -> int:
         addr = wallet_data.get("wallet_address", "")
         wallet_address_short = (addr[:6] + "…" + addr[-4:]) if addr else "（未知）"
         chains = wallet_data.get("v3", []) + wallet_data.get("v4", [])
-        nft_total = sum(r.get("position_count", len(r.get("positions", []))) for r in chains)
         active_total = sum(
             1 for r in chains for pos in r.get("positions", [])
             if (pos.get("active") is True or
@@ -682,7 +681,7 @@ def main() -> int:
             r["chain_name"] for r in chains if r.get("error")
         ]
         note_parts = [
-            f"NFT 持有總數：{nft_total}；非零 liquidity 活躍部位：{active_total}",
+            f"非零 liquidity 活躍部位：{active_total}",
             f"活躍部位總估值：{value_summary}；可領 fee：{fee_summary}",
             f"最後查詢時間：{datetime.fromtimestamp(wallet_data.get('generated_at', 0), tz=timezone.utc).isoformat()}",
         ]

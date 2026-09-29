@@ -84,8 +84,8 @@
         逐鏈查詢＝0 或供應商不支援時會如實顯示區塊與原因。V3 fee 以唯讀
         <code>eth_call</code> 模擬 <code>collect()</code> 取得；V4 poolId 用純 Python
         Ethereum Keccak-256 計算並以 Unichain StateView 交叉驗證，非零 liquidity 部位顯示
-        current tick、區間內狀態、token 數量、USD 價值及 fee-growth 估算可領 fee；liquidity=0
-        的歷史 NFT 明確標示已退出。每日 delta／observed APR 需要至少
+        區間內狀態、可取得的 USD 價值及 fee-growth 估算可領 fee；零流動性歷史部位
+        僅保留在內部稽核資料，不列於使用者明細。每日 delta／observed APR 需要至少
         兩筆快照才能算，第一筆快照一律顯示「基準已建立」，不造數字。</li>
       <li>「⚠️ token 不在白名單」列代表官方回應內含本專案 <code>config/pools_targets.json</code> 未預先驗證的合約位址，
         已停用數值顯示，需人工複核（防止假幣/釣魚合約誤植）。</li>
@@ -154,7 +154,7 @@
   <div class="pager-bar" id="pager"></div>
 
   <h2>我的 LP 部位（唯讀 RPC 直接查詢錢包 <code>0x267E…1eFd</code>）</h2>
-  <p class="filter-note">NFT 持有總數：17；非零 liquidity 活躍部位：0；活躍部位總估值：$0.00；可領 fee：$0.000000；最後查詢時間：2026-09-29T02:10:17+00:00；查詢失敗（詳見下表來源欄的真實錯誤訊息）：Ethereum；較前一日總值變化：不可比較——較昨日部位總值暫不能計算：查詢失敗：Ethereum v4</p>
+  <p class="filter-note">非零 liquidity 活躍部位：0；活躍部位總估值：$0.00；可領 fee：$0.000000；最後查詢時間：2026-09-29T02:10:17+00:00；查詢失敗（詳見下表來源欄的真實錯誤訊息）：Ethereum；較前一日總值變化：不可比較——較昨日部位總值暫不能計算：查詢失敗：Ethereum v4</p>
   <div class="table-wrap">
   <table id="wallet-table" aria-describedby="wallet-footer-count">
     <caption>錢包在各鏈的 Uniswap v3／v4 部位（點欄名排序）</caption>

@@ -492,7 +492,8 @@ def main() -> int:
                     const summary = Array.from(document.querySelectorAll('.filter-note'))
                       .map(el => el.textContent).find(text => text.includes('活躍部位總估值')) || '';
                     return { headers, forbiddenPresent: forbidden.filter(h => headers.includes(h)),
-                      activeRows: activeRows.length, zeroSummaryVisible: summary.includes('非零 liquidity 活躍部位：0') };
+                      activeRows: activeRows.length, zeroSummaryVisible: summary.includes('非零 liquidity 活躍部位：0'),
+                      exposesHistoryCount: summary.includes('NFT 持有總數') || summary.includes('歷史 NFT') };
                   })()
                 """)
                 display_ok = (
@@ -500,11 +501,13 @@ def main() -> int:
                     and not display_contract["forbiddenPresent"]
                     and display_contract["activeRows"] == 0
                     and display_contract["zeroSummaryVisible"]
+                    and not display_contract["exposesHistoryCount"]
                 )
                 print(("OK  " if display_ok else "FAIL")
                       + f" [活躍 LP／前台欄位] active={display_contract.get('activeRows') if isinstance(display_contract, dict) else 'N/A'} "
                       + f"hidden_columns_absent={not display_contract.get('forbiddenPresent') if isinstance(display_contract, dict) else False} "
-                      + f"zero_summary={display_contract.get('zeroSummaryVisible') if isinstance(display_contract, dict) else False}")
+                      + f"zero_summary={display_contract.get('zeroSummaryVisible') if isinstance(display_contract, dict) else False} "
+                      + f"history_count_hidden={not display_contract.get('exposesHistoryCount') if isinstance(display_contract, dict) else False}")
                 if not display_ok:
                     failures += 1
 

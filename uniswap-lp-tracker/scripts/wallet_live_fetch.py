@@ -28,7 +28,17 @@ import wallet_rpc_client as rpc
 import wallet_snapshot_store as store
 import wallet_v3_math as math3
 
+try:
+    from zoneinfo import ZoneInfo
+    _TAIPEI_TZ = ZoneInfo("Asia/Taipei")
+except Exception:  # pragma: no cover - stdlib zoneinfo 應永遠存在
+    _TAIPEI_TZ = timezone.utc
+
 WALLET_ADDRESS = "0x267EE34200b09Ea8b52D02EeC3300b84985B1eFd"
+
+# 每日總值口徑版本；口徑一變（例如改成含歷史部位）就要換版本號，
+# 避免新舊口徑的每日快照被誤拿來互相比較 delta。
+PORTFOLIO_SCOPE_KEY = "active-lp-usd-v1"
 
 V3_CHAINS = [1, 42161, 10, 8453, 56, 130]
 V4_CHAINS = [1, 42161, 10, 8453, 56, 130]
@@ -356,6 +366,14 @@ def enrich_with_usd(v3_results: list[dict]) -> None:
             price1 = prices.get((slug, addr1)) if addr1 else None
             pos["token0_usd_price"] = price0
             pos["token1_usd_price"] = price1
+            for i, (price, amount) in enumerate(
+                ((price0, pos.get("token0_amount")), (price1, pos.get("token1_amount")))
+            ):
+                pos[f"token{i}_value_usd"] = (
+                    None if amount is None or (amount != 0 and price is None)
+                    else 0.0 if amount == 0
+                    else price * amount
+                )
             value_usd = 0.0
             value_complete = True
             for price, amount in ((price0, pos.get("token0_amount")), (price1, pos.get("token1_amount"))):
@@ -431,6 +449,11 @@ def enrich_v4_with_usd(v4_results: list[dict]) -> None:
                 raw_fee = int(pos.get(f"fees_owed_{i}_raw", "0"))
                 decimals = (pos.get(f"token{i}") or {}).get("decimals")
                 pos[f"token{i}_usd_price"] = price
+                pos[f"token{i}_value_usd"] = (
+                    None if amount is None or (amount != 0 and price is None)
+                    else 0.0 if amount == 0
+                    else price * amount
+                )
                 if amount is None:
                     value_complete = False
                 elif amount != 0:
@@ -502,6 +525,94 @@ def _sum_value_fees(row: dict) -> float | None:
     return (v or 0.0) + (f or 0.0)
 
 
+def compute_portfolio_daily_delta(daily_rows_asc: list[dict]) -> dict:
+    """以同 scope_key 的每日總值計算「較前一個成功日」變化。"""
+    empty = {
+        "comparable": False,
+        "previous_snapshot_date": None,
+        "delta_usd": None,
+        "delta_pct": None,
+        "note": "尚無每日估值快照。",
+    }
+    if not daily_rows_asc:
+        return empty
+
+    current = daily_rows_asc[-1]
+    if not current.get("valuation_complete") or current.get("total_value_usd") is None:
+        reason = current.get("data_quality_note") or "目前活躍 LP 尚未取得完整 USD 估值"
+        return {
+            **empty,
+            "note": f"較昨日部位總值暫不能計算：{reason}",
+        }
+
+    previous = next(
+        (
+            row for row in reversed(daily_rows_asc[:-1])
+            if row.get("valuation_complete") and row.get("total_value_usd") is not None
+        ),
+        None,
+    )
+    if previous is None:
+        return {
+            **empty,
+            "note": "基準已建立；需累積 2 個可比較的每日成功快照，預計在下一次成功日更後顯示。",
+        }
+
+    current_value = float(current["total_value_usd"])
+    previous_value = float(previous["total_value_usd"])
+    delta_usd = current_value - previous_value
+    delta_pct = None if previous_value == 0 else delta_usd / previous_value * 100
+    return {
+        "comparable": True,
+        "previous_snapshot_date": previous["snapshot_date"],
+        "delta_usd": delta_usd,
+        "delta_pct": delta_pct,
+        "note": "前一日總值為 0，百分比無法定義。" if previous_value == 0 else None,
+    }
+
+
+def summarize_active_portfolio(chain_results: list[dict]) -> dict:
+    """彙總使用者真正仍持有流動性的部位；缺價時不做部分加總。"""
+    active_positions: list[dict] = []
+    failed_scopes: list[str] = []
+    for chain_result in chain_results:
+        if chain_result.get("error"):
+            failed_scopes.append(
+                f"{chain_result.get('chain_name', '未知鏈')} {chain_result.get('protocol', '')}".strip()
+            )
+        for pos in chain_result.get("positions", []):
+            liquidity = pos.get("liquidity_raw", pos.get("liquidity", 0))
+            if pos.get("active") is True or int(liquidity or 0) > 0:
+                active_positions.append(pos)
+
+    missing_values = sum(1 for pos in active_positions if pos.get("position_value_usd") is None)
+    missing_fees = sum(1 for pos in active_positions if pos.get("fees_owed_usd") is None)
+    valuation_complete = not failed_scopes and missing_values == 0
+    fees_complete = not failed_scopes and missing_fees == 0
+    notes = []
+    if failed_scopes:
+        notes.append("查詢失敗：" + "、".join(failed_scopes))
+    if missing_values:
+        notes.append(f"{missing_values}/{len(active_positions)} 個活躍部位缺少完整 USD 報價")
+    if missing_fees:
+        notes.append(f"{missing_fees}/{len(active_positions)} 個活躍部位的可領 fee 無法完整換算 USD")
+
+    return {
+        "active_position_count": len(active_positions),
+        "total_value_usd": (
+            sum(float(pos["position_value_usd"]) for pos in active_positions)
+            if valuation_complete else None
+        ),
+        "fees_owed_usd": (
+            sum(float(pos["fees_owed_usd"]) for pos in active_positions)
+            if fees_complete else None
+        ),
+        "valuation_complete": valuation_complete,
+        "fees_complete": fees_complete,
+        "data_quality_note": "；".join(notes) if notes else None,
+    }
+
+
 def attach_observed_apr(chain_results: list[dict]) -> None:
     """依本機快照歷史算「快照實測個人 APR」，跟池子級估算 APR 分欄。"""
     conn = store.get_connection()
@@ -548,6 +659,17 @@ def build_wallet_rows(wallet_data: dict) -> list[dict]:
         protocol = chain_result.get("protocol")
         chain_error = chain_result.get("error")
         for pos in chain_result.get("positions", []):
+            has_liquidity_marker = (
+                pos.get("active") is not None
+                or pos.get("liquidity_raw") is not None
+                or pos.get("liquidity") is not None
+            )
+            liquidity = pos.get("liquidity_raw", pos.get("liquidity", 0))
+            is_active = pos.get("active") is True or int(liquidity or 0) > 0
+            if has_liquidity_marker and not is_active:
+                # 歷史／已退出 NFT 仍保留在 wallet_live_latest.json 供內部稽核，
+                # 但不進使用者可見的頁面資料。
+                continue
             # v3 的 token0/token1 是 {symbol, decimals, source} dict（resolve_token_meta
             # 組出來的）；v4 的 get_v4_position() 目前只回傳 pool_key 裡的原始
             # currency 位址字串（未經白名單核對過的 symbol），兩種形狀都要處理，
@@ -574,7 +696,6 @@ def build_wallet_rows(wallet_data: dict) -> list[dict]:
                 "protocol": protocol,
                 "pair_label": pair_label,
                 "fee_tier_pct": pos.get("fee_tier_pct"),
-                "token_id": pos.get("token_id"),
                 "position_value_usd": pos.get("position_value_usd"),
                 "fees_owed_usd": pos.get("fees_owed_usd"),
                 "position_status": pos.get("position_status") or (
@@ -583,11 +704,10 @@ def build_wallet_rows(wallet_data: dict) -> list[dict]:
                     else "已退出／無流動性"
                 ) if (pos.get("liquidity_raw") is not None or pos.get("liquidity") is not None
                       or pos.get("active") is not None) else None,
-                "token0_amount": pos.get("token0_amount"),
-                "token1_amount": pos.get("token1_amount"),
                 "token0_symbol": _symbol_of(pos.get("token0")),
                 "token1_symbol": _symbol_of(pos.get("token1")),
-                "current_tick": pos.get("current_tick"),
+                "token0_value_usd": pos.get("token0_value_usd"),
+                "token1_value_usd": pos.get("token1_value_usd"),
                 "in_range": pos.get("in_range"),
                 "delta_24h_usd": pos.get("delta_24h_usd"),
                 "observed_apr_7d_pct": pos.get("observed_apr_7d_pct"),
@@ -610,15 +730,13 @@ def build_wallet_rows(wallet_data: dict) -> list[dict]:
                 "protocol": protocol,
                 "pair_label": None,
                 "fee_tier_pct": None,
-                "token_id": None,
                 "position_value_usd": None,
                 "fees_owed_usd": None,
                 "position_status": zero_status,
-                "token0_amount": None,
-                "token1_amount": None,
                 "token0_symbol": None,
                 "token1_symbol": None,
-                "current_tick": None,
+                "token0_value_usd": None,
+                "token1_value_usd": None,
                 "in_range": None,
                 "delta_24h_usd": None,
                 "observed_apr_7d_pct": None,
@@ -652,14 +770,50 @@ def main() -> int:
         for r in v3_results + v4_results:
             r["snapshot_error"] = str(exc)
 
+    generated_at = int(time.time())
+
+    portfolio_summary = summarize_active_portfolio(v3_results + v4_results)
+    snapshot_date = datetime.fromtimestamp(generated_at, tz=_TAIPEI_TZ).strftime("%Y-%m-%d")
+    portfolio_daily_delta: dict = {
+        "comparable": False,
+        "previous_snapshot_date": None,
+        "delta_usd": None,
+        "delta_pct": None,
+        "note": "每日總值快照尚未寫入（DB 連線失敗）。",
+    }
+    try:
+        conn = store.get_connection()
+        try:
+            store.upsert_daily_value_snapshot(
+                conn,
+                snapshot_date=snapshot_date,
+                ts=generated_at,
+                wallet_addr=WALLET_ADDRESS,
+                scope_key=PORTFOLIO_SCOPE_KEY,
+                active_position_count=portfolio_summary["active_position_count"],
+                total_value_usd=portfolio_summary["total_value_usd"],
+                valuation_complete=portfolio_summary["valuation_complete"],
+                data_quality_note=portfolio_summary["data_quality_note"],
+            )
+            history = store.fetch_daily_value_history(
+                conn, wallet_addr=WALLET_ADDRESS, scope_key=PORTFOLIO_SCOPE_KEY
+            )
+            portfolio_daily_delta = compute_portfolio_daily_delta(history)
+        finally:
+            conn.close()
+    except store.WalletTrackerMigrationError as exc:
+        portfolio_daily_delta["note"] = f"每日總值快照寫入失敗：{exc}"
+
     output = {
         "wallet_address": WALLET_ADDRESS,
-        "generated_at": int(time.time()),
+        "generated_at": generated_at,
         "rpc_smoke": smoke,
         "graph_api_key_present": graph_key_present,
         "v3": v3_results,
         "v4": v4_results,
         "snapshot_rows_written": snapshot_count,
+        "portfolio_summary": portfolio_summary,
+        "portfolio_daily_delta": portfolio_daily_delta,
     }
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
     OUTPUT_PATH.write_text(json.dumps(output, indent=2, ensure_ascii=False), encoding="utf-8")

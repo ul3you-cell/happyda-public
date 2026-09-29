@@ -21,8 +21,31 @@ import os
 import sys
 import urllib.error
 import urllib.request
+from pathlib import Path
 
 DASHBOARD_URL = "https://ul3you-cell.github.io/happyda-public/uniswap-lp-tracker-20260926.html"
+
+SCRIPTS_DIR = Path(__file__).resolve().parent
+WALLET_LIVE_PATH = SCRIPTS_DIR.parent / "data" / "wallet_live_latest.json"
+
+
+def portfolio_delta_line() -> str:
+    """讀 wallet_live_latest.json 的 portfolio_daily_delta，組一行給 Telegram；
+    缺價／快照不足時明確標示「不可比較」，不臆測數字。"""
+    if not WALLET_LIVE_PATH.exists():
+        return "portfolio 每日總值變化：尚無資料（wallet_live_fetch.py 尚未執行過）。"
+    try:
+        wallet_data = json.loads(WALLET_LIVE_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        return f"portfolio 每日總值變化：讀取失敗（{exc}）。"
+    delta = wallet_data.get("portfolio_daily_delta") or {}
+    if delta.get("comparable"):
+        delta_usd = delta.get("delta_usd")
+        delta_pct = delta.get("delta_pct")
+        prev_date = delta.get("previous_snapshot_date")
+        pct_str = f"（{delta_pct:+.2f}%）" if delta_pct is not None else ""
+        return f"較前一可比較日（{prev_date}）總值變化：{delta_usd:+,.2f} USD{pct_str}"
+    return "較前一日總值變化：不可比較——" + (delta.get("note") or "尚無足夠每日快照")
 
 
 def send_message(bot_token: str, chat_id: str, text: str) -> tuple[bool, str]:
@@ -56,6 +79,7 @@ def main() -> int:
     text = (
         "Uniswap 多鏈 LP／熱門池儀表板已更新\n"
         f"{DASHBOARD_URL}\n"
+        f"{portfolio_delta_line()}\n"
         "（由 uniswap-lp-tracker/scripts/run_daily_update.py 自動產生；資料限制見頁內免責聲明）"
     )
     ok, detail = send_message(bot_token, chat_id, text)

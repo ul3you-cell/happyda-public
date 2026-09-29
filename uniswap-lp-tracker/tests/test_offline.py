@@ -660,6 +660,34 @@ class TestWalletSnapshotStore(unittest.TestCase):
         self.assertEqual(sorted(p[0] for p in positions), [42, 43])
         conn.close()
 
+    def test_daily_total_snapshot_replaces_same_date_and_keeps_daily_history(self):
+        conn = wallet_snapshot_store.get_connection(self.db_path)
+        common_args = {
+            "wallet_addr": "0xabcdef0000000000000000000000000000abcd",
+            "scope_key": "active-lp-usd-v1",
+        }
+        wallet_snapshot_store.upsert_daily_value_snapshot(
+            conn, snapshot_date="2026-09-27", ts=100,
+            active_position_count=2, total_value_usd=None,
+            valuation_complete=False, data_quality_note="缺少 USD 報價", **common_args,
+        )
+        wallet_snapshot_store.upsert_daily_value_snapshot(
+            conn, snapshot_date="2026-09-27", ts=200,
+            active_position_count=2, total_value_usd=1000.0,
+            valuation_complete=True, data_quality_note=None, **common_args,
+        )
+        wallet_snapshot_store.upsert_daily_value_snapshot(
+            conn, snapshot_date="2026-09-28", ts=300,
+            active_position_count=2, total_value_usd=1100.0,
+            valuation_complete=True, data_quality_note=None, **common_args,
+        )
+        rows = wallet_snapshot_store.fetch_daily_value_history(conn, **common_args)
+        self.assertEqual([r["snapshot_date"] for r in rows], ["2026-09-27", "2026-09-28"])
+        self.assertEqual(rows[0]["ts"], 200)
+        self.assertEqual(rows[0]["total_value_usd"], 1000.0)
+        self.assertTrue(rows[0]["valuation_complete"])
+        conn.close()
+
 
 class TestMigrateLegacyDb(unittest.TestCase):
     """wallet_snapshot_store.migrate_legacy_db()：舊隱藏路徑 ->
@@ -902,6 +930,99 @@ class TestWalletTrackingEndToEnd(unittest.TestCase):
         self.assertIsNone(result["fee_apr_7d_pct"])
         self.assertIn("尚不足計算", result["note"])
         conn.close()
+
+
+class TestPortfolioDailyDelta(unittest.TestCase):
+    def test_two_complete_daily_totals_produce_usd_and_percent_delta(self):
+        rows = [
+            {"snapshot_date": "2026-09-27", "total_value_usd": 1000.0,
+             "valuation_complete": 1, "data_quality_note": None},
+            {"snapshot_date": "2026-09-28", "total_value_usd": 1100.0,
+             "valuation_complete": 1, "data_quality_note": None},
+        ]
+        result = wallet_live_fetch.compute_portfolio_daily_delta(rows)
+        self.assertEqual(result["previous_snapshot_date"], "2026-09-27")
+        self.assertAlmostEqual(result["delta_usd"], 100.0)
+        self.assertAlmostEqual(result["delta_pct"], 10.0)
+        self.assertTrue(result["comparable"])
+
+    def test_first_complete_snapshot_explains_when_delta_will_exist(self):
+        result = wallet_live_fetch.compute_portfolio_daily_delta([
+            {"snapshot_date": "2026-09-27", "total_value_usd": 1000.0,
+             "valuation_complete": 1, "data_quality_note": None},
+        ])
+        self.assertFalse(result["comparable"])
+        self.assertIsNone(result["delta_usd"])
+        self.assertIsNone(result["delta_pct"])
+        self.assertIn("需累積 2 個可比較", result["note"])
+        self.assertIn("下一次成功日更後", result["note"])
+
+    def test_incomplete_current_snapshot_never_fabricates_delta(self):
+        result = wallet_live_fetch.compute_portfolio_daily_delta([
+            {"snapshot_date": "2026-09-27", "total_value_usd": 1000.0,
+             "valuation_complete": 1, "data_quality_note": None},
+            {"snapshot_date": "2026-09-28", "total_value_usd": None,
+             "valuation_complete": 0, "data_quality_note": "Alchemy Prices API 缺少報價"},
+        ])
+        self.assertFalse(result["comparable"])
+        self.assertIsNone(result["delta_usd"])
+        self.assertIn("Alchemy Prices API 缺少報價", result["note"])
+
+    def test_previous_zero_has_usd_delta_but_no_percentage(self):
+        result = wallet_live_fetch.compute_portfolio_daily_delta([
+            {"snapshot_date": "2026-09-27", "total_value_usd": 0.0,
+             "valuation_complete": 1, "data_quality_note": None},
+            {"snapshot_date": "2026-09-28", "total_value_usd": 100.0,
+             "valuation_complete": 1, "data_quality_note": None},
+        ])
+        self.assertTrue(result["comparable"])
+        self.assertEqual(result["delta_usd"], 100.0)
+        self.assertIsNone(result["delta_pct"])
+        self.assertIn("前一日總值為 0", result["note"])
+
+    def test_compares_to_previous_successful_day_not_incomplete_day(self):
+        result = wallet_live_fetch.compute_portfolio_daily_delta([
+            {"snapshot_date": "2026-09-27", "total_value_usd": 1000.0,
+             "valuation_complete": 1, "data_quality_note": None},
+            {"snapshot_date": "2026-09-28", "total_value_usd": None,
+             "valuation_complete": 0, "data_quality_note": "缺價"},
+            {"snapshot_date": "2026-09-29", "total_value_usd": 900.0,
+             "valuation_complete": 1, "data_quality_note": None},
+        ])
+        self.assertEqual(result["previous_snapshot_date"], "2026-09-27")
+        self.assertEqual(result["delta_usd"], -100.0)
+        self.assertEqual(result["delta_pct"], -10.0)
+
+    def test_summary_counts_only_active_positions_and_requires_complete_usd(self):
+        chain_results = [
+            {"chain_name": "Unichain", "protocol": "v4", "error": None, "positions": [
+                {"active": True, "liquidity": 10, "position_value_usd": 100.0, "fees_owed_usd": 1.0},
+                {"active": True, "liquidity": 20, "position_value_usd": 200.0, "fees_owed_usd": 2.0},
+                {"active": False, "liquidity": 0, "position_value_usd": None, "fees_owed_usd": None},
+            ]},
+        ]
+        summary = wallet_live_fetch.summarize_active_portfolio(chain_results)
+        self.assertEqual(summary["active_position_count"], 2)
+        self.assertEqual(summary["total_value_usd"], 300.0)
+        self.assertEqual(summary["fees_owed_usd"], 3.0)
+        self.assertTrue(summary["valuation_complete"])
+        self.assertTrue(summary["fees_complete"])
+
+    def test_summary_with_missing_price_or_chain_error_is_not_partially_totaled(self):
+        chain_results = [
+            {"chain_name": "Unichain", "protocol": "v4", "error": None, "positions": [
+                {"active": True, "liquidity": 10, "position_value_usd": 100.0, "fees_owed_usd": 1.0},
+                {"active": True, "liquidity": 20, "position_value_usd": None, "fees_owed_usd": None},
+            ]},
+            {"chain_name": "Base", "protocol": "v3", "error": "RPC 429", "positions": []},
+        ]
+        summary = wallet_live_fetch.summarize_active_portfolio(chain_results)
+        self.assertEqual(summary["active_position_count"], 2)
+        self.assertIsNone(summary["total_value_usd"])
+        self.assertIsNone(summary["fees_owed_usd"])
+        self.assertFalse(summary["valuation_complete"])
+        self.assertIn("缺少完整 USD 報價", summary["data_quality_note"])
+        self.assertIn("Base v3", summary["data_quality_note"])
 
 
 def _encode_signed_word(value: int) -> str:
@@ -1690,7 +1811,7 @@ class TestBuildWalletRows(unittest.TestCase):
         self.assertIn("block 26068000", rows[0]["source"])
         self.assertIn("2026-", rows[0]["source"])
 
-    def test_active_and_zero_liquidity_v4_are_labeled_differently(self):
+    def test_zero_liquidity_positions_are_internal_only(self):
         wallet_data = {
             "v3": [],
             "v4": [{"chain_name": "Unichain", "protocol": "v4", "error": None,
@@ -1702,8 +1823,28 @@ class TestBuildWalletRows(unittest.TestCase):
                     ]}],
         }
         rows = wallet_live_fetch.build_wallet_rows(wallet_data)
+        self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["position_status"], "活躍（非零 liquidity）")
-        self.assertEqual(rows[1]["position_status"], "已退出／無流動性（liquidity=0）")
+
+    def test_frontend_row_omits_protocol_internals_and_raw_token_amounts(self):
+        wallet_data = {
+            "v3": [{"chain_name": "Arbitrum", "protocol": "v3", "error": None,
+                    "queried_at": 1790500000, "positions": [{
+                        "token_id": 99, "liquidity_raw": "100", "current_tick": 123,
+                        "token0": {"symbol": "ETH"}, "token1": {"symbol": "USDC"},
+                        "token0_amount": 1.25, "token1_amount": 2500,
+                        "token0_value_usd": 2500.0, "token1_value_usd": 2500.0,
+                        "position_value_usd": 5000.0,
+                    }]}],
+            "v4": [],
+        }
+        row = wallet_live_fetch.build_wallet_rows(wallet_data)[0]
+        self.assertNotIn("token_id", row)
+        self.assertNotIn("current_tick", row)
+        self.assertNotIn("token0_amount", row)
+        self.assertNotIn("token1_amount", row)
+        self.assertEqual(row["token0_value_usd"], 2500.0)
+        self.assertEqual(row["token1_value_usd"], 2500.0)
 
 
 if __name__ == "__main__":

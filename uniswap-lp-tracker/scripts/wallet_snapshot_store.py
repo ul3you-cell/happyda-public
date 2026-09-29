@@ -112,6 +112,18 @@ CREATE TABLE IF NOT EXISTS wallet_position_snapshot (
   position_value_usd REAL,           -- 這個部位在快照當下的估值（USD）
   PRIMARY KEY (ts, wallet_addr, chain_id, token_id)
 );
+
+CREATE TABLE IF NOT EXISTS wallet_daily_value_snapshot (
+  snapshot_date TEXT NOT NULL,       -- Asia/Taipei 日曆日 YYYY-MM-DD
+  ts INTEGER NOT NULL,               -- 該日最後一次成功執行時間
+  wallet_addr TEXT NOT NULL,
+  scope_key TEXT NOT NULL,           -- 估值範圍／口徑版本；不同口徑禁止互相比較
+  active_position_count INTEGER NOT NULL,
+  total_value_usd REAL,              -- 所有活躍部位皆可估值時才有值
+  valuation_complete INTEGER NOT NULL,
+  data_quality_note TEXT,
+  PRIMARY KEY (snapshot_date, wallet_addr, scope_key)
+);
 """
 
 
@@ -269,3 +281,52 @@ def list_tracked_positions(conn: sqlite3.Connection, *, wallet_addr: str, chain_
         (wallet_addr.lower(), chain_id),
     )
     return [(row["token_id"], row["pool_addr"]) for row in cur.fetchall()]
+
+
+def upsert_daily_value_snapshot(
+    conn: sqlite3.Connection,
+    *,
+    snapshot_date: str,
+    ts: int,
+    wallet_addr: str,
+    scope_key: str,
+    active_position_count: int,
+    total_value_usd: float | None,
+    valuation_complete: bool,
+    data_quality_note: str | None,
+) -> None:
+    """同一個台北日只保留最後一次結果；完整與不完整都記錄，避免把缺價誤當 0。"""
+    conn.execute(
+        """
+        INSERT OR REPLACE INTO wallet_daily_value_snapshot
+          (snapshot_date, ts, wallet_addr, scope_key, active_position_count,
+           total_value_usd, valuation_complete, data_quality_note)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            snapshot_date, ts, wallet_addr.lower(), scope_key,
+            active_position_count, total_value_usd,
+            1 if valuation_complete else 0, data_quality_note,
+        ),
+    )
+    conn.commit()
+
+
+def fetch_daily_value_history(
+    conn: sqlite3.Connection,
+    *,
+    wallet_addr: str,
+    scope_key: str,
+) -> list[dict]:
+    """回傳同一估值口徑的每日總值，依日期由舊到新。"""
+    cur = conn.execute(
+        """
+        SELECT snapshot_date, ts, active_position_count, total_value_usd,
+               valuation_complete, data_quality_note
+        FROM wallet_daily_value_snapshot
+        WHERE wallet_addr = ? AND scope_key = ?
+        ORDER BY snapshot_date ASC
+        """,
+        (wallet_addr.lower(), scope_key),
+    )
+    return [dict(row) for row in cur.fetchall()]

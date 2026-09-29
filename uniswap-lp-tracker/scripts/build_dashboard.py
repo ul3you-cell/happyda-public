@@ -696,6 +696,20 @@ def main() -> int:
         ]
         if failed_chains:
             note_parts.append(f"查詢失敗（詳見下表來源欄的真實錯誤訊息）：{', '.join(failed_chains)}")
+
+        portfolio_delta = wallet_data.get("portfolio_daily_delta") or {}
+        if portfolio_delta.get("comparable"):
+            delta_usd = portfolio_delta.get("delta_usd")
+            delta_pct = portfolio_delta.get("delta_pct")
+            prev_date = portfolio_delta.get("previous_snapshot_date")
+            pct_str = f"（{delta_pct:+.2f}%）" if delta_pct is not None else ""
+            note_parts.append(
+                f"較前一可比較日（{prev_date}）總值變化：{delta_usd:+,.2f} USD{pct_str}"
+            )
+        else:
+            note_parts.append(
+                "較前一日總值變化：不可比較——" + (portfolio_delta.get("note") or "尚無足夠每日快照")
+            )
         wallet_summary_note = "；".join(note_parts)
 
     html = HTML_TEMPLATE.format(

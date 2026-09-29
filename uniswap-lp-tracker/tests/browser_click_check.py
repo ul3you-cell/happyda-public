@@ -51,8 +51,8 @@ COLUMNS = [
 # #wallet-table thead（見 wCols 定義），跟 #pool-table 用同一顆 CDP 連線，
 # 不是另開一份離線 fixture 驗證。
 WALLET_COLUMNS = [
-    "chain_name", "protocol", "pair_label", "fee_tier_pct", "token_id", "position_status",
-    "token0_amount", "token1_amount", "current_tick", "position_value_usd", "fees_owed_usd", "in_range", "delta_24h_usd",
+    "chain_name", "protocol", "pair_label", "fee_tier_pct", "position_status",
+    "position_value_usd", "fees_owed_usd", "in_range", "delta_24h_usd",
     "observed_apr_7d_pct", "observed_apr_30d_pct", "snapshot_time", "source",
 ]
 
@@ -480,6 +480,32 @@ def main() -> int:
                     + f" [錢包區塊可見性] hasArea={wallet_visible['hasArea']} rowCount={wallet_visible['rowCount']}"
                 )
                 if not wallet_ok:
+                    failures += 1
+
+                display_contract = session.evaluate("""
+                  (() => {
+                    const headers = Array.from(document.querySelectorAll('#wallet-table thead th'))
+                      .map(th => th.textContent.trim());
+                    const forbidden = ['Token ID', 'Token0 數量', 'Token1 數量', 'Current Tick'];
+                    const rows = JSON.parse(document.getElementById('wallet-data').textContent);
+                    const activeRows = rows.filter(r => r.position_status === '活躍（非零 liquidity）');
+                    const summary = Array.from(document.querySelectorAll('.filter-note'))
+                      .map(el => el.textContent).find(text => text.includes('活躍部位總估值')) || '';
+                    return { headers, forbiddenPresent: forbidden.filter(h => headers.includes(h)),
+                      activeRows: activeRows.length, zeroSummaryVisible: summary.includes('非零 liquidity 活躍部位：0') };
+                  })()
+                """)
+                display_ok = (
+                    isinstance(display_contract, dict)
+                    and not display_contract["forbiddenPresent"]
+                    and display_contract["activeRows"] == 0
+                    and display_contract["zeroSummaryVisible"]
+                )
+                print(("OK  " if display_ok else "FAIL")
+                      + f" [活躍 LP／前台欄位] active={display_contract.get('activeRows') if isinstance(display_contract, dict) else 'N/A'} "
+                      + f"hidden_columns_absent={not display_contract.get('forbiddenPresent') if isinstance(display_contract, dict) else False} "
+                      + f"zero_summary={display_contract.get('zeroSummaryVisible') if isinstance(display_contract, dict) else False}")
+                if not display_ok:
                     failures += 1
 
                 wallet_total_before = session.evaluate(

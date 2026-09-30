@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="300 萬資金納入 0056、00878 的被動收入試算與三種配置方案。">
+  <title>300 萬配置與被動收入試算 v1｜0056／00878</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --blue:#1a73e8; --blue-deep:#0b57d0; --blue-soft:#e8f0fe;
+      --ink:#263238; --muted:#667085; --line:#d9e2ec;
+      --paper:#fff; --bg:#f4f7fb; --pass:#137333; --pass-bg:#e6f4ea;
+      --warn:#9a6700; --warn-bg:#fff8e1; --danger:#c5221f; --danger-bg:#fce8e6;
+      --shadow:0 8px 30px rgba(31,55,80,.08);
+    }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body {
+      margin:0; background:var(--bg); color:var(--ink);
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans TC",sans-serif;
+      line-height:1.72;
+    }
+    .wrap { max-width:1080px; margin:0 auto; padding:28px; }
+    main { background:var(--paper); padding:38px; border-radius:14px; box-shadow:var(--shadow); }
+    h1,h2,h3 { color:#17324d; line-height:1.25; }
+    h1 { margin:.25rem 0 .7rem; font-size:clamp(2rem,5vw,3.35rem); letter-spacing:-.04em; }
+    h2 { color:var(--blue); margin:2.4rem 0 1rem; padding-bottom:.4rem; border-bottom:2px solid var(--blue-soft); }
+    h3 { margin:1.4rem 0 .55rem; }
+    p { margin:.65rem 0; }
+    a { color:var(--blue-deep); overflow-wrap:anywhere; }
+    .eyebrow,.mono { font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace; }
+    .eyebrow { color:var(--blue); font-size:.78rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; }
+    .meta { color:var(--muted); font-size:.88rem; }
+    .tag { display:inline-flex; align-items:center; border-radius:999px; background:var(--blue); color:#fff; padding:4px 11px; font-size:.76rem; font-weight:800; }
+    .hero { border:1px solid var(--line); border-top:5px solid var(--blue); padding:26px; border-radius:14px; background:linear-gradient(145deg,#fff 20%,#f6f9ff); }
+    .lead { max-width:820px; font-size:1.1rem; }
+    .quick-nav { display:flex; gap:8px; flex-wrap:wrap; margin-top:18px; }
+    .quick-nav a { text-decoration:none; background:#fff; border:1px solid var(--line); border-radius:999px; padding:6px 12px; font-size:.84rem; }
+    .metric-grid,.cards,.steps { display:grid; gap:14px; }
+    .metric-grid { grid-template-columns:repeat(4,1fr); margin:18px 0; }
+    .cards { grid-template-columns:repeat(3,1fr); }
+    .steps { grid-template-columns:repeat(3,1fr); }
+    .metric,.card,.step { border:1px solid var(--line); border-radius:12px; padding:18px; background:#fff; }
+    .metric strong { display:block; color:var(--blue-deep); font-size:1.55rem; line-height:1.15; }
+    .metric span { color:var(--muted); font-size:.82rem; }
+    .card.recommended { border:2px solid var(--blue); box-shadow:0 6px 22px rgba(26,115,232,.12); position:relative; }
+    .card.recommended::before { content:"本報告首選"; position:absolute; top:-12px; right:14px; background:var(--blue); color:#fff; padding:3px 9px; border-radius:999px; font-size:.72rem; font-weight:800; }
+    .allocation { display:flex; height:11px; border-radius:999px; overflow:hidden; margin:12px 0 16px; background:#edf1f5; }
+    .cash { background:#9aa9b7; } .f56 { background:#1a73e8; } .f78 { background:#65a1f3; }
+    .money { color:var(--pass); font-size:1.5rem; font-weight:850; line-height:1.15; }
+    .submoney { color:var(--muted); font-size:.85rem; }
+    .legend { display:flex; flex-wrap:wrap; gap:10px; color:var(--muted); font-size:.82rem; }
+    .dot { width:10px; height:10px; border-radius:50%; display:inline-block; margin-right:4px; }
+    .callout { padding:18px 20px; border-radius:10px; margin:18px 0; border-left:5px solid; }
+    .info-box { background:#eef5ff; border-color:var(--blue); }
+    .pass-box { background:var(--pass-bg); border-color:var(--pass); }
+    .notice { background:var(--warn-bg); border-color:var(--warn); }
+    .danger-box { background:var(--danger-bg); border-color:var(--danger); }
+    .callout strong:first-child { display:block; margin-bottom:.25rem; }
+    .table-wrap { overflow-x:auto; border:1px solid var(--line); border-radius:10px; }
+    table { width:100%; border-collapse:collapse; min-width:720px; }
+    th,td { padding:12px 14px; text-align:left; border-bottom:1px solid var(--line); vertical-align:top; }
+    th { background:#f6f9fc; font-size:.82rem; color:#475467; }
+    tr:last-child td { border-bottom:0; }
+    tr.pick td { background:#f3f8ff; }
+    .right { text-align:right; font-variant-numeric:tabular-nums; }
+    .step .n { display:inline-grid; place-items:center; width:30px; height:30px; border-radius:50%; background:var(--blue-soft); color:var(--blue-deep); font-weight:850; }
+    .pill { display:inline-block; border-radius:999px; padding:2px 9px; font-size:.75rem; font-weight:750; background:#eef2f6; color:#475467; }
+    .pill.blue { background:var(--blue-soft); color:var(--blue-deep); }
+    .pill.green { background:var(--pass-bg); color:var(--pass); }
+    .small { color:var(--muted); font-size:.83rem; }
+    ul,ol { padding-left:1.25rem; }
+    li { margin:.45rem 0; }
+    .source-list li { margin:.7rem 0; }
+    .formula { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; background:#f6f8fa; border:1px solid var(--line); padding:12px 14px; border-radius:8px; overflow-x:auto; }
+    footer { margin-top:2.7rem; border-top:1px solid var(--line); padding-top:1.15rem; color:var(--muted); font-size:.82rem; }
+    @media (max-width:850px) { .metric-grid { grid-template-columns:repeat(2,1fr); } .cards,.steps { grid-template-columns:1fr; } }
+    @media (max-width:700px) { .wrap { padding:10px; } main { padding:20px; } .hero { padding:20px; } h1 { font-size:2rem; } }
+    @media (max-width:430px) { .metric-grid { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body data-build="BUILD-20260930T100445+0800">
+<div class="wrap">
+<main>
+  <section class="hero">
+    <div class="eyebrow">300 萬現金流計畫 · v1</div>
+    <h1>納入 0056／00878，<br>被動收入能到多少？</h1>
+    <p class="lead"><strong>先講結論：</strong>如果這 300 萬同時要兼顧安全墊與配息，我的 v1 首選是 <strong>40% 定存／現金、30% 0056、30% 00878</strong>。以本報告的保守基準估算，稅前約 <strong>每年 9.08 萬、月均 7,563 元</strong>；但現金不是每月固定入帳。</p>
+    <p class="meta">資料快照：2026-09-30 10:04（台北）｜市場價格採 2026-09-29 收盤｜版本：v1</p>
+    <div class="quick-nav">
+      <a href="#answer">答案</a><a href="#portfolios">三套組合</a><a href="#etfs">0056 vs 00878</a><a href="#execution">執行方式</a><a href="#risk">壓力測試</a><a href="#sources">資料來源</a>
+    </div>
+  </section>
+
+  <div class="callout danger-box">
+    <strong>閱讀前提</strong>
+    1. 本報告僅為個人決策紀錄，非投資建議。<br>
+    2. 數字為快照日（2026-09-30）資料，會過時。<br>
+    3. 收益率、配息與進場觸發均為「假設」，未經歷史回測驗證。<br>
+    4. 進場與否由閱讀者自行判斷；本文金額皆為<strong>稅前、未扣交易成本與補充保費</strong>。
+  </div>
+
+  <section id="answer">
+    <h2>一頁答案：300 萬可以換到多少現金流？</h2>
+    <div class="metric-grid">
+      <div class="metric"><strong>5,000／月</strong><span>需要年化 2%</span></div>
+      <div class="metric"><strong>10,000／月</strong><span>需要年化 4%</span></div>
+      <div class="metric"><strong>15,000／月</strong><span>需要年化 6%</span></div>
+      <div class="metric"><strong>20,000／月</strong><span>需要年化 8%</span></div>
+    </div>
+    <div class="callout info-box">
+      <strong>現實邊界</strong>
+      用 300 萬要「穩定」拿到每月 1.5–2 萬，等於長期要求 6%–8% 現金收益率；這已不是保守被動收入，而是把本金暴露在更高的股票波動、配息下降或本金侵蝕風險。以目前資料，<strong>月均約 6,500–8,600 元</strong>才是兼顧緩衝金後較合理的 v1 區間。
+    </div>
+    <p class="small">計算式：每月目標 × 12 ÷ 3,000,000。配息是總報酬的一部分，不是額外送的錢；除息後價格／淨值會反映分配。</p>
+  </section>
+
+  <section id="portfolios">
+    <h2>三套配置：不是比誰配最多，而是比誰撐得久</h2>
+    <div class="cards">
+      <article class="card">
+        <span class="pill">防守型</span>
+        <h3>60／20／20</h3>
+        <div class="allocation"><span class="cash" style="width:60%"></span><span class="f56" style="width:20%"></span><span class="f78" style="width:20%"></span></div>
+        <div class="legend"><span><i class="dot cash"></i>現金 60%</span><span><i class="dot f56"></i>0056 20%</span><span><i class="dot f78"></i>00878 20%</span></div>
+        <p class="money">NT$77,752／年</p>
+        <p class="submoney">月均約 NT$6,479｜模型收益率 2.59%</p>
+        <p>適合 300 萬幾乎是主要流動資產、短期可能用錢，或不確定能否承受股票下跌的人。</p>
+      </article>
+      <article class="card recommended">
+        <span class="pill blue">均衡型</span>
+        <h3>40／30／30</h3>
+        <div class="allocation"><span class="cash" style="width:40%"></span><span class="f56" style="width:30%"></span><span class="f78" style="width:30%"></span></div>
+        <div class="legend"><span><i class="dot cash"></i>現金 40%</span><span><i class="dot f56"></i>0056 30%</span><span><i class="dot f78"></i>00878 30%</span></div>
+        <p class="money">NT$90,753／年</p>
+        <p class="submoney">月均約 NT$7,563｜模型收益率 3.03%</p>
+        <p>在尚未知道你的每月支出、稅率及最大可承受跌幅前，這是我認為最合理的預設答案。</p>
+      </article>
+      <article class="card">
+        <span class="pill green">收益型</span>
+        <h3>20／40／40</h3>
+        <div class="allocation"><span class="cash" style="width:20%"></span><span class="f56" style="width:40%"></span><span class="f78" style="width:40%"></span></div>
+        <div class="legend"><span><i class="dot cash"></i>現金 20%</span><span><i class="dot f56"></i>0056 40%</span><span><i class="dot f78"></i>00878 40%</span></div>
+        <p class="money">NT$103,755／年</p>
+        <p class="submoney">月均約 NT$8,646｜模型收益率 3.46%</p>
+        <p>只適合緊急預備金另有準備、至少 5 年不用這筆本金，而且可承受帳面明顯下跌的人。</p>
+      </article>
+    </div>
+
+    <h3>如果只看 0056／00878，會發生什麼？</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>做法</th><th>現金／定存</th><th>0056</th><th>00878</th><th class="right">年收入估算</th><th class="right">月均</th></tr></thead>
+        <tbody>
+          <tr><td>全押 0056</td><td>0%</td><td>100%</td><td>0%</td><td class="right">NT$109,824</td><td class="right">NT$9,152</td></tr>
+          <tr><td>0056／00878 各半</td><td>0%</td><td>50%</td><td>50%</td><td class="right">NT$116,756</td><td class="right">NT$9,730</td></tr>
+          <tr><td>全押 00878</td><td>0%</td><td>0%</td><td>100%</td><td class="right">NT$123,686</td><td class="right">NT$10,307</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout notice"><strong>不建議因為多 2,000–3,000 元／月，就把 300 萬全變成台股高股息。</strong>0056＋00878 雖然選股規則不同，仍同屬台灣股票；兩者合併不等於跨市場、跨幣別或跨資產分散。</div>
+  </section>
+
+  <section id="method">
+    <h2>試算怎麼來：刻意不用最近一次高配息外推</h2>
+    <p>v1 採一個較保守、可重做的基準：把「歷史平均每單位現金股利」除以 2026-09-29 收盤價，再與臺銀牌告利率加權。</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>資產</th><th>採用資料</th><th class="right">模型收益率</th><th>說明</th></tr></thead>
+        <tbody>
+          <tr><td>定存／現金</td><td>臺銀 1–未滿 2 年、500 萬以下數位牌告</td><td class="right">1.725%</td><td>只作低波動資金的收益代表；各銀行實際利率不同。</td></tr>
+          <tr><td>0056</td><td>10 年平均年現金股利 2.0702 元 ÷ 收盤 56.55 元</td><td class="right">3.6608%</td><td>採較長歷史；不是 2027 年配息承諾。</td></tr>
+          <tr><td>00878</td><td>5 年平均年現金股利 1.436 元 ÷ 收盤 34.83 元</td><td class="right">4.1229%</td><td>基金 2020 年上市，沒有 10 年實績。</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="formula">組合年收入 = 3,000,000 ×（現金權重×1.725% + 0056權重×3.6608% + 00878權重×4.1229%）</p>
+    <p class="small">Yahoo 顯示 0056／00878 的近 5 年平均現金殖利率分別為 7.91%／7.09%；但該數字以各期除息前價格計算，不宜直接當作今天投入後的固定收益。因此本報告沒有直接用 7% 外推。</p>
+  </section>
+
+  <section id="etfs">
+    <h2>0056 與 00878：可以一起持有，但不是完全互補</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>項目</th><th>0056 元大高股息</th><th>00878 國泰永續高股息</th></tr></thead>
+        <tbody>
+          <tr><td>定位</td><td>臺灣高股息指數；預測殖利率篩選、50 檔</td><td>MSCI 臺灣 ESG 永續高股息精選；約 30 檔</td></tr>
+          <tr><td>成立／上市</td><td>2007-12-13／2007-12-26</td><td>2020-07-10／2020-07-20</td></tr>
+          <tr><td>收益分配</td><td>有配息；官方提醒不保證收益及配息</td><td>季配；官方提醒可能含收益平準金且不保證收益及配息</td></tr>
+          <tr><td>近期前五大持股</td><td>南亞 8.14%、南亞科 4.28%、華碩 4.22%、永豐金 4.01%、華南金 3.93%</td><td>中信金 9.71%、廣達 9.24%、國泰金 6.47%、華碩 5.82%、聯電 4.48%</td></tr>
+          <tr><td>主要風險</td><td>高股息因子、景氣循環與換股風險；Smart Beta 可能長期落後市值型指數</td><td>金融保險 33.15%、電腦週邊 23.92%、半導體 17.33%，產業集中明顯</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout info-box"><strong>為何 30%／30%，而不是只挑一檔？</strong>0056 歷史較長、50 檔篩選；00878 有 ESG 與獲利條件、季配辨識度高。兩者並持可降低「單一選股規則失靈」的風險，但仍無法處理台灣市場集中風險。v2 若要做真正分散，應再討論市值型全球股票或債券，而不是再加第三檔台股高股息。</div>
+  </section>
+
+  <section id="execution">
+    <h2>執行建議：先確定 300 萬的角色，再分三批</h2>
+    <div class="steps">
+      <div class="step"><span class="n">1</span><h3>先切安全墊</h3><p>預設先保留 120 萬低波動資金。若這 300 萬是全部可動用資產，安全墊不能省；若另有完整緊急預備金，才考慮 20／40／40。</p></div>
+      <div class="step"><span class="n">2</span><h3>ETF 分 40／30／30</h3><p>0056、00878 各 90 萬，建議首批各 36 萬；30 天後各 27 萬；60 天後各 27 萬。重點是降低單日進場風險，不是猜最低點。</p></div>
+      <div class="step"><span class="n">3</span><h3>半年檢查一次</h3><p>檢查配息來源、前五大持股、產業權重、總報酬與家庭現金需求。偏離目標權重 ±5 個百分點再平衡，不因單次配息追高。</p></div>
+    </div>
+    <div class="callout notice"><strong>進場節奏是操作假設，未經回測。</strong>如果市場在第二、三批前上漲，也照時間表買，不追價加碼；如果急跌，也不借錢、不中斷安全墊。這個規則的用途是防止一次押錯時間，不是創造超額報酬。</div>
+  </section>
+
+  <section id="risk">
+    <h2>壓力測試：配息縮水與帳面下跌要分開看</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>組合</th><th class="right">基準月均</th><th class="right">股票配息減 30% 後月均</th><th class="right">股票部位跌 25% 的帳面減少</th></tr></thead>
+        <tbody>
+          <tr><td>防守型 60／20／20</td><td class="right">NT$6,479</td><td class="right">NT$5,312</td><td class="right">-NT$300,000</td></tr>
+          <tr class="pick"><td><strong>均衡型 40／30／30</strong></td><td class="right"><strong>NT$7,563</strong></td><td class="right"><strong>NT$5,811</strong></td><td class="right"><strong>-NT$450,000</strong></td></tr>
+          <tr><td>收益型 20／40／40</td><td class="right">NT$8,646</td><td class="right">NT$6,311</td><td class="right">-NT$600,000</td></tr>
+          <tr><td>全股票 50／50</td><td class="right">NT$9,730</td><td class="right">NT$6,811</td><td class="right">-NT$750,000</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="small">壓力測試僅是敏感度試算：假設低波動部位利息不變、股票配息同步減 30%，或股票市值同步跌 25%。不是對未來的預測，也沒有計入兩檔實際跌幅差異。</p>
+
+    <h3>稅、補充保費與現金入帳</h3>
+    <ul>
+      <li><strong>報告數字是稅前。</strong>ETF 收益分配的所得類別會依每次公告組成而變，個人綜所稅效果也取決於稅率與申報方式。</li>
+      <li>健保補充保費現行費率為 2.11%；股利所得單次給付達 20,000 元時，依投保身分與規則可能需要扣取。是否扣到不能只看全年總額。</li>
+      <li>兩檔並非每月固定配息。若生活費要月領，建議把每次入帳先放入「現金桶」，再自行每月固定轉出，避免把季配誤當月薪。</li>
+    </ul>
+  </section>
+
+  <section id="decision">
+    <h2>我的 v1 建議</h2>
+    <div class="callout pass-box">
+      <strong>先採均衡型 40／30／30，不全押 0056 或 00878。</strong>
+      具體金額：低波動資金 120 萬、0056 90 萬、00878 90 萬；ETF 分三批。這個答案犧牲約每月 2,000 元的模型現金流，換來 120 萬安全墊，以及在股市下跌時不用急賣的選擇權。
+    </div>
+    <p>只有在以下四件事都成立時，我才會把建議提高到 20／40／40：① 另有至少 12 個月生活費；② 5 年內不動本金；③ 看到股票部位 -25% 仍不賣；④ 不靠這筆配息支付必要生活支出。</p>
+    <h3>v2 需要你補的四個答案</h3>
+    <ol>
+      <li>300 萬是全部現金，還是扣除緊急預備金後的可投資餘額？</li>
+      <li>每月真正需要補多少生活費：5,000、10,000，還是更高？</li>
+      <li>能接受整體帳面最多下跌多少：10%、15%、20% 以上？</li>
+      <li>配息要立即花掉，還是未來 3–5 年先再投入？</li>
+    </ol>
+  </section>
+
+  <section id="sources">
+    <h2>資料來源與可重算說明</h2>
+    <ol class="source-list">
+      <li><a href="https://www.yuantaetfs.com/product/detail/0056/Basic_information">元大投信｜0056 基本資訊</a>：指數、成分股數、費用、風險等級與指數方法（擷取 2026-09-30）。</li>
+      <li><a href="https://www.yuantaetfs.com/product/detail/0056/ratio">元大投信｜0056 持股比重</a>：持股資料日期 2026-09-29。</li>
+      <li><a href="https://www.cathaysite.com.tw/ETF/detail/ECN">國泰投信｜00878 基本資訊</a>：季配、指數規則、費用與風險揭露（擷取 2026-09-30）。</li>
+      <li><a href="https://www.cathaysite.com.tw/ETF/detail/ECN?tab=etf3">國泰投信｜00878 持股權重</a>：持股／產業資料日期 2026-09-24。</li>
+      <li><a href="https://tw.stock.yahoo.com/quote/0056.TW/dividend">Yahoo 股市｜0056 歷年股利政策</a>、<a href="https://tw.stock.yahoo.com/quote/00878.TW/dividend">00878 歷年股利政策</a>：歷史平均現金股利與殖利率。</li>
+      <li><a href="https://tw.stock.yahoo.com/quote/0056.TW">Yahoo 股市｜0056 行情</a>、<a href="https://tw.stock.yahoo.com/quote/00878.TW">00878 行情</a>：2026-09-29 收盤價 56.55／34.83 元。</li>
+      <li><a href="https://rate.bot.com.tw/twd">臺灣銀行｜新臺幣存款牌告利率</a>：500 萬以下 1–未滿 2 年數位牌告 1.725%。</li>
+      <li><a href="https://www.nhi.gov.tw/ch/cp-4516-74b0f-2613-1.html">衛福部健保署｜補充保險費計算公式</a>：2.11% 與單次給付門檻。</li>
+      <li><a href="https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0340003&flno=15">全國法規資料庫｜所得稅法第 15 條</a>：股利所得申報制度法源。</li>
+    </ol>
+    <div class="callout info-box"><strong>可重算、不可保證。</strong>所有組合金額均可由頁內公式直接重算。市場價格、平均股利、稅制與個人狀況變動後，答案也必須跟著改。</div>
+  </section>
+
+  <footer>
+    報告：300 萬配置與被動收入試算 v1｜產生時間：2026-09-30 10:04 CST<br>
+    固定網址：<a href="https://ul3you-cell.github.io/happyda-public/300wan-passive-income-v1-20260930.html">https://ul3you-cell.github.io/happyda-public/300wan-passive-income-v1-20260930.html</a><br>
+    Build marker：<span class="mono">BUILD-20260930T100445+0800</span>
+  </footer>
+</main>
+</div>
+</body>
+</html>

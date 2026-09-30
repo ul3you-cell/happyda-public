@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="300 萬投入、每月 3–5 萬被動收入的現實邊界，以及兼顧海外分散與戰爭情境的新版配置。">
+  <title>300 萬配置與被動收入試算 v2｜海外分散版</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --blue:#1a73e8; --blue-deep:#0b57d0; --blue-soft:#e8f0fe;
+      --ink:#263238; --muted:#667085; --line:#d9e2ec;
+      --paper:#fff; --bg:#f4f7fb; --pass:#137333; --pass-bg:#e6f4ea;
+      --warn:#9a6700; --warn-bg:#fff8e1; --danger:#c5221f; --danger-bg:#fce8e6;
+      --slate:#17324d; --gold:#b7791f; --shadow:0 8px 30px rgba(31,55,80,.08);
+    }
+    * { box-sizing:border-box; }
+    html { scroll-behavior:smooth; }
+    body {
+      margin:0; background:var(--bg); color:var(--ink);
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans TC",sans-serif;
+      line-height:1.72;
+    }
+    .wrap { max-width:1080px; margin:0 auto; padding:28px; }
+    main { background:var(--paper); padding:38px; border-radius:14px; box-shadow:var(--shadow); }
+    h1,h2,h3 { color:var(--slate); line-height:1.25; }
+    h1 { margin:.25rem 0 .7rem; font-size:clamp(2rem,5vw,3.35rem); letter-spacing:-.04em; }
+    h2 { color:var(--blue); margin:2.5rem 0 1rem; padding-bottom:.4rem; border-bottom:2px solid var(--blue-soft); }
+    h3 { margin:1.4rem 0 .55rem; }
+    p { margin:.65rem 0; }
+    a { color:var(--blue-deep); overflow-wrap:anywhere; }
+    sup a { text-decoration:none; font-weight:800; }
+    .eyebrow,.mono { font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace; }
+    .eyebrow { color:var(--blue); font-size:.78rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; }
+    .meta { color:var(--muted); font-size:.88rem; }
+    .tag { display:inline-flex; align-items:center; border-radius:999px; background:var(--blue); color:#fff; padding:4px 11px; font-size:.76rem; font-weight:800; }
+    .hero { border:1px solid var(--line); border-top:5px solid var(--blue); padding:26px; border-radius:14px; background:linear-gradient(145deg,#fff 20%,#f6f9ff); }
+    .lead { max-width:850px; font-size:1.1rem; }
+    .quick-nav { display:flex; gap:8px; flex-wrap:wrap; margin-top:18px; }
+    .quick-nav a { text-decoration:none; background:#fff; border:1px solid var(--line); border-radius:999px; padding:6px 12px; font-size:.84rem; }
+    .metric-grid,.cards,.layers,.steps { display:grid; gap:14px; }
+    .metric-grid { grid-template-columns:repeat(4,1fr); margin:18px 0; }
+    .cards { grid-template-columns:repeat(3,1fr); }
+    .layers { grid-template-columns:repeat(4,1fr); margin:18px 0; }
+    .steps { grid-template-columns:repeat(3,1fr); }
+    .metric,.card,.layer,.step { border:1px solid var(--line); border-radius:12px; padding:18px; background:#fff; }
+    .metric strong { display:block; color:var(--blue-deep); font-size:1.5rem; line-height:1.15; }
+    .metric span { color:var(--muted); font-size:.82rem; }
+    .layer { border-top:5px solid var(--blue); }
+    .layer.cash-layer { border-top-color:#7b8a97; }
+    .layer.bond-layer { border-top-color:#1a73e8; }
+    .layer.stock-layer { border-top-color:#137333; }
+    .layer.gold-layer { border-top-color:var(--gold); }
+    .layer .pct { display:block; font-size:2rem; font-weight:850; color:var(--slate); line-height:1; }
+    .layer .amt { color:var(--pass); font-weight:800; }
+    .allocation { display:flex; height:14px; border-radius:999px; overflow:hidden; margin:16px 0 10px; background:#edf1f5; }
+    .a-cash { background:#7b8a97; } .a-bond { background:#1a73e8; } .a-stock { background:#137333; } .a-gold { background:#b7791f; }
+    .legend { display:flex; flex-wrap:wrap; gap:12px; color:var(--muted); font-size:.82rem; }
+    .dot { width:10px; height:10px; border-radius:50%; display:inline-block; margin-right:4px; }
+    .callout { padding:18px 20px; border-radius:10px; margin:18px 0; border-left:5px solid; }
+    .info-box { background:#eef5ff; border-color:var(--blue); }
+    .pass-box { background:var(--pass-bg); border-color:var(--pass); }
+    .notice { background:var(--warn-bg); border-color:var(--warn); }
+    .danger-box { background:var(--danger-bg); border-color:var(--danger); }
+    .callout strong:first-child { display:block; margin-bottom:.25rem; }
+    .table-wrap { overflow-x:auto; border:1px solid var(--line); border-radius:10px; }
+    table { width:100%; border-collapse:collapse; min-width:760px; }
+    th,td { padding:12px 14px; text-align:left; border-bottom:1px solid var(--line); vertical-align:top; }
+    th { background:#f6f9fc; font-size:.82rem; color:#475467; }
+    tr:last-child td { border-bottom:0; }
+    tr.pick td { background:#f3f8ff; }
+    .right { text-align:right; font-variant-numeric:tabular-nums; }
+    .step .n { display:inline-grid; place-items:center; width:30px; height:30px; border-radius:50%; background:var(--blue-soft); color:var(--blue-deep); font-weight:850; }
+    .pill { display:inline-block; border-radius:999px; padding:2px 9px; font-size:.75rem; font-weight:750; background:#eef2f6; color:#475467; }
+    .pill.blue { background:var(--blue-soft); color:var(--blue-deep); }
+    .pill.green { background:var(--pass-bg); color:var(--pass); }
+    .pill.gold { background:#fff3cd; color:#805b10; }
+    .small { color:var(--muted); font-size:.83rem; }
+    ul,ol { padding-left:1.25rem; }
+    li { margin:.5rem 0; }
+    .source-list li { margin:.75rem 0; }
+    .formula { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; background:#f6f8fa; border:1px solid var(--line); padding:12px 14px; border-radius:8px; overflow-x:auto; }
+    footer { margin-top:2.7rem; border-top:1px solid var(--line); padding-top:1.15rem; color:var(--muted); font-size:.82rem; }
+    @media (max-width:900px) { .layers { grid-template-columns:repeat(2,1fr); } }
+    @media (max-width:850px) { .metric-grid { grid-template-columns:repeat(2,1fr); } .cards,.steps { grid-template-columns:1fr; } }
+    @media (max-width:700px) { .wrap { padding:10px; } main { padding:20px; } .hero { padding:20px; } h1 { font-size:2rem; } }
+    @media (max-width:500px) { .metric-grid,.layers { grid-template-columns:1fr; } }
+  </style>
+</head>
+<body data-build="BUILD-20260930T150244+0800">
+<div class="wrap">
+<main>
+  <section class="hero">
+    <div class="eyebrow">300 萬現金流計畫 · v2 · 海外分散版</div>
+    <h1>要月領 3–5 萬，<br>先把「收入」和「本金」分開</h1>
+    <p class="lead"><strong>先講結論：</strong>300 萬若要長期保留本金，合理的規劃帶先抓<strong>每月約 8,750–10,000 元</strong>，而不是 3–5 萬。月領 3 萬等於年提領 12%；月領 5 萬等於 20%，這不是穩定被動收入，而是高風險收益加上快速消耗本金。</p>
+    <p class="lead"><strong>新版配置：</strong>既然緊急預備金已另外保留，我選 <strong>20% 台幣流動性＋30% 海外美元短債＋40% 全球股票＋10% 黃金</strong>。目標是先拆散台灣單一市場、單一幣別與單一保管通道的風險；沒有任何配置能保證戰時一定可提款。</p>
+    <p class="meta">資料快照：2026-09-30 15:02（台北）｜版本：v2｜金額皆為稅前、未扣交易與匯款成本</p>
+    <div class="quick-nav">
+      <a href="#boundary">現實邊界</a><a href="#allocation">新版配置</a><a href="#cashflow">月領方案</a><a href="#war">戰爭風險</a><a href="#tools">工具範例</a><a href="#execution">執行順序</a><a href="#sources">來源</a>
+    </div>
+  </section>
+
+  <div class="callout danger-box">
+    <strong>閱讀前提</strong>
+    1. 本報告僅為個人決策紀錄，非投資建議。<br>
+    2. 數字為快照日（2026-09-30）資料，會過時。<br>
+    3. 提領率、報酬率與執行節奏皆為「情境假設」，未經個人化稅務與歷史回測驗證。<br>
+    4. 進場與否由閱讀者自行判斷；海外資產仍有匯率、券商、稅務與市場風險。
+  </div>
+
+  <section id="boundary">
+    <h2>一、現實邊界：3–5 萬需要 12%–20%</h2>
+    <div class="metric-grid">
+      <div class="metric"><strong>NT$30,000／月</strong><span>每年 36 萬｜本金的 12%</span></div>
+      <div class="metric"><strong>NT$50,000／月</strong><span>每年 60 萬｜本金的 20%</span></div>
+      <div class="metric"><strong>NT$10,000／月</strong><span>每年 12 萬｜本金的 4%</span></div>
+      <div class="metric"><strong>NT$8,750／月</strong><span>每年 10.5 萬｜本金的 3.5%</span></div>
+    </div>
+    <div class="callout notice">
+      <strong>我的判斷：不要用高股息商品硬湊 12%–20%。</strong>
+      如果某商品「看起來」能長期配出 12%–20%，必須假設配息會下降、淨值可能被侵蝕，或承擔很大的股價、信用、槓桿與匯率風險。配息不是額外送的錢。
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>目標月現金流</th><th class="right">3% 提領率所需本金</th><th class="right">4% 提領率所需本金</th><th class="right">5% 提領率所需本金</th></tr></thead>
+        <tbody>
+          <tr><td>NT$30,000</td><td class="right">NT$12,000,000</td><td class="right">NT$9,000,000</td><td class="right">NT$7,200,000</td></tr>
+          <tr><td>NT$50,000</td><td class="right">NT$20,000,000</td><td class="right">NT$15,000,000</td><td class="right">NT$12,000,000</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="small">這只是反推本金的算術，不代表 3%／4%／5% 一定安全。退休年期、通膨、稅、報酬順序與個人支出都會改變結果。</p>
+  </section>
+
+  <section id="allocation">
+    <h2>二、新版首選：20／30／40／10</h2>
+    <div class="allocation" aria-label="20% 台幣流動性、30% 海外短債、40% 全球股票、10% 黃金">
+      <span class="a-cash" style="width:20%"></span><span class="a-bond" style="width:30%"></span><span class="a-stock" style="width:40%"></span><span class="a-gold" style="width:10%"></span>
+    </div>
+    <div class="legend">
+      <span><i class="dot a-cash"></i>台幣流動性 20%</span><span><i class="dot a-bond"></i>海外短債 30%</span><span><i class="dot a-stock"></i>全球股票 40%</span><span><i class="dot a-gold"></i>黃金 10%</span>
+    </div>
+
+    <div class="layers">
+      <article class="layer cash-layer"><span class="pct">20%</span><h3>台幣流動性</h3><p class="amt">NT$600,000</p><p>放在兩家銀行的活存／短定存，負責投資期間的現金流與臨時支出；完整緊急預備金仍應另外保留，不與投資部位混用。</p></article>
+      <article class="layer bond-layer"><span class="pct">30%</span><h3>海外美元短債</h3><p class="amt">NT$900,000</p><p>0–1 年美國公債或同功能的愛爾蘭 UCITS。2026-09-29 美國國庫券 13／26／52 週 coupon-equivalent yield 約 4.17%／4.37%／4.58%。<sup><a href="#s2">[2]</a></sup></p></article>
+      <article class="layer stock-layer"><span class="pct">40%</span><h3>全球股票</h3><p class="amt">NT$1,200,000</p><p>用單一全球市值型 UCITS 擴散國家與公司風險。官方資料顯示範例基金持有 3,784 檔股票，台灣權重 3.31%。<sup><a href="#s4">[4]</a></sup></p></article>
+      <article class="layer gold-layer"><span class="pct">10%</span><h3>黃金</h3><p class="amt">NT$300,000</p><p>只負責貨幣與地緣政治分散，不負責收入。實體黃金支持商品的官方資料也明載「No Income」。<sup><a href="#s5">[5]</a></sup></p></article>
+    </div>
+
+    <div class="callout pass-box">
+      <strong>若完整緊急預備金尚未另外保留，才降級成 30／30／30／10。</strong>
+      也就是台幣 90 萬、海外短債 90 萬、全球股票 90 萬、黃金 30 萬。現金增加、股票減少，代價是長期成長空間較低。
+    </div>
+    <p class="small">「海外」必須同時看底層資產、基金註冊地、券商／保管機構與提款通道。只在台灣券商買外國 ETF，已分散底層市場，但不等於完全分散本地營運與登入風險。</p>
+  </section>
+
+  <section id="cashflow">
+    <h2>三、每月怎麼領：用現金桶，不追求每檔都月配</h2>
+    <div class="cards">
+      <article class="card"><span class="pill">保守起點</span><h3>3.5%／年</h3><p><strong>每月 NT$8,750</strong></p><p>第一年共 10.5 萬。每年再依組合狀況調整，不保證跟通膨同步增加。</p></article>
+      <article class="card"><span class="pill blue">本版規劃上限</span><h3>4%／年</h3><p><strong>每月 NT$10,000</strong></p><p>先在台幣安全墊預留 12 萬，固定月轉 1 萬；年底再從利息、股息或再平衡補回。</p></article>
+      <article class="card"><span class="pill gold">偏積極</span><h3>5%／年</h3><p><strong>每月 NT$12,500</strong></p><p>本金下降風險更高，只適合支出可縮減、且能接受遇到跌勢時暫停加薪式提領的人。</p></article>
+    </div>
+    <div class="callout info-box">
+      <strong>現金流不必等於配息。</strong>
+      IB01 與全球股票範例都是累積型；收益會反映在淨值，不會自動每月入帳。做法是先用安全墊按月轉帳，再定期賣出少量單位補回現金桶。這仍可能賣到本金，所以必須把「可花用現金流」和「保本」分開看。
+    </div>
+
+    <h3>如果堅持月領 3–5 萬，本金大概能撐多久？</h3>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>情境假設</th><th class="right">月領 3 萬</th><th class="right">月領 5 萬</th><th>限制</th></tr></thead>
+        <tbody>
+          <tr><td>報酬 0%</td><td class="right">約 8.3 年</td><td class="right">約 5.0 年</td><td>單純把本金除以支出。</td></tr>
+          <tr><td>每年固定 4%</td><td class="right">約 10.2 年</td><td class="right">約 5.6 年</td><td>假設每月平滑報酬，現實不會這麼規律。</td></tr>
+          <tr><td>每年固定 6%</td><td class="right">約 11.6 年</td><td class="right">約 6.0 年</td><td>未扣稅費、匯率與市場先跌後漲的傷害。</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="small">這是等額月提領的年金公式試算，不是壽命保證。實際若一開始就遇到熊市，耗盡時間可能更短。</p>
+  </section>
+
+  <section id="war">
+    <h2>四、戰爭情境：目標是「少一點單點故障」，不是戰時保證</h2>
+    <div class="callout danger-box">
+      <strong>沒有任何 ETF、銀行或券商能保證戰時一定可登入、匯款或成交。</strong>
+      真正要拆的是四件事：生活幣別、資產所在市場、保管機構、帳戶存取方式。把 300 萬全部換成台股高股息，四層幾乎仍綁在同一地區，與你的擔心衝突。
+    </div>
+    <ol>
+      <li><strong>生活層：</strong>台幣安全墊仍要保留，因為危機初期日常支出先用台幣；但不要把全部資產都留在單一銀行。</li>
+      <li><strong>市場層：</strong>全球股票把公司與國家分散；範例基金為愛爾蘭 UCITS，涵蓋已開發與新興市場大型／中型股票。<sup><a href="#s4">[4]</a></sup></li>
+      <li><strong>保管層：</strong>若真的要分散本地營運風險，海外資產需評估直接海外帳戶，而不是只換成外幣代號；先做小額入金與出金測試。</li>
+      <li><strong>存取層：</strong>準備第二組驗證方式、受益人／緊急聯絡資料、離線保存的帳戶清單與復原碼。這些資訊不得放進公開報告或公開雲端連結。</li>
+    </ol>
+    <p>SIPC 若適用，保護的是會員券商清算時的保管缺口，每位客戶最高 50 萬美元、其中現金 25 萬美元；它不補償市場下跌，也不是戰爭保險。<sup><a href="#s7">[7]</a></sup></p>
+  </section>
+
+  <section id="tools">
+    <h2>五、工具範例：看功能，不是照代號直接下單</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>功能</th><th>可研究範例</th><th>已確認快照</th><th>主要限制</th></tr></thead>
+        <tbody>
+          <tr><td>美元低波動停泊</td><td>IB01（iShares $ Treasury Bond 0–1yr UCITS ETF）</td><td>愛爾蘭 UCITS、累積型、費用率 0.07%、2026-09-28 加權到期殖利率 4.18%、有效存續期間 0.30 年。<sup><a href="#s3">[3]</a></sup></td><td>美元匯率、利率與券商交易成本；4.18% 是到期殖利率快照，不是保證報酬。</td></tr>
+          <tr><td>全球股票成長</td><td>Vanguard FTSE All-World UCITS ETF，ISIN IE00BK5BQT80；交易所代號可能是 VWRA／VWRP／VWCE</td><td>愛爾蘭 UCITS、累積型、涵蓋已開發與新興市場。<sup><a href="#s4">[4]</a></sup></td><td>仍是股票，股災可能大跌；代號依交易所與幣別不同，必須用 ISIN 再核對。</td></tr>
+          <tr><td>黃金分散</td><td>實體黃金或實體黃金支持商品；例：iShares Physical Gold ETC</td><td>範例為實體金屬結構、費用率 0.12%、不配息。<sup><a href="#s5">[5]</a></sup></td><td>不產生收入；ETC 不是 UCITS 基金，另有商品結構與保管風險。</td></tr>
+          <tr><td>台幣生活費</td><td>兩家銀行活存／短定存</td><td>依個人每月必要支出決定金額。</td><td>只分散銀行，不分散台灣地區與台幣風險。</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="callout notice">
+      <strong>稅務紅線：不要只看美股 ETF 費用率。</strong>
+      IRS 明載，非美國公民／居民的美國境內資產死亡時若超過 60,000 美元，執行人需申報 Form 706-NA；美國註冊公司股票屬於美國境內資產。<sup><a href="#s6">[6]</a></sup> 本版因此先用愛爾蘭註冊 UCITS 作研究候選，但這不是個人稅務結論，下單前仍需依國籍、居住地與持有方式確認。
+    </div>
+  </section>
+
+  <section id="execution">
+    <h2>六、執行順序：先把通道做通，再買資產</h2>
+    <div class="steps">
+      <div class="step"><span class="n">1</span><h3>先留 60 萬台幣</h3><p>拆在兩家銀行，作為投資期間的現金流緩衝；完整緊急預備金仍應另外保留。若預備金不足，先把本桶提高到 90 萬，不急著買股票。</p></div>
+      <div class="step"><span class="n">2</span><h3>小額測試海外通道</h3><p>開立受監管的海外帳戶後，先用小額完成一次入金與出金，再放大金額。確認可交易市場、匯款費、登入復原、受益人與對帳單下載。</p></div>
+      <div class="step"><span class="n">3</span><h3>海外 240 萬分三批</h3><p>海外短債 90 萬、全球股票 120 萬、黃金 30 萬；各自採 40%／30%／30%，在第 0、30、60 天投入。換算三批總額為 96 萬、72 萬、72 萬；這只是降低單日進場風險的操作假設。</p></div>
+    </div>
+    <p>目前聯準會剛把政策利率升到 3.75%–4.00%，本版因此讓防守部位以短天期國庫券為主，不把長天期債券當成「安全現金」。<sup><a href="#s1">[1]</a></sup></p>
+    <div class="callout pass-box">
+      <strong>最終答案</strong>
+      若你要保住長期選擇權：先用 20／30／40／10，月領上限抓 1 萬。若你一定要 3 萬，請把它寫成「前 10 年的計畫性提款」，不是永久被動收入；若一定要 5 萬，300 萬只能支撐約 5–6 年的情境試算，不能包裝成退休現金流。
+    </div>
+  </section>
+
+  <section id="sources">
+    <h2>資料來源</h2>
+    <ol class="source-list">
+      <li id="s1"><a href="https://www.federalreserve.gov/newsevents/pressreleases/monetary20260916a.htm">Federal Reserve｜FOMC statement，2026-09-16</a>：升息 0.25 個百分點至 3.75%–4.00%。</li>
+      <li id="s2"><a href="https://home.treasury.gov/resource-center/data-chart-center/interest-rates/TextView?type=daily_treasury_bill_rates&amp;field_tdr_date_value=2026">U.S. Treasury｜Daily Treasury Bill Rates 2026</a>：2026-09-29 國庫券 13／26／52 週 coupon-equivalent yield。</li>
+      <li id="s3"><a href="https://www.ishares.com/uk/individual/en/products/307243">iShares｜IB01 0–1yr U.S. Treasury UCITS ETF</a>：註冊地、費用、累積型、到期殖利率與存續期間。</li>
+      <li id="s4"><a href="https://www.vanguard.co.uk/professional/product/etf/equity/9679/ftse-all-world-ucits-etf-usd-accumulating">Vanguard｜FTSE All-World UCITS ETF (USD) Accumulating</a>：愛爾蘭 UCITS、涵蓋市場、持股數與地區權重。</li>
+      <li id="s5"><a href="https://www.ishares.com/uk/individual/en/products/258441">iShares｜Physical Gold ETC</a>：實體金屬結構、費用與不配息。</li>
+      <li id="s6"><a href="https://www.irs.gov/individuals/international-taxpayers/some-nonresidents-with-us-assets-must-file-estate-tax-returns">IRS｜Some nonresidents with U.S. assets must file estate tax returns</a>：美國境內資產範圍與 60,000 美元 Form 706-NA 申報門檻。</li>
+      <li id="s7"><a href="https://www.sipc.org/for-investors/what-sipc-protects">SIPC｜What SIPC Protects</a>：保護上限、非美國客戶適用與不保護市場下跌。</li>
+    </ol>
+    <div class="callout info-box"><strong>可重算、不可保證。</strong>收益率、稅制、匯率、商品結構與券商可交易市場會變。本文用公開官方資料建立決策邊界，不代表未來報酬承諾。</div>
+  </section>
+
+  <footer>
+    報告：300 萬配置與被動收入試算 v2（海外分散版）｜產生時間：2026-09-30 15:02 CST<br>
+    固定網址：<a href="https://ul3you-cell.github.io/happyda-public/300wan-passive-income-v2-20260930.html">https://ul3you-cell.github.io/happyda-public/300wan-passive-income-v2-20260930.html</a><br>
+    Build marker：<span class="mono">BUILD-20260930T150244+0800</span>
+  </footer>
+</main>
+</div>
+</body>
+</html>

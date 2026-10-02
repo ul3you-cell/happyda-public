@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="53 歲至 60 歲的 500 萬七年複利計畫 v5：0056 元大高股息＋00878 國泰永續高股息＋00919 群益台灣精選高息＋00646 元大標普500＋00719B 元大美政府短債＋0050 元大台灣卓越50。">
+  <title>500 萬七年複利操作計畫 v5｜0056/00878/00919/00646/00719B/0050</title>
+  <style>
+    :root {
+      color-scheme:light;
+      --blue:#1a73e8; --blue-deep:#0b57d0; --blue-soft:#e8f0fe;
+      --ink:#263238; --slate:#17324d; --muted:#667085; --line:#d9e2ec;
+      --paper:#fff; --bg:#f4f7fb; --pass:#137333; --pass-bg:#e6f4ea;
+      --warn:#9a6700; --warn-bg:#fff8e1; --danger:#c5221f; --danger-bg:#fce8e6;
+      --cash:#7b8a97; --tw:#137333; --us:#1a73e8; --bond:#7c4dff; --core:#0f766e;
+      --shadow:0 8px 30px rgba(31,55,80,.08);
+    }
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans TC",sans-serif;line-height:1.72}
+    .wrap{max-width:1080px;margin:0 auto;padding:28px}
+    main{background:var(--paper);padding:38px;border-radius:14px;box-shadow:var(--shadow)}
+    h1,h2,h3{color:var(--slate);line-height:1.25}
+    h1{margin:.25rem 0 .7rem;font-size:clamp(2rem,5vw,3.3rem);letter-spacing:-.04em}
+    h2{color:var(--blue);margin:2.6rem 0 1rem;padding-bottom:.4rem;border-bottom:2px solid var(--blue-soft)}
+    h3{margin:1.25rem 0 .45rem}
+    p{margin:.65rem 0}
+    a{color:var(--blue-deep);overflow-wrap:anywhere}
+    sup a{text-decoration:none;font-weight:800}
+    ul,ol{padding-left:1.25rem} li{margin:.5rem 0}
+    .eyebrow,.mono{font-family:ui-monospace,"SF Mono",Menlo,Consolas,monospace}
+    .eyebrow{color:var(--blue);font-size:.78rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase}
+    .meta,.small{color:var(--muted);font-size:.84rem}
+    .hero{border:1px solid var(--line);border-top:5px solid var(--blue);padding:26px;border-radius:14px;background:linear-gradient(145deg,#fff 20%,#f6f9ff)}
+    .lead{max-width:870px;font-size:1.1rem}
+    .quick-nav{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
+    .quick-nav a{text-decoration:none;background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:.84rem}
+    .metric-grid,.allocation-grid,.steps,.cards,.etf-grid{display:grid;gap:14px}
+    .metric-grid{grid-template-columns:repeat(4,1fr);margin:18px 0}
+    .etf-grid{grid-template-columns:repeat(2,1fr);margin:18px 0}
+    .allocation-grid{grid-template-columns:repeat(7,1fr);margin:18px 0}
+    .steps{grid-template-columns:repeat(3,1fr)}
+    .cards{grid-template-columns:repeat(3,1fr)}
+    .metric,.asset,.step,.card,.etf-card{border:1px solid var(--line);border-radius:12px;padding:18px;background:#fff}
+    .metric strong{display:block;color:var(--blue-deep);font-size:1.45rem;line-height:1.18}
+    .metric span{color:var(--muted);font-size:.82rem}
+    .etf-card{border-top:4px solid var(--blue)}
+    .etf-card .head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+    .etf-card .head h3{margin:0}
+    .etf-card .tag{font-size:.72rem;font-weight:750;border:1px solid var(--line);border-radius:999px;padding:2px 8px;color:#475467;background:#f6f9fc}
+    .etf-card .tag.dividend{background:#fff8e1;border-color:var(--warn);color:var(--warn)}
+    .etf-card .tag.quarterly{background:#e6f4ea;border-color:var(--pass);color:var(--pass)}
+    .etf-card .tag.yearly{background:#eef5ff;border-color:var(--blue);color:var(--blue-deep)}
+    .etf-card .tag.half{background:#f3eaff;border-color:var(--bond);color:var(--bond)}
+    .etf-card .tag.core{background:#e6f7f5;border-color:var(--core);color:var(--core)}
+    .etf-card dl{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:.88rem;margin:10px 0 0}
+    .etf-card dt{color:var(--muted)}
+    .etf-card dd{margin:0;color:var(--ink);font-variant-numeric:tabular-nums}
+    .etf-card .why{font-size:.84rem;color:var(--muted);margin-top:8px}
+    .asset{border-top:5px solid var(--blue)}
+    .asset.tw{border-top-color:var(--tw)} .asset.us{border-top-color:var(--us)} .asset.bond{border-top-color:var(--bond)} .asset.cash{border-top-color:var(--cash)} .asset.core{border-top-color:var(--core)}
+    .asset .pct{display:block;font-size:1.6rem;font-weight:850;color:var(--slate);line-height:1}
+    .asset .amt{color:var(--pass);font-weight:800}
+    .allocation{display:flex;height:14px;border-radius:999px;overflow:hidden;background:#edf1f5;margin:16px 0 10px}
+    .seg-0056{background:#16a34a}.seg-00878{background:#22a06b}.seg-00919{background:#84cc16}.seg-00646{background:#1a73e8}.seg-00719b{background:#7c4dff}.seg-0050{background:#0f766e}.seg-cash{background:#7b8a97}
+    .legend{display:flex;flex-wrap:wrap;gap:12px;color:var(--muted);font-size:.82rem}.dot{width:10px;height:10px;border-radius:50%;display:inline-block;margin-right:4px}
+    .callout{padding:18px 20px;border-radius:10px;margin:18px 0;border-left:5px solid}
+    .info-box{background:#eef5ff;border-color:var(--blue)}.pass-box{background:var(--pass-bg);border-color:var(--pass)}.notice{background:var(--warn-bg);border-color:var(--warn)}.danger-box{background:var(--danger-bg);border-color:var(--danger)}
+    .callout strong:first-child{display:block;margin-bottom:.25rem}
+    .table-wrap{overflow-x:auto;border:1px solid var(--line);border-radius:10px}
+    table{width:100%;border-collapse:collapse;min-width:760px}
+    th,td{padding:12px 14px;text-align:left;border-bottom:1px solid var(--line);vertical-align:top}
+    th{background:#f6f9fc;font-size:.82rem;color:#475467} tr:last-child td{border-bottom:0} tr.pick td{background:#f3f8ff}
+    .right{text-align:right;font-variant-numeric:tabular-nums}.center{text-align:center}.nowrap{white-space:nowrap}
+    .step .n{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:var(--blue-soft);color:var(--blue-deep);font-weight:850}
+    .pill{display:inline-block;border-radius:999px;padding:2px 9px;font-size:.75rem;font-weight:750;background:#eef2f6;color:#475467}.pill.blue{background:var(--blue-soft);color:var(--blue-deep)}.pill.green{background:var(--pass-bg);color:var(--pass)}.pill.gold{background:#fff3cd;color:#805b10}
+    .formula{font-family:ui-monospace,"SF Mono",Menlo,monospace;background:#f6f8fa;border:1px solid var(--line);padding:12px 14px;border-radius:8px;overflow-x:auto}
+    .checklist{list-style:none;padding:0}.checklist li{position:relative;padding-left:30px}.checklist li:before{content:"✓";position:absolute;left:0;top:.05rem;display:grid;place-items:center;width:20px;height:20px;border-radius:5px;background:var(--pass-bg);color:var(--pass);font-weight:900}
+    .source-list li{margin:.75rem 0}.source-date{display:block;color:var(--muted);font-size:.78rem}
+    footer{margin-top:2.8rem;border-top:1px solid var(--line);padding-top:1.15rem;color:var(--muted);font-size:.82rem}
+    @media(max-width:1100px){.allocation-grid{grid-template-columns:repeat(4,1fr)}}
+    @media(max-width:1000px){.etf-grid{grid-template-columns:1fr}}
+    @media(max-width:900px){.allocation-grid{grid-template-columns:repeat(3,1fr)}}
+    @media(max-width:850px){.metric-grid{grid-template-columns:repeat(2,1fr)}.steps,.cards{grid-template-columns:1fr}}
+    @media(max-width:700px){.wrap{padding:10px}main{padding:20px}.hero{padding:20px}h1{font-size:2rem}.allocation-grid{grid-template-columns:1fr 1fr}}
+    @media(max-width:500px){.metric-grid,.allocation-grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body data-build="BUILD-20261002T181500+0800">
+<div class="wrap"><main>
+  <section class="hero">
+    <div class="eyebrow">500 萬複利計畫 · v5 · 高股息 × 市值核心版</div>
+    <h1>53 歲到 60 歲：<br>六檔 ETF，加回台股權值</h1>
+    <p class="lead"><strong>我的結論：</strong>第一年把 500 萬分 12 個月投入，配置為 <strong>0056 元大高股息 12%＋00878 國泰永續高股息 13%＋00919 群益精選高息 10%＋00646 元大標普500 20%＋00719B 元大美政府短債 20%＋0050 元大台灣卓越 15%＋台幣現金 10%</strong>。第二年起若每月再投入 2 萬，中性情境下 60 歲約累積 <strong>861 萬</strong>，以 3%–4% 年提領率換成每月約 <strong>2.15–2.87 萬元</strong>；月配息現金流合計約 <strong>1.97 萬元</strong>（中性情境），但 0056／0050／00646 為年配，配息不會每月入帳。</p>
+    <p class="meta">快照：2026-10-02 18:15（台北）｜53 歲起算至 60 歲共 84 個月｜稅費前、未扣交易成本｜模型：月底投入＋月底月複利</p>
+    <div class="quick-nav"><a href="#compare">v3/v4/v5 對照</a><a href="#etfs">六檔介紹</a><a href="#allocation">配置</a><a href="#year1">第一年怎麼買</a><a href="#after">第二年起</a><a href="#projection">60 歲試算</a><a href="#dividend">月配息現金流</a><a href="#withdraw">退休後怎麼領</a><a href="#tax">稅費</a><a href="#risks">反方與風險</a><a href="#checklist">執行清單</a><a href="#sources">來源</a></div>
+  </section>
+
+  <div class="callout danger-box">
+    <strong>閱讀前提</strong>
+    1. 本報告僅為個人決策紀錄，非投資建議。<br>
+    2. v5 與 v4 採用相同模型（月底投入、84 個月），差異在配置內容（多了 0050、0056、00919，少了 006208）。<br>
+    3. 報酬率、配息率、通膨率、提領率與執行節奏都是「情境假設」，不是保證或個人化稅務結論。<br>
+    4. 進場與否由閱讀者自行判斷；股票、債券、匯率與配息都可能波動。<br>
+    5. 0056、00878、00919 三檔同為殖利率加權指數，選股高度重疊；本報告仍保留三檔以提供月度進場節奏，但實質獨立個股僅約 60 檔。
+  </div>
+
+  <div class="metric-grid">
+    <div class="metric"><strong>NT$416,667</strong><span>第一年每月處理總額</span></div>
+    <div class="metric"><strong>50／25／15／10</strong><span>高息／美股美債／台市值／現金</span></div>
+    <div class="metric"><strong>約 NT$8.61M</strong><span>5% 情境＋月加碼 2 萬</span></div>
+    <div class="metric"><strong>NT$19.7K</strong><span>60 歲月配息現金流（中位情境）</span></div>
+  </div><section id="compare">
+    <h2>零、v3 → v4 → v5：版本差異與策略演進</h2>
+    <p>v3 是 300 萬純 v4 配置的等比例放大；v5 是把台股 25/25（006208+00878）改為「0050（台股權值）＋0056/00878/00919 三檔高股息」的六檔組合，保留美國股債平衡，比例略偏台股。</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>項目</th><th class="right">v3（300 萬）</th><th class="right">v4（500 萬）</th><th class="right">v5（500 萬）</th></tr></thead>
+      <tbody>
+        <tr><td>台股權值（006208／0050）</td><td class="right">006208 25%</td><td class="right">006208 25%</td><td class="right">0050 15%</td></tr>
+        <tr><td>台灣高股息（0056／00878／00919）</td><td class="right">00878 25%</td><td class="right">00878 25%</td><td class="right">0056 12%＋00878 13%＋00919 10%</td></tr>
+        <tr><td>美股（00646）</td><td class="right">20%</td><td class="right">20%</td><td class="right">20%</td></tr>
+        <tr><td>美短債（00719B）</td><td class="right">20%</td><td class="right">20%</td><td class="right">20%</td></tr>
+        <tr><td>台幣現金</td><td class="right">10%</td><td class="right">10%</td><td class="right">10%</td></tr>
+        <tr><td>台股合計</td><td class="right">50%</td><td class="right">50%</td><td class="right">50%（0050 15%＋三檔高息 35%）</td></tr>
+        <tr><td>高股息因子曝險</td><td class="right">25%</td><td class="right">25%</td><td class="right"><strong>35%</strong></td></tr>
+        <tr><td>60 歲資產（中性 5%）</td><td class="right">5,781,147</td><td class="right">8,612,854</td><td class="right">8,612,854</td></tr>
+        <tr><td>60 歲 3% 提領／月</td><td class="right">14,453</td><td class="right">21,532</td><td class="right">21,532</td></tr>
+        <tr><td>60 歲 4% 提領／月</td><td class="right">19,270</td><td class="right">28,710</td><td class="right">28,710</td></tr>
+        <tr><td>60 歲<strong>月配息</strong>現金流（中性）</td><td class="right">約 13,000</td><td class="right">約 21,353</td><td class="right"><strong>約 19,652</strong></td></tr>
+        <tr class="pick"><td><strong>關鍵取捨</strong></td><td class="right" colspan="3">v5 將高股息曝險從 25% 拉到 35%，月配息現金流比 v4 略低（19,652 vs 21,353），但資產分散度提升（多了 0050 與 0056 兩條獨立路徑）。</td></tr>
+      </tbody>
+    </table></div>
+    <p class="small">v4 與 v5 的資產總額相同，是因為模型只看年化總報酬、不區分標的；差異化到實際成分波動與配息現金流。</p>
+  </section>
+
+  <section id="etfs">
+    <h2>一、六檔 ETF 完整介紹</h2>
+
+    <div class="etf-grid">
+      <article class="etf-card">
+        <div class="head">
+          <h3>0056 元大台灣高股息 ETF</h3>
+          <span class="tag dividend">高股息</span><span class="tag yearly">年配</span>
+        </div>
+        <dl>
+          <dt>追蹤指數</dt><dd>FTSE TWSE Taiwan Dividend+（臺灣高股息指數）</dd>
+          <dt>指數編製</dt><dd>臺灣證交所 × FTSE，半年審核（6/12 月）</dd>
+          <dt>篩選規則</dt><dd>台50＋中型100 中，未來一年預估現金殖利率最高的 50 檔；殖利率加權</dd>
+          <dt>成立／上市</dt><dd>2007/12/13／2007/12/26</dd>
+          <dt>經理費</dt><dd>規模分級 0.40% / 0.34% / 0.30%</dd>
+          <dt>保管費</dt><dd>0.035%</dd>
+          <dt>風險等級</dt><dd>RR4</dd>
+          <dt>近一年殖利率</dt><dd>2.90%（2026/08/31，元大投信官網）</dd>
+          <dt>配息頻率</dt><dd>年配（10–11 月除息，12 月發放）</dd>
+          <dt>持股檔數</dt><dd>50</dd>
+          <dt>Beta</dt><dd>0.75（相對加權指數）</dd>
+        </dl>
+        <p class="why">台灣最早的高股息 ETF，規模與歷史最長；殖利率穩定但偏低（2.9%）；殖利率加權會讓它在景氣循環股上偏重（金融、塑化、航運、鋼鐵）。月配息試算下，0056 提供的是「年配 2.9%」的現金流，不是每月現金。</p>
+      </article>
+
+      <article class="etf-card">
+        <div class="head">
+          <h3>00878 國泰台灣 ESG 永續高股息 ETF</h3>
+          <span class="tag dividend">高股息</span><span class="tag quarterly">季配</span>
+        </div>
+        <dl>
+          <dt>追蹤指數</dt><dd>MSCI 臺灣 ESG 永續高股息精選 30 指數</dd>
+          <dt>指數編製</dt><dd>MSCI，雙年度審核（5/11 月）</dd>
+          <dt>篩選規則</dt><dd>MSCI 臺灣指數中，ESG 評級 BB 以上、爭議分數 3 分以上，依調整後殖利率排序取前 30 檔；殖利率加權</dd>
+          <dt>成立／上市</dt><dd>2020/07/10／2020/07/20</dd>
+          <dt>經理費</dt><dd>0.30% / 0.25%（規模分級）</dd>
+          <dt>保管費</dt><dd>0.03%</dd>
+          <dt>風險等級</dt><dd>RR4</dd>
+          <dt>殖利率</dt><dd>近四季平均約 4.0–4.5%（情境試算用 4.5%）</dd>
+          <dt>配息頻率</dt><dd>季配（首檔台股季配高息）</dd>
+          <dt>配息月份</dt><dd>1/4/7/10 月除息</dd>
+          <dt>持股檔數</dt><dd>30</dd>
+        </dl>
+        <p class="why">唯一季配＋ESG 過濾的高股息 ETF，月度現金流最穩定；但近三年規模膨脹後收益平準金比例擴張，配息率有壓力。配息 4 次／年，是 v5 月配息現金流的主力來源（占約 21%）。</p>
+      </article>
+
+      <article class="etf-card">
+        <div class="head">
+          <h3>00919 群益台灣精選高息 ETF</h3>
+          <span class="tag dividend">高股息</span><span class="tag quarterly">季配</span>
+        </div>
+        <dl>
+          <dt>追蹤指數</dt><dd>臺灣精選高息指數（客製化）</dd>
+          <dt>指數編製</dt><dd>指數公司 × 群益</dd>
+          <dt>篩選規則</dt><dd>三高遮罩＋預估殖利率×（1+前三季 EPS 成長率）調整，最後依成交值排序取 40 檔；殖利率加權</dd>
+          <dt>成立／上市</dt><dd>2022/10/13</dd>
+          <dt>配息頻率</dt><dd>季配</dd>
+          <dt>配息月份</dt><dd>3/6/9/12 月除息</dd>
+          <dt>殖利率</dt><dd>近四季單次配息率 2.43%–3.28%，年化約 4%</dd>
+          <dt>持股檔數</dt><dd>40</dd>
+        </dl>
+        <p class="why">與 0056、00878 最大差異：用「獲利成長率」加分項，讓殖利率預估含成長成分；季配節奏與 00878 互補（3/6/9/12 vs 1/4/7/10），合計每月幾乎都有台股息入帳。與 0056、00878 選股池高度重疊，獨立性有限。</p>
+      </article>
+
+      <article class="etf-card">
+        <div class="head">
+          <h3>00646 元大標普 500 ETF</h3>
+          <span class="tag half">美股</span><span class="tag yearly">半年配</span>
+        </div>
+        <dl>
+          <dt>追蹤指數</dt><dd>S&amp;P 500 Index（標普500指數）</dd>
+          <dt>指數編製</dt><dd>S&amp;P Dow Jones Indices</dd>
+          <dt>篩選規則</dt><dd>美國市值最大的 500 檔；市值加權</dd>
+          <dt>配息頻率</dt><dd>半年配</dd>
+          <dt>配息月份</dt><dd>1/7 月除息</dd>
+          <dt>殖利率</dt><dd>近一年現金股息率約 1.3–1.5%</dd>
+          <dt>風險等級</dt><dd>RR4</dd>
+        </dl>
+        <p class="why">台灣掛牌最久的 S&amp;P 500 ETF，美元計價；半年配是六檔中配息頻率最低的，主要功能是「美國市值分散」，不是配息現金流。配息屬海外所得（不計入二代健保，需併入基本所得額）。</p>
+      </article>
+
+      <article class="etf-card">
+        <div class="head">
+          <h3>00719B 元大美國政府 1–3 年期債券 ETF</h3>
+          <span class="tag quarterly">季配</span>
+          <span class="tag half">美短債</span>
+        </div>
+        <dl>
+          <dt>追蹤指數</dt><dd>Bloomberg US Treasury 1–3 Year Index</dd>
+          <dt>指數編製</dt><dd>Bloomberg</dd>
+          <dt>組成</dt><dd>美國政府公債，剩餘期限 1–3 年</dd>
+          <dt>配息頻率</dt><dd>季配</dd>
+          <dt>配息月份</dt><dd>2/5/8/11 月除息</dd>
+          <dt>殖利率</dt><dd>殖利率近四季約 3.5–4.2%（情境試算用 4%）</dd>
+          <dt>風險等級</dt><dd>RR2（但有匯率風險）</dd>
+        </dl>
+        <p class="why">v5 的減震核心＋穩定配息來源；季配節奏與 00919 重疊（5/8/11 vs 3/6/9/12），合計仍有月度入帳感。美元計價，退休提領若需要台幣意願高，58 歲起要意識到匯率風險。配息屬海外所得。</p>
+      </article>
+
+      <article class="etf-card">
+        <div class="head">
+          <h3>0050 元大台灣卓越 50 ETF</h3>
+          <span class="tag core">台股權值</span><span class="tag yearly">年配</span>
+        </div>
+        <dl>
+          <dt>追蹤指數</dt><dd>FTSE TWSE Taiwan 50 Index（臺灣50指數）</dd>
+          <dt>指數編製</dt><dd>臺灣證交所 × FTSE，季審核（3/6/9/12 月）</dd>
+          <dt>篩選規則</dt><dd>臺灣上市股票中市值最大的 50 檔；市值加權（非殖利率加權）</dd>
+          <dt>成立／上市</dt><dd>2003/06/25／2003/06/30（台股最久）</dd>
+          <dt>經理費</dt><dd>規模分級，實質約 0.068%（2026/10/01）</dd>
+          <dt>保管費</dt><dd>0.03% / 0.025% 分級</dd>
+          <dt>風險等級</dt><dd>RR4</dd>
+          <dt>近一年殖利率</dt><dd>1.28%（2026/08/31，元大投信官網）</dd>
+          <dt>配息頻率</dt><dd>年配（除息約 7 月）</dd>
+          <dt>持股檔數</dt><dd>50</dd>
+        </dl>
+        <p class="why">v5 的核心市值部位。與 006208 追蹤同一指數，但 0050 成立更久、規模最大、流動性最好、實質費用最低。殖利率 1.28% 是六檔中最低的（含息年報酬主要靠資本利得）。台積電權重超過 30%，是台股偏好的高 β 表現來源。</p>
+      </article>
+    </div>
+  </section><section id="allocation">
+    <h2>二、最終配置：12／13／10／20／20／15／10</h2>
+    <div class="allocation" aria-label="0056 12%、00878 13%、00919 10%、00646 20%、00719B 20%、0050 15%、現金 10%">
+      <span class="seg-0056" style="width:12%"></span><span class="seg-00878" style="width:13%"></span><span class="seg-00919" style="width:10%"></span><span class="seg-00646" style="width:20%"></span><span class="seg-00719b" style="width:20%"></span><span class="seg-0050" style="width:15%"></span><span class="seg-cash" style="width:10%"></span>
+    </div>
+    <div class="legend"><span><i class="dot seg-0056"></i>0056 12%</span><span><i class="dot seg-00878"></i>00878 13%</span><span><i class="dot seg-00919"></i>00919 10%</span><span><i class="dot seg-00646"></i>00646 20%</span><span><i class="dot seg-00719b"></i>00719B 20%</span><span><i class="dot seg-0050"></i>0050 15%</span><span><i class="dot seg-cash"></i>現金 10%</span></div>
+
+    <div class="allocation-grid">
+      <article class="asset tw"><span class="pct">12%</span><h3>0056</h3><p class="amt">60 萬</p><p>高股息核心（年配 2.9%）。</p></article>
+      <article class="asset tw"><span class="pct">13%</span><h3>00878</h3><p class="amt">65 萬</p><p>季配 ESG 高股息（4.5%）。</p></article>
+      <article class="asset tw"><span class="pct">10%</span><h3>00919</h3><p class="amt">50 萬</p><p>季配精選高息（4.0%）。</p></article>
+      <article class="asset us"><span class="pct">20%</span><h3>00646</h3><p class="amt">100 萬</p><p>美股 S&amp;P 500。</p></article>
+      <article class="asset bond"><span class="pct">20%</span><h3>00719B</h3><p class="amt">100 萬</p><p>美政府 1–3 年短債（季配 4%）。</p></article>
+      <article class="asset core"><span class="pct">15%</span><h3>0050</h3><p class="amt">75 萬</p><p>台股權值核心。</p></article>
+      <article class="asset cash"><span class="pct">10%</span><h3>台幣現金</h3><p class="amt">50 萬</p><p>再平衡與提款緩衝。</p></article>
+    </div>
+
+    <div class="callout notice"><strong>三個集中點。</strong>（1）台股合計 50%（0050 15%＋三檔高息 35%），與 v4 相同規模，但高股息曝險從 25% 拉到 35%。（2）三檔高股息選股池高度重疊，獨立個股約 60 檔而非 120 檔。（3）美元資產 40%（00646＋00719B）。</div>
+  </section>
+
+  <section id="year1">
+    <h2>三、第一年怎麼買：每月 41.67 萬，季投只是備案</h2>
+    <div class="callout pass-box"><strong>沿用 v3/v4 的每月版。</strong>理由同樣：單次時點風險小、執行簡單、不需要每季判斷行情。v5 的 0050 與 00646 多數券商支援定期定額；0056、00878、00919 也很常見。</div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>標的</th><th class="right">全年目標</th><th class="right">每月 × 12（首選）</th><th class="right">每季 × 4（備案）</th><th>功能</th></tr></thead>
+      <tbody>
+        <tr><td><strong>0056</strong></td><td class="right">600,000</td><td class="right">50,000</td><td class="right">150,000</td><td>高股息核心（年配）</td></tr>
+        <tr><td><strong>00878</strong></td><td class="right">650,000</td><td class="right">54,167</td><td class="right">162,500</td><td>季配 ESG 高股息</td></tr>
+        <tr><td><strong>00919</strong></td><td class="right">500,000</td><td class="right">41,667</td><td class="right">125,000</td><td>季配精選高息</td></tr>
+        <tr><td><strong>00646</strong></td><td class="right">1,000,000</td><td class="right">83,333</td><td class="right">250,000</td><td>美股 S&amp;P 500</td></tr>
+        <tr><td><strong>00719B</strong></td><td class="right">1,000,000</td><td class="right">83,333</td><td class="right">250,000</td><td>美政府短債</td></tr>
+        <tr><td><strong>0050</strong></td><td class="right">750,000</td><td class="right">62,500</td><td class="right">187,500</td><td>台股權值核心</td></tr>
+        <tr><td><strong>台幣現金</strong></td><td class="right">500,000</td><td class="right">41,667</td><td class="right">125,000</td><td>再平衡／提款緩衝</td></tr>
+        <tr class="pick"><td><strong>合計</strong></td><td class="right"><strong>5,000,000</strong></td><td class="right"><strong>416,667</strong></td><td class="right"><strong>1,250,000</strong></td><td>一年完成</td></tr>
+      </tbody>
+    </table></div>
+    <p class="small">實際操作：第 0 天先把整筆 500 萬放進高流動性、低波動的停泊帳戶（建議拆兩家以上）；每月把 37.5 萬轉成六檔 ETF，另有 4.17 萬留在現金桶。</p>
+
+    <div class="steps">
+      <div class="step"><span class="n">1</span><h3>固定同一天</h3><p>每月選同一個交易日與時段，不因上漲、下跌、新聞或除息改期；500 萬規模更要避開開盤前幾分鐘的價差擴大。</p></div>
+      <div class="step"><span class="n">2</span><h3>先自動、不能就手動</h3><p>0050、00646、00719B 定期定額銷售機構多家；0056、00878、00919 在元大、國泰、群益官網有完整清單；金額不便拆分就當日零股＋提醒。</p></div>
+      <div class="step"><span class="n">3</span><h3>配息不領出</h3><p>六檔配息節奏錯開（年配 0056/0050/00646、季配 00878/00719B/00919），但現金帳戶都先進同一個，下次投入日買當時最偏低的部位；不追除息、不把季配息當固定月薪。</p></div>
+    </div>
+  </section>
+
+  <section id="after">
+    <h2>四、第二年起：金額可變，比例與紀律不變</h2>
+    <p>第二年起加碼直接沿用 v3/v4 的 <strong>每月 20,000 元</strong> 為試算基準；任何金額都可乘上同一比例。v5 第一年桶已經夠厚，不需要靠加碼撐大部位。</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>標的</th><th class="right">公式</th><th class="right">每月 1 萬</th><th class="right">每月 2 萬</th><th class="right">每月 3 萬</th></tr></thead>
+      <tbody>
+        <tr><td>0056</td><td class="right">新錢 × 12%</td><td class="right">1,200</td><td class="right">2,400</td><td class="right">3,600</td></tr>
+        <tr><td>00878</td><td class="right">新錢 × 13%</td><td class="right">1,300</td><td class="right">2,600</td><td class="right">3,900</td></tr>
+        <tr><td>00919</td><td class="right">新錢 × 10%</td><td class="right">1,000</td><td class="right">2,000</td><td class="right">3,000</td></tr>
+        <tr><td>00646</td><td class="right">新錢 × 20%</td><td class="right">2,000</td><td class="right">4,000</td><td class="right">6,000</td></tr>
+        <tr><td>00719B</td><td class="right">新錢 × 20%</td><td class="right">2,000</td><td class="right">4,000</td><td class="right">6,000</td></tr>
+        <tr><td>0050</td><td class="right">新錢 × 15%</td><td class="right">1,500</td><td class="right">3,000</td><td class="right">4,500</td></tr>
+        <tr><td>現金</td><td class="right">新錢 × 10%</td><td class="right">1,000</td><td class="right">2,000</td><td class="right">3,000</td></tr>
+      </tbody>
+    </table></div>
+    <p class="formula">例：每月可投入 X 元 → 0056 0.12X、00878 0.13X、00919 0.10X、00646 0.20X、00719B 0.20X、0050 0.15X、現金 0.10X</p>
+    <div class="callout info-box"><strong>小額時不要硬拆七筆。</strong>若 1 萬範例（每檔 1,000–2,000）受最低手續費影響，就每月只買「最偏低的一檔」，每季再核對整體比例。</div>
+  </section>
+
+  <section id="projection">
+    <h2>五、60 歲會到多少：報酬與加碼的雙層試算</h2>
+    <p>模型同 v4——53 歲起算 84 個月；前 12 個月每月底投入 41.67 萬，第 13–84 個月才開始額外定期定額；股息全部再投入。年化總報酬按月複利，未扣稅費。</p>
+
+    <h3>固定每月加碼 2 萬：報酬不同</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>年化總報酬假設</th><th class="right">60 歲資產</th><th class="right">3% 提領／月</th><th class="right">4% 提領／月</th><th>解讀</th></tr></thead>
+      <tbody>
+        <tr><td>3% 保守情境</td><td class="right">7,662,418</td><td class="right">19,156</td><td class="right">25,541</td><td>3% 提領已能月用近 2 萬；4% 提領緩衝厚。</td></tr>
+        <tr class="pick"><td><strong>5% 中性情境</strong></td><td class="right"><strong>8,612,854</strong></td><td class="right"><strong>21,532</strong></td><td class="right"><strong>28,710</strong></td><td>3% 提領剛好跨過名目 2 萬線；4% 提領當緊急備用。</td></tr>
+        <tr><td>7% 順利情境</td><td class="right">9,688,590</td><td class="right">24,221</td><td class="right">32,295</td><td>代價是更高股票波動。</td></tr>
+      </tbody>
+    </table></div>
+
+    <h3>固定年化 5%：加碼不同</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>第 2 年起每月加碼</th><th class="right">60 歲資產</th><th class="right">3% 月</th><th class="right">4% 月</th></tr></thead>
+      <tbody>
+        <tr><td>0 元</td><td class="right">6,930,588</td><td class="right">17,326</td><td class="right">23,102</td></tr>
+        <tr><td>10,000 元</td><td class="right">7,771,721</td><td class="right">19,429</td><td class="right">25,906</td></tr>
+        <tr class="pick"><td><strong>20,000 元</strong></td><td class="right"><strong>8,612,854</strong></td><td class="right"><strong>21,532</strong></td><td class="right"><strong>28,710</strong></td></tr>
+        <tr><td>30,000 元</td><td class="right">9,453,987</td><td class="right">23,635</td><td class="right">31,513</td></tr>
+      </tbody>
+    </table></div>
+
+    <div class="callout notice"><strong>通膨後，數字會變小。</strong>中性情境的 861.3 萬若以年通膨 2% 折算，約等於今天的 749.8 萬；3%–4% 提領約等於今天每月 18,745–24,993 元。若 60 歲一定要名目月用 2.5 萬，v5 在加碼 1 萬情境（中性）即可跨過；這比期待市場固定給更高報酬更可控。</div>
+    <p class="small">3%、5%、7% 是壓力測試，不是預測；提領率只是把資產換算成現金流的規劃帶，不代表永續保證。</p>
+  </section>
+
+  <section id="dividend">
+    <h2>六、月配息現金流：6 檔配息節奏錯開後的真實數字</h2>
+    <p>v5 的六檔配息節奏刻意錯開：<strong>0056（年配 10/11 月）、0050（年配 7 月）、00646（半年配 1/7 月）、00878（季配 1/4/7/10 月）、00719B（季配 2/5/8/11 月）、00919（季配 3/6/9/12 月）</strong>。每月幾乎都有一到兩檔配息入帳，但不是每月「平均」配息。</p>
+
+    <h3>中性情境（5%）60 歲資產 861 萬的月配息現金流</h3>
+    <div class="table-wrap"><table>
+      <thead><tr><th>標的</th><th class="right">配置金額</th><th class="right">殖利率</th><th class="right">年配息</th><th class="right">月平均</th><th>配息節奏</th></tr></thead>
+      <tbody>
+        <tr><td>0056</td><td class="right">1,033,542</td><td class="right">2.9%</td><td class="right">29,973</td><td class="right">2,498</td><td>年配（10–11 月）</td></tr>
+        <tr><td>00878</td><td class="right">1,119,671</td><td class="right">4.5%</td><td class="right">50,385</td><td class="right">4,199</td><td>季配（1/4/7/10）</td></tr>
+        <tr><td>00919</td><td class="right">861,285</td><td class="right">4.0%</td><td class="right">34,451</td><td class="right">2,871</td><td>季配（3/6/9/12）</td></tr>
+        <tr><td>00646</td><td class="right">1,722,571</td><td class="right">1.5%</td><td class="right">25,839</td><td class="right">2,153</td><td>半年配（1/7）</td></tr>
+        <tr><td>00719B</td><td class="right">1,722,571</td><td class="right">4.0%</td><td class="right">68,903</td><td class="right">5,742</td><td>季配（2/5/8/11）</td></tr>
+        <tr><td>0050</td><td class="right">1,291,928</td><td class="right">1.3%</td><td class="right">16,795</td><td class="right">1,400</td><td>年配（7 月）</td></tr>
+        <tr><td>現金</td><td class="right">861,285</td><td class="right">1.1%</td><td class="right">9,474</td><td class="right">790</td><td>活存利息</td></tr>
+        <tr class="pick"><td><strong>合計</strong></td><td class="right"><strong>8,612,854</strong></td><td class="right">—</td><td class="right"><strong>235,820</strong></td><td class="right"><strong>19,652</strong></td><td>月提領率 2.74%</td></tr>
+      </tbody>
+    </table></div>
+
+    <div class="callout info-box"><strong>月平均 ≠ 月入帳。</strong>年配檔（0056/0050）在除息月一次入帳，年內其他月份為 0；季配檔（00878/00719B/00919）每季一次；00646 半年配。所以實際月入帳圖會呈現「高低起伏」而非平滑直線。58 歲起提款桶準備就是為了填補這個起伏。</div>
+  </section><section id="withdraw">
+    <h2>七、60 歲後怎麼領：現金桶 + 短債 6.7 年緩衝</h2>
+    <div class="cards">
+      <article class="card"><span class="pill green">58 歲開始</span><h3>提款桶先存 24 個月</h3><p>以中性 4% 提領計算，60 歲年提領約 34.4 萬 → 月提款桶 69 萬。v5 的 00719B（100 萬）＋台幣現金桶（50 萬）合計 <strong>150 萬</strong>，可撐 4 年提款；不需要額外撐錢。</p></article>
+      <article class="card"><span class="pill blue">60 歲開始</span><h3>每月固定轉帳</h3><p>生活帳戶每月固定收款，來源先用現金桶與 00719B；ETF 配息不需剛好對上每月支出。</p></article>
+      <article class="card"><span class="pill gold">每年一次</span><h3>補回現金桶</h3><p>把全年配息加上必要時賣出「高於目標」的部位（高股息 ETF 通常優先），補回下一年提款；市場大跌時可暫停調高提領。</p></article>
+    </div>
+    <div class="callout pass-box"><strong>現金流不必全靠配息。</strong>退休後真正能用的是「配息＋必要時賣出少量資產」的總報酬提領。v5 年配息合計 23.6 萬（中性情境）只佔年提領 68%，剩下的 32% 需要靠賣出部位（00719B、現金桶優先）補足。</div>
+  </section>
+
+  <section id="tax">
+    <h2>八、稅費：500 萬版本要更仔細看</h2>
+    <p>基本規則沿用 v3/v4 第六章：海外所得不計入二代健保、海外所得 100 萬以上才計入基本所得額、基本所得額 113 年起 750 萬門檻。<sup><a href="#s5">[5]</a></sup><sup><a href="#s6">[6]</a></sup> v5 比 v4 多看兩件事：</p>
+
+    <h3>1. 高股息 ETF 配息拆分更複雜</h3>
+    <p>0056、00878、00919 三檔配息都可能含「國內股利 + 收益平準金 + 部分資本利得」。三檔合計 175 萬 × 殖利率，年配息可能 6–8 萬級距（中性）；合計綜合所得若已在 20% 以上，配息要列入「你會被多扣一筆」的計算項目。</p>
+
+    <h3>2. 海外所得跨 100 萬申報線的衝擊放大</h3>
+    <p>00646 + 00719B 合計 200 萬，年配息現金流約 9–10 萬。七年複利累計海外所得金額有可能跨過 100 萬，但跨過 ≠ 要繳稅；要看「基本所得額是否也跨過 750 萬」。</p>
+
+    <div class="callout notice"><strong>本報告不替代個人稅務諮詢。</strong>配息拆成國內股利／利息／海外所得／資本利得／收益平準金的比例，每次收益分配通知為準；以上數字皆為稅前試算。</div>
+  </section>
+
+  <section id="risks">
+    <h2>九、反方意見：什麼情況要停下來</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>反方提醒</th><th>v5 怎麼處理</th><th>真正要停的條件</th></tr></thead>
+      <tbody>
+        <tr><td>三檔高股息選股池重疊</td><td>接受重疊事實；但用 0050 引入市值加權與 0056/00878/00919 殖利率加權的差異化，避免全壓單一因子。</td><td>若 60 歲前發現三檔合計跌幅遠超 0050，應評估是否過度偏離台股 β。</td></tr>
+        <tr><td>配息可能縮水或來自收益平準金</td><td>不外推 7 年配息，改用總報酬情境；每月另存「配息 vs 指數殖利率」對照表。</td><td>若配息政策、指數或成本出現重大變更，重新評估標的。</td></tr>
+        <tr><td>50% 台灣單一市場</td><td>用 00646 拉入 20% 美股，但 0050 提高了台股權值曝險；若台股高度集中於既有資產，應先降這 50%。</td><td>既有資產若已高度集中台股，先降這 50%，不是照抄。</td></tr>
+        <tr><td>40% 美元資產曝險</td><td>保留 10% 台幣現金；不把台灣掛牌誤寫成無匯率風險。</td><td>若 60 歲支出幾乎全為台幣，58 歲起提高台幣提款桶比例。</td></tr>
+        <tr><td>70% 股票可能大跌</td><td>00719B 與現金合計 30% 負責緩衝；建立 24 個月提款桶。</td><td>若無法承受帳面下跌 25%–35%，現在就降低股票比重，不等跌了再改。</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout danger-box"><strong>不做的事：</strong>不因短期高配息加入第四檔高股息；不把長天期美債、非投資等級債、槓桿或選擇權收益 ETF 當成安全替代；不因除息日提前或延後買進；不為放大金額而把股票比重再往上加。</div>
+  </section>
+
+  <section id="checklist">
+    <h2>十、照這張清單執行</h2>
+    <ul class="checklist">
+      <li>第 0 天：500 萬放進停泊帳戶（拆兩家以上），建立 12 次固定提醒。</li>
+      <li>第 1–12 月：0056 50,000／00878 54,167／00919 41,667／00646 83,333／00719B 83,333／0050 62,500；41,667 留現金。</li>
+      <li>第 13 月起：新錢乘以 12%／13%／10%／20%／20%／15%／10%；若有低配超過 5 個百分點，先補低配。</li>
+      <li>每年 6 月與 12 月核對權重；每年最多交易式再平衡一次。</li>
+      <li>每月另存三檔高股息（0056/00878/00919）配息 vs 指數殖利率對照表，發現連兩季明顯偏離就重評估標的。</li>
+      <li>全部配息再投入；58 歲起把 00719B＋現金桶合計約 150 萬優先保留為提款緩衝。</li>
+      <li>60 歲後每月固定轉帳、每年一次補桶；不要等 ETF 剛好月配。</li>
+    </ul>
+  </section>
+
+  <section id="sources">
+    <h2>資料來源</h2>
+    <ol class="source-list"><li id="s1"><a href="https://www.yuantaetfs.com/product/detail/0056/Basic_information">元大投信｜0056 元大台灣高股息</a><span class="source-date">讀取日 2026-10-02</span></li>
+<li id="s2"><a href="https://www.cathaysite.com.tw/ETF/detail/ECN">國泰投信｜00878 國泰台灣ESG永續高股息ETF</a><span class="source-date">讀取日 2026-10-02</span></li>
+<li id="s3"><a href="https://www.capitalfund.com.tw/ECStorge/fund/ec/event/Capital00919/index.html">群益投信｜00919 群益台灣精選高息ETF</a><span class="source-date">讀取日 2026-10-02</span></li>
+<li id="s4"><a href="https://www.yuantaetfs.com/product/detail/00646/Basic_information">元大投信｜00646 元大標普500</a><span class="source-date">讀取日 2026-10-02</span></li>
+<li id="s5"><a href="https://www.yuantaetfs.com/product/detail/00719B/Basic_information">元大投信｜00719B 元大美國政府1至3年期債券ETF</a><span class="source-date">讀取日 2026-10-02</span></li>
+<li id="s6"><a href="https://www.yuantaetfs.com/product/detail/0050/Basic_information">元大投信｜0050 元大台灣卓越50</a><span class="source-date">讀取日 2026-10-02</span></li>
+<li id="s7"><a href="https://www.nhi.gov.tw/ch/dl-66095-bf2b612a3e734f9da4312142066afb05-1.pdf">健保署｜二代健保問答集</a><span class="source-date">讀取日 2026-10-02</span></li>
+<li id="s8"><a href="https://www.etax.nat.gov.tw/etwmain/tax-info/understanding/tax-q-and-a/national/individual-income-tax/basic-tax-question/oversea-income/awYgOG9">財政部稅務入口網｜海外所得與基本稅額</a><span class="source-date">讀取日 2026-10-02</span></li></ol>
+    <div class="callout info-box"><strong>來源邊界。</strong>商品身分、追蹤指數、風險等級、配息警語與稅務規則取自官方來源；報酬率、通膨率與提領率是本報告的情境假設，未把任何歷史殖利率當成未來保證。</div>
+  </section>
+
+  <footer>
+    Generated by anne profile • 2026-10-02 • 500 萬七年複利操作計畫 v5（高股息 × 市值核心版）<br>
+    對照版本：<a href="https://ul3you-cell.github.io/happyda-public/300wan-passive-income-v3-20261002.html">300 萬 v3</a> · <a href="https://ul3you-cell.github.io/happyda-public/500wan-passive-income-v4-20261002.html">500 萬 v4</a><br>
+    固定網址：<a href="https://ul3you-cell.github.io/happyda-public/500wan-passive-income-v5-20261002.html">https://ul3you-cell.github.io/happyda-public/500wan-passive-income-v5-20261002.html</a><br>
+    Build marker：<span class="mono">BUILD-20261002T181500+0800</span>
+  </footer>
+</main></div>
+</body>
+</html>

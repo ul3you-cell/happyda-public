@@ -202,7 +202,7 @@ def fetch_v3_chain(chain_id: int, whitelist: dict, smoke_block_number: int | Non
                 collected = rpc.simulate_collect(rpc_url, token_id, WALLET_ADDRESS, chain_id=chain_id)
                 pos["fees_owed_0_raw"] = str(collected["amount0"])
                 pos["fees_owed_1_raw"] = str(collected["amount1"])
-                pos["fees_source"] = "eth_call 模擬 collect()（唯讀，未廣播交易）"
+                pos["fees_source"] = "eth_call 模擬 collect()（唯讀，未廣播交易）；此為①目前可領"
                 fee0 = (collected["amount0"] / (10 ** dec0)) if dec0 is not None else None
                 fee1 = (collected["amount1"] / (10 ** dec1)) if dec1 is not None else None
             except Exception as exc:  # noqa: BLE001
@@ -210,8 +210,24 @@ def fetch_v3_chain(chain_id: int, whitelist: dict, smoke_block_number: int | Non
                 fee0 = (details["tokens_owed_0"] / (10 ** dec0)) if dec0 is not None else None
                 fee1 = (details["tokens_owed_1"] / (10 ** dec1)) if dec1 is not None else None
 
+            # anne 2026-10-03 spec ②累計已領：掃描鏈上 Collect 事件，這是「這個
+            # tokenId 有生以來已經真的領出過」的加總，跟①目前可領互斥、不重複。
+            try:
+                cumulative = rpc.get_cumulative_collected_fees(rpc_url, token_id, chain_id=chain_id)
+                pos["cumulative_claimed_0_raw"] = str(cumulative["amount0_raw"])
+                pos["cumulative_claimed_1_raw"] = str(cumulative["amount1_raw"])
+                pos["cumulative_claimed_log_count"] = cumulative["log_count"]
+                pos["cumulative_claimed_source"] = "eth_getLogs 掃描 Collect(tokenId indexed) 事件加總"
+                claimed0 = (cumulative["amount0_raw"] / (10 ** dec0)) if dec0 is not None else None
+                claimed1 = (cumulative["amount1_raw"] / (10 ** dec1)) if dec1 is not None else None
+            except Exception as exc:  # noqa: BLE001 — 掃描失敗不當掉整個部位，標示②不可用
+                pos["cumulative_claimed_unsupported_reason"] = f"Collect 事件掃描失敗：{_redact(exc)}"
+                claimed0 = claimed1 = None
+
             pos["_fee0_amount"] = fee0
             pos["_fee1_amount"] = fee1
+            pos["_claimed0_amount"] = claimed0
+            pos["_claimed1_amount"] = claimed1
             pos["_token0_addr_for_price"] = details["token0"].lower()
             pos["_token1_addr_for_price"] = details["token1"].lower()
         except Exception as exc:  # noqa: BLE001
@@ -403,6 +419,28 @@ def enrich_with_usd(v3_results: list[dict]) -> None:
             if not fees_complete:
                 fees_usd = None
             pos["fees_owed_usd"] = fees_usd
+
+            # ②累計已領換算 USD：刻意用「本次查詢同一時間點」的 price0/price1，
+            # 跟①可領、部位估值用同一套即時報價——不去抓各次歷史 collect 當下
+            # 的歷史幣價（那會讓「本期新增收入」的計算混進幣價漲跌，anne 明確
+            # 要求分開：Δ 只能反映 fee 收入本身，不能被幣價波動污染）。
+            claimed0 = pos.pop("_claimed0_amount", None)
+            claimed1 = pos.pop("_claimed1_amount", None)
+            if claimed0 is None and claimed1 is None:
+                pos["cumulative_claimed_usd"] = None
+            else:
+                claimed_usd = 0.0
+                claimed_complete = True
+                for price, amount in ((price0, claimed0), (price1, claimed1)):
+                    if amount is None:
+                        claimed_complete = False
+                    elif amount != 0:
+                        if price is None:
+                            claimed_complete = False
+                        else:
+                            claimed_usd += price * amount
+                pos["cumulative_claimed_usd"] = claimed_usd if claimed_complete else None
+
             pos.pop("_token0_addr_for_price", None)
             pos.pop("_token1_addr_for_price", None)
             if value_usd is None and (price0 is None or price1 is None):
@@ -512,6 +550,15 @@ def write_snapshots(chain_results: list[dict]) -> int:
                 in_range=bool(pos.get("in_range")),
                 fees_accrued_usd=pos.get("fees_owed_usd"),
                 position_value_usd=pos.get("position_value_usd"),
+                claimable_0_raw=pos.get("fees_owed_0_raw"),
+                claimable_1_raw=pos.get("fees_owed_1_raw"),
+                cumulative_claimed_0_raw=pos.get("cumulative_claimed_0_raw"),
+                cumulative_claimed_1_raw=pos.get("cumulative_claimed_1_raw"),
+                cumulative_claimed_usd=pos.get("cumulative_claimed_usd"),
+                # fee_income_delta_usd 要跟「上一筆快照」比較才能算，寫入當下這筆
+                # snapshot 時還沒有「上一筆」可比——改在 attach_observed_apr()
+                # 讀到完整歷史後現算，再透過 update_fee_income_delta() 回填這一筆。
+                fee_income_delta_usd=None,
             )
             count += 1
     conn.close()
@@ -643,10 +690,38 @@ def attach_observed_apr(chain_results: list[dict]) -> None:
                     (today_total - prev_total) if (today_total is not None and prev_total is not None) else None
                 )
                 pos["base_established"] = False
+
+                # anne 2026-10-03 spec ③本期新增收入 Δ ＝ 本期末可領 − 上期末可領
+                # ＋ 期間已領。這裡故意不拿 delta_24h_usd（部位總值+可領 fee 的
+                # 總變化）當 fee 收入——那會把幣價漲跌也算成 fee，anne 明確禁止。
+                current_claimable = today_row.get("fees_accrued_usd")
+                previous_claimable = prev_row.get("fees_accrued_usd")
+                today_cum_claimed = today_row.get("cumulative_claimed_usd")
+                prev_cum_claimed = prev_row.get("cumulative_claimed_usd")
+                period_claimed = (
+                    (today_cum_claimed - prev_cum_claimed)
+                    if (today_cum_claimed is not None and prev_cum_claimed is not None)
+                    else None
+                )
+                delta_result = wallet_apr_calc.compute_fee_income_delta(
+                    current_claimable, previous_claimable, period_claimed
+                )
+                pos["fee_income_delta_usd"] = delta_result["delta_usd"]
+                pos["fee_income_delta_note"] = delta_result["note"]
+                store.update_fee_income_delta(
+                    conn,
+                    ts=today_row["ts"],
+                    wallet_addr=WALLET_ADDRESS,
+                    chain_id=chain_id,
+                    token_id=pos["token_id"],
+                    fee_income_delta_usd=delta_result["delta_usd"],
+                )
             else:
                 pos["delta_24h_usd"] = None
                 pos["base_established"] = True
                 pos["delta_note"] = "基準已建立；第二筆快照後才有實測每日 delta"
+                pos["fee_income_delta_usd"] = None
+                pos["fee_income_delta_note"] = "基準已建立；第二筆快照後才有「本期新增收入 Δ」"
     conn.close()
 
 
@@ -710,6 +785,9 @@ def build_wallet_rows(wallet_data: dict) -> list[dict]:
                 "token1_value_usd": pos.get("token1_value_usd"),
                 "in_range": pos.get("in_range"),
                 "delta_24h_usd": pos.get("delta_24h_usd"),
+                "cumulative_claimed_usd": pos.get("cumulative_claimed_usd"),
+                "fee_income_delta_usd": pos.get("fee_income_delta_usd"),
+                "fee_income_delta_note": pos.get("fee_income_delta_note") or pos.get("cumulative_claimed_unsupported_reason"),
                 "observed_apr_7d_pct": pos.get("observed_apr_7d_pct"),
                 "observed_apr_30d_pct": pos.get("observed_apr_30d_pct"),
                 "base_established": pos.get("base_established"),
@@ -739,6 +817,9 @@ def build_wallet_rows(wallet_data: dict) -> list[dict]:
                 "token1_value_usd": None,
                 "in_range": None,
                 "delta_24h_usd": None,
+                "cumulative_claimed_usd": None,
+                "fee_income_delta_usd": None,
+                "fee_income_delta_note": None,
                 "observed_apr_7d_pct": None,
                 "observed_apr_30d_pct": None,
                 "base_established": None,

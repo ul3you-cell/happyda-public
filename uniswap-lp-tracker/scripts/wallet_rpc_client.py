@@ -280,6 +280,25 @@ def _address_to_topic(addr: str) -> str:
     return "0x" + encode_address_arg(addr)
 
 
+# Collect(uint256 indexed tokenId, address recipient, uint256 amount0, uint256 amount1)
+# —— NonfungiblePositionManager 的標準事件（官方介面 INonfungiblePositionManager.sol
+# 逐字核對：只有 tokenId 是 indexed，recipient/amount0/amount1 三者都在 data 裡，
+# 依宣告順序排列）。topic0 用本檔案既有的 keccak256() 現算，不憑記憶寫死 hex 常數。
+COLLECT_EVENT_TOPIC0 = keccak256_hex(b"Collect(uint256,address,uint256,uint256)")
+
+
+def decode_collect_event_log(log: dict) -> dict:
+    """解碼一筆 Collect 事件 log：data 依序是 recipient(32B)+amount0(32B)+amount1(32B)。"""
+    words = _hex_words(log.get("data", "0x"))
+    if len(words) != 3:
+        raise ValueError(f"Collect event data 應為 3 個 32-byte slot，實際 {len(words)} 個")
+    return {
+        "recipient": decode_address_word(words[0]),
+        "amount0": decode_uint_word(words[1]),
+        "amount1": decode_uint_word(words[2]),
+    }
+
+
 def decode_transfer_log_token_id(log: dict) -> int:
     """ERC-721 的 Transfer 事件三個參數都是 indexed，tokenId 在 topics[3]，\n    不在 data 裡（跟 ERC-20 Transfer 不同，那個 value 沒有 indexed，在 data）。"""
     topics = log.get("topics") or []
@@ -832,6 +851,49 @@ def simulate_collect(
     calldata = calldata_collect(token_id, owner_addr)
     result_hex = eth_call(rpc_url, to_address, calldata, http_post=http_post, from_address=owner_addr)
     return decode_collect_result(result_hex)
+
+
+def get_cumulative_collected_fees(
+    rpc_url: str,
+    token_id: int,
+    chain_id: int,
+    from_block: int = 0,
+    to_block: int | str = "latest",
+    http_post: Optional[HttpPost] = None,
+) -> dict:
+    """掃描 NonfungiblePositionManager 的 Collect(tokenId indexed) 事件，加總這個
+    token_id 歷史上已經真的呼叫 collect() 領出的 token0/token1 raw 數量（跨每一次
+    collect 呼叫，不限定由哪個操作——increase/decrease liquidity 都會先觸發一次
+    collect）。這是「累計已領」的唯一誠實來源：不是用 positions().tokensOwed（那只
+    反映尚未領的部分），也不是估算，是鏈上事件實際發生過的紀錄。
+
+    回傳 {"amount0_raw", "amount1_raw", "log_count", "scanned_to_block"}；
+    呼叫端要自行處理 WalletRpcError（掃描失敗不等於真的沒領過，要誠實回報）。"""
+    if chain_id not in POSITION_MANAGER_ADDRESS_BY_CHAIN:
+        raise WalletRpcError(f"chain_id={chain_id} 沒有已核對過的 v3 NonfungiblePositionManager 位址")
+    to_address = POSITION_MANAGER_ADDRESS_BY_CHAIN[chain_id]
+    logs_url = LOGS_RPC_OVERRIDE_BY_CHAIN.get(chain_id, rpc_url)
+    poster = http_post or _default_http_post
+    if to_block == "latest":
+        latest_resp = poster(logs_url, {"jsonrpc": "2.0", "id": 1, "method": "eth_blockNumber", "params": []})
+        if "error" in latest_resp or not isinstance(latest_resp.get("result"), str):
+            raise WalletRpcError(f"eth_blockNumber 查詢失敗（{_redact_rpc_url(logs_url)}）：{latest_resp}")
+        to_block_num = int(latest_resp["result"], 16)
+    else:
+        to_block_num = int(to_block)
+    topics = [COLLECT_EVENT_TOPIC0, "0x" + encode_uint_arg(token_id)]
+    logs = eth_get_logs(logs_url, to_address, topics, from_block, to_block_num, http_post=http_post)
+    total0 = total1 = 0
+    for log in logs:
+        decoded = decode_collect_event_log(log)
+        total0 += decoded["amount0"]
+        total1 += decoded["amount1"]
+    return {
+        "amount0_raw": total0,
+        "amount1_raw": total1,
+        "log_count": len(logs),
+        "scanned_to_block": to_block_num,
+    }
 
 
 def get_pool_address(

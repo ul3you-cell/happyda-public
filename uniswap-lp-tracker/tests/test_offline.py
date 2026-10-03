@@ -1847,5 +1847,103 @@ class TestBuildWalletRows(unittest.TestCase):
         self.assertEqual(row["token1_value_usd"], 2500.0)
 
 
+class TestCollectEventDecode(unittest.TestCase):
+    """anne 2026-10-03 spec ②累計已領：驗證 Collect 事件 topic0／data 解碼。"""
+
+    def test_collect_event_topic0_matches_known_signature_hash(self):
+        # Collect(uint256,address,uint256,uint256) 的 keccak256 topic0，
+        # 這是業界廣泛核對過的已知值（審計報告／Etherscan event log 常見引用），
+        # 不是本專案自己猜的；這裡用本檔案既有的 keccak256_hex() 現算，
+        # 跟硬寫的已知常數比對，確保兩邊一致。
+        self.assertEqual(
+            wallet_rpc_client.COLLECT_EVENT_TOPIC0,
+            "0x40d0efd1a53d60ecbf40971b9daf7dc90178c3aadc7aab1765632738fa8b8f01",
+        )
+        self.assertTrue(wallet_rpc_client.COLLECT_EVENT_TOPIC0.startswith("0x"))
+        self.assertEqual(len(wallet_rpc_client.COLLECT_EVENT_TOPIC0), 66)
+
+    def test_decode_collect_event_log_recipient_amount0_amount1(self):
+        recipient = "0x" + "11" * 20
+        amount0 = 123456789
+        amount1 = 987654321
+        data = (
+            "0x"
+            + wallet_rpc_client.encode_address_arg(recipient)
+            + wallet_rpc_client.encode_uint_arg(amount0)
+            + wallet_rpc_client.encode_uint_arg(amount1)
+        )
+        decoded = wallet_rpc_client.decode_collect_event_log({"data": data})
+        self.assertEqual(decoded["recipient"], recipient)
+        self.assertEqual(decoded["amount0"], amount0)
+        self.assertEqual(decoded["amount1"], amount1)
+
+    def test_decode_collect_event_log_rejects_wrong_word_count(self):
+        with self.assertRaises(ValueError):
+            wallet_rpc_client.decode_collect_event_log({"data": "0x" + "00" * 32})
+
+    def test_get_cumulative_collected_fees_sums_multiple_logs(self):
+        """模擬兩次 collect 呼叫（兩筆 Collect log），驗證加總正確、不漏算。"""
+        recipient = "0x" + "aa" * 20
+
+        def make_log(amount0: int, amount1: int) -> dict:
+            data = (
+                "0x"
+                + wallet_rpc_client.encode_address_arg(recipient)
+                + wallet_rpc_client.encode_uint_arg(amount0)
+                + wallet_rpc_client.encode_uint_arg(amount1)
+            )
+            return {"data": data}
+
+        logs = [make_log(100, 200), make_log(300, 400)]
+
+        def fake_http_post(url: str, payload: dict) -> dict:
+            method = payload.get("method")
+            if method == "eth_blockNumber":
+                return {"jsonrpc": "2.0", "id": 1, "result": "0x64"}
+            if method == "eth_getLogs":
+                return {"jsonrpc": "2.0", "id": 1, "result": logs}
+            raise AssertionError(f"未預期的方法：{method}")
+
+        result = wallet_rpc_client.get_cumulative_collected_fees(
+            "https://fake-rpc.invalid", token_id=42, chain_id=1, http_post=fake_http_post,
+        )
+        self.assertEqual(result["amount0_raw"], 400)
+        self.assertEqual(result["amount1_raw"], 600)
+        self.assertEqual(result["log_count"], 2)
+        self.assertEqual(result["scanned_to_block"], 0x64)
+
+
+class TestFeeIncomeDelta(unittest.TestCase):
+    """anne 2026-10-03 spec ③本期新增收入 Δ ＝ 本期末可領 − 上期末可領 ＋ 期間已領。"""
+
+    def test_no_claim_during_period_delta_equals_claimable_increase(self):
+        # 期間沒有 claim：期間已領＝0，Δ 就單純是可領金額的增加量。
+        result = wallet_apr_calc.compute_fee_income_delta(
+            current_claimable_usd=15.0, previous_claimable_usd=10.0, period_claimed_usd=0.0,
+        )
+        self.assertAlmostEqual(result["delta_usd"], 5.0)
+        self.assertIsNone(result["note"])
+
+    def test_mid_period_claim_does_not_go_negative(self):
+        # anne 原話案例：上期末可領 100，期間使用者 claim 掉全部 100，可領歸零後
+        # 重新累積到本期末可領 20。單純比較 (20 - 100) = -80 會誤判成「虧了」，
+        # 正確公式要加回「期間已領 100」：20 - 100 + 100 = 20（這期真的賺了 20）。
+        result = wallet_apr_calc.compute_fee_income_delta(
+            current_claimable_usd=20.0, previous_claimable_usd=100.0, period_claimed_usd=100.0,
+        )
+        self.assertAlmostEqual(result["delta_usd"], 20.0)
+        self.assertGreaterEqual(result["delta_usd"], 0.0)
+
+    def test_missing_any_input_returns_none_not_zero(self):
+        for kwargs in (
+            {"current_claimable_usd": None, "previous_claimable_usd": 1.0, "period_claimed_usd": 0.0},
+            {"current_claimable_usd": 1.0, "previous_claimable_usd": None, "period_claimed_usd": 0.0},
+            {"current_claimable_usd": 1.0, "previous_claimable_usd": 1.0, "period_claimed_usd": None},
+        ):
+            result = wallet_apr_calc.compute_fee_income_delta(**kwargs)
+            self.assertIsNone(result["delta_usd"])
+            self.assertIsNotNone(result["note"])
+
+
 if __name__ == "__main__":
     unittest.main()

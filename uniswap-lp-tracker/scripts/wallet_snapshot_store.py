@@ -110,6 +110,17 @@ CREATE TABLE IF NOT EXISTS wallet_position_snapshot (
                                       -- RPC 失敗），不能用 0 頂替（0 是「真的沒收
                                       -- 到手續費」的合法值，跟「沒算出來」不同）。
   position_value_usd REAL,           -- 這個部位在快照當下的估值（USD）
+  claimable_0_raw TEXT,               -- 快照當下①目前可領（eth_call 模擬 collect()）的
+                                      -- token0/token1 raw 數量，字串存避免精度失真
+  claimable_1_raw TEXT,
+  cumulative_claimed_0_raw TEXT,      -- ②累計已領：掃描鏈上 Collect 事件加總的歷史已領
+                                      -- token0/token1 raw 數量（跨 mint/increase/decrease）
+  cumulative_claimed_1_raw TEXT,
+  cumulative_claimed_usd REAL,        -- 累計已領換算成 USD（用「本次查詢同一時間點」價格，
+                                      -- 不是各次 collect 當下的歷史價格——跟 fees_accrued_usd
+                                      -- 用同一套即時報價，避免混用不同時間點的幣價）
+  fee_income_delta_usd REAL,          -- ③本期新增收入 Δ ＝ 本期末可領 − 上期末可領 ＋ 期間已領
+                                      -- （anne 2026-10-03 spec；中途 claim 後不會誤變負值）
   PRIMARY KEY (ts, wallet_addr, chain_id, token_id)
 );
 
@@ -213,9 +224,34 @@ def get_connection(db_path: Path | str | None = None) -> sqlite3.Connection:
     return conn
 
 
+# 既有資料庫（在這次新增欄位之前就已存在）的 wallet_position_snapshot 表不會
+# 因為 CREATE TABLE IF NOT EXISTS 而自動長出新欄位——SQLite 不支援
+# ALTER TABLE ... ADD COLUMN IF NOT EXISTS，用 try/except 吃掉「欄位已存在」
+# 的錯誤，讓這段遷移可以安全重複執行（每次啟動都跑一次也不會壞）。
+_NEW_SNAPSHOT_COLUMNS = (
+    ("claimable_0_raw", "TEXT"),
+    ("claimable_1_raw", "TEXT"),
+    ("cumulative_claimed_0_raw", "TEXT"),
+    ("cumulative_claimed_1_raw", "TEXT"),
+    ("cumulative_claimed_usd", "REAL"),
+    ("fee_income_delta_usd", "REAL"),
+)
+
+
+def _migrate_add_fee_delta_columns(conn: sqlite3.Connection) -> None:
+    for col_name, col_type in _NEW_SNAPSHOT_COLUMNS:
+        try:
+            conn.execute(f"ALTER TABLE wallet_position_snapshot ADD COLUMN {col_name} {col_type}")
+        except sqlite3.OperationalError as exc:
+            if "duplicate column name" not in str(exc).lower():
+                raise
+    conn.commit()
+
+
 def ensure_schema(conn: sqlite3.Connection) -> None:
     conn.executescript(SCHEMA)
     conn.commit()
+    _migrate_add_fee_delta_columns(conn)
 
 
 def insert_snapshot(
@@ -232,22 +268,61 @@ def insert_snapshot(
     in_range: bool,
     fees_accrued_usd: float | None,
     position_value_usd: float | None,
+    claimable_0_raw: str | None = None,
+    claimable_1_raw: str | None = None,
+    cumulative_claimed_0_raw: str | None = None,
+    cumulative_claimed_1_raw: str | None = None,
+    cumulative_claimed_usd: float | None = None,
+    fee_income_delta_usd: float | None = None,
 ) -> None:
     """寫入一筆快照。用 INSERT OR REPLACE：每日排程重跑同一天（同一
     ts/wallet/chain/token_id）視為修正，不視為錯誤——排程本來就可能重跑
-    （例如前一次 RPC 失敗中斷），不應該因為主鍵衝突而整支腳本掛掉。"""
+    （例如前一次 RPC 失敗中斷），不應該因為主鍵衝突而整支腳本掛掉。
+
+    新增的 claimable_*/cumulative_claimed_*/fee_income_delta_usd 全部預設
+    None（呼叫端尚未升級也能繼續用舊簽章呼叫），對應 anne 2026-10-03 spec
+    的①目前可領／②累計已領／③本期新增收入 Δ 三欄。"""
     conn.execute(
         """
         INSERT OR REPLACE INTO wallet_position_snapshot
           (ts, wallet_addr, chain_id, token_id, pool_addr, tick_lower, tick_upper,
-           liquidity, in_range, fees_accrued_usd, position_value_usd)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           liquidity, in_range, fees_accrued_usd, position_value_usd,
+           claimable_0_raw, claimable_1_raw,
+           cumulative_claimed_0_raw, cumulative_claimed_1_raw,
+           cumulative_claimed_usd, fee_income_delta_usd)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             ts, wallet_addr.lower(), chain_id, token_id, pool_addr.lower(),
             tick_lower, tick_upper, liquidity, 1 if in_range else 0,
             fees_accrued_usd, position_value_usd,
+            claimable_0_raw, claimable_1_raw,
+            cumulative_claimed_0_raw, cumulative_claimed_1_raw,
+            cumulative_claimed_usd, fee_income_delta_usd,
         ),
+    )
+    conn.commit()
+
+
+def update_fee_income_delta(
+    conn: sqlite3.Connection,
+    *,
+    ts: int,
+    wallet_addr: str,
+    chain_id: int,
+    token_id: int,
+    fee_income_delta_usd: float | None,
+) -> None:
+    """insert_snapshot() 寫入當下這筆快照時還沒有「上一筆」可比，算不出 Δ；
+    呼叫端（wallet_live_fetch.attach_observed_apr）讀完整段歷史後現算出 Δ，
+    再用這個函式回填同一筆（ts, wallet_addr, chain_id, token_id）快照。"""
+    conn.execute(
+        """
+        UPDATE wallet_position_snapshot
+        SET fee_income_delta_usd = ?
+        WHERE ts = ? AND wallet_addr = ? AND chain_id = ? AND token_id = ?
+        """,
+        (fee_income_delta_usd, ts, wallet_addr.lower(), chain_id, token_id),
     )
     conn.commit()
 
@@ -260,7 +335,10 @@ def fetch_position_history(
     cur = conn.execute(
         """
         SELECT ts, tick_lower, tick_upper, liquidity, in_range,
-               fees_accrued_usd, position_value_usd
+               fees_accrued_usd, position_value_usd,
+               claimable_0_raw, claimable_1_raw,
+               cumulative_claimed_0_raw, cumulative_claimed_1_raw,
+               cumulative_claimed_usd, fee_income_delta_usd
         FROM wallet_position_snapshot
         WHERE wallet_addr = ? AND chain_id = ? AND token_id = ?
         ORDER BY ts ASC

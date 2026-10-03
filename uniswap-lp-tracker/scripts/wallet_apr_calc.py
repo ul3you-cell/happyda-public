@@ -82,6 +82,37 @@ def compute_wallet_position_metrics(daily_rows_asc: list[dict]) -> dict:
     return result
 
 
+def compute_fee_income_delta(
+    current_claimable_usd: float | None,
+    previous_claimable_usd: float | None,
+    period_claimed_usd: float | None,
+) -> dict:
+    """anne 2026-10-03 spec：③本期新增收入 Δ ＝ 本期末可領 − 上期末可領 ＋ 期間已領。
+
+    這個公式刻意不是「單純比較兩次可領金額的差」——如果中途使用者真的
+    claim 過一次，可領金額會先被清空再重新累積，單純比較會算出一個很大的
+    負值（誤以為這期虧了手續費），加回「期間已領」才能還原出這期真正新
+    產生的手續費收入，不受中途是否 claim 影響。
+
+    任何一個輸入是 None（表示某一段資料缺失或 RPC 失敗），整段回 None，
+    不做「缺一段就當 0」的假設——那樣會把「不知道」偽裝成「真的是 0」。
+    """
+    if current_claimable_usd is None or previous_claimable_usd is None or period_claimed_usd is None:
+        missing = [
+            name for name, v in (
+                ("本期末可領", current_claimable_usd),
+                ("上期末可領", previous_claimable_usd),
+                ("期間已領", period_claimed_usd),
+            ) if v is None
+        ]
+        return {
+            "delta_usd": None,
+            "note": "缺少「" + "、".join(missing) + "」資料，無法計算本期新增收入 Δ",
+        }
+    delta = current_claimable_usd - previous_claimable_usd + period_claimed_usd
+    return {"delta_usd": delta, "note": None}
+
+
 def _window_apr(window_rows: list[dict], window_days: int) -> tuple[float | None, int]:
     """回傳 (apr_pct或None, 缺 fees_accrued_usd 的天數)。"""
     missing = sum(1 for r in window_rows if r.get("fees_accrued_usd") is None)

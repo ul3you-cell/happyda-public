@@ -261,6 +261,71 @@ def fetch_v3_chain(chain_id: int, whitelist: dict, smoke_block_number: int | Non
     return result
 
 
+def _evaluate_v4_delta_quality(
+    *,
+    rpc_url: str,
+    chain_id: int,
+    token_id: int,
+    pool_id_hex: str,
+    current_raw0: int,
+    current_raw1: int,
+    current_liquidity: int,
+    current_block: int | None,
+) -> dict:
+    """串接 store 的歷史快照＋rpc 的活動存在性查詢，再丟給純函式
+    wallet_apr_calc.compute_v4_fee_delta_quality() 做決策。任何查詢失敗都要
+    fail-closed 轉成 activity_unknown／insufficient_snapshot，絕不吞掉改
+    回「沒有活動」（那會讓真正有活動但查不到的情況被誤判成精確值）。"""
+    conn = store.get_connection()
+    try:
+        history = store.fetch_position_history(
+            conn, wallet_addr=WALLET_ADDRESS, chain_id=chain_id, token_id=token_id
+        )
+    finally:
+        conn.close()
+    # 這次尚未寫入資料庫（write_snapshots 還沒跑），history 最後一筆就是
+    # 「上一次」快照，不是本次。
+    previous_row = history[-1] if history else None
+
+    if previous_row is None or previous_row.get("snapshot_block_number") is None or current_block is None:
+        return wallet_apr_calc.compute_v4_fee_delta_quality(
+            previous_row=previous_row,
+            current_raw0=current_raw0,
+            current_raw1=current_raw1,
+            current_liquidity=current_liquidity,
+            has_activity=None,
+            activity_error=None,
+        )
+
+    from_block = previous_row["snapshot_block_number"] + 1
+    to_block = current_block
+    has_activity: bool | None = False
+    activity_error: str | None = None
+    if from_block <= to_block:
+        try:
+            has_activity = rpc.has_v4_position_activity_in_range(
+                rpc_url,
+                pool_id_hex,
+                rpc.V4_POSITION_MANAGER_ADDRESS_BY_CHAIN[chain_id],
+                token_id,
+                from_block,
+                to_block,
+                chain_id,
+            )
+        except Exception as exc:  # noqa: BLE001 — fail-closed，往下轉成 activity_unknown
+            activity_error = _redact(exc)
+    # from_block > to_block（同一區塊內重跑）：區塊範圍本身是空的，沒有
+    # 任何新區塊可能夾帶活動，has_activity 維持 False 是誠實推論，不是估算。
+    return wallet_apr_calc.compute_v4_fee_delta_quality(
+        previous_row=previous_row,
+        current_raw0=current_raw0,
+        current_raw1=current_raw1,
+        current_liquidity=current_liquidity,
+        has_activity=has_activity,
+        activity_error=activity_error,
+    )
+
+
 def fetch_v4_chain(chain_id: int, smoke_block_number: int | None = None) -> dict:
     name = rpc.CHAIN_NAME_BY_ID.get(chain_id, f"chain-{chain_id}")
     result = {
@@ -366,8 +431,38 @@ def fetch_v4_chain(chain_id: int, smoke_block_number: int | None = None) -> dict
                 pos["fees_owed_1_raw"] = str(delta1 * growth["liquidity"] // (2**128))
                 pos["fees_source"] = "StateView current feeGrowthInside − position checkpoint，乘以鏈上 liquidity 再除 2^128；估算可領 token base units"
                 pos.pop("fees_unsupported_reason", None)
+
+                # t_4be89664 第 2 段：持久化目前未領 fee 的原始 feeGrowthInside
+                # 全域值（不是上面的「扣掉自身 checkpoint」之後的可領估計），
+                # 搭配快照區塊高度，才能讓下一次快照用「無活動期間的 diff」
+                # 還原出跨快照週期的精確原幣 Δ（見 _evaluate_v4_delta_quality）。
+                pos["v4_fee_growth_inside0_raw"] = str(growth["fee_growth_inside_0_x128"])
+                pos["v4_fee_growth_inside1_raw"] = str(growth["fee_growth_inside_1_x128"])
+                pos["v4_snapshot_block_number"] = result.get("block_number")
+                quality = _evaluate_v4_delta_quality(
+                    rpc_url=rpc_url,
+                    chain_id=chain_id,
+                    token_id=token_id,
+                    pool_id_hex=pos["pool_id_hex"],
+                    current_raw0=growth["fee_growth_inside_0_x128"],
+                    current_raw1=growth["fee_growth_inside_1_x128"],
+                    current_liquidity=growth["liquidity"],
+                    current_block=result.get("block_number"),
+                )
+                pos["v4_delta_quality_status"] = quality["status"]
+                pos["v4_delta_quality_reason"] = quality["reason"]
+                pos["fee_income_delta_token0_raw"] = (
+                    str(quality["delta0_raw"]) if quality["delta0_raw"] is not None else None
+                )
+                pos["fee_income_delta_token1_raw"] = (
+                    str(quality["delta1_raw"]) if quality["delta1_raw"] is not None else None
+                )
             except Exception as exc:  # noqa: BLE001 — 保留已查得的部位狀態與估值
                 pos["fees_unsupported_reason"] = f"StateView fee-growth 讀取失敗，無法計算個人可領 fee：{_redact(exc)}"
+                # fail-closed：連「目前未領 fee」都讀不到時，跨快照 Δ 更不可信，
+                # 不得留空（留空會被誤讀成「尚未判斷」而不是「確定失敗」）。
+                pos["v4_delta_quality_status"] = "growth_unavailable"
+                pos["v4_delta_quality_reason"] = f"StateView fee-growth 讀取失敗，無法計算 Δ：{_redact(exc)}"
         except Exception as exc:  # noqa: BLE001
             pos = {"token_id": token_id, "error": _redact(exc)}
         result["positions"].append(pos)
@@ -536,11 +631,15 @@ def enrich_v4_with_usd(v4_results: list[dict]) -> None:
                 continue
             value = fees = 0.0
             value_complete = fees_complete = True
+            price_by_index: dict[int, float | None] = {}
+            decimals_by_index: dict[int, int | None] = {}
             for i in (0, 1):
                 price = prices.get((slug, pos.get(f"_v4_price_addr_{i}")))
                 amount = pos.get(f"token{i}_amount")
                 raw_fee = int(pos.get(f"fees_owed_{i}_raw", "0"))
                 decimals = (pos.get(f"token{i}") or {}).get("decimals")
+                price_by_index[i] = price
+                decimals_by_index[i] = decimals
                 pos[f"token{i}_usd_price"] = price
                 pos[f"token{i}_value_usd"] = (
                     None if amount is None or (amount != 0 and price is None)
@@ -573,6 +672,38 @@ def enrich_v4_with_usd(v4_results: list[dict]) -> None:
                 )
             pos.pop("_v4_price_addr_0", None)
             pos.pop("_v4_price_addr_1", None)
+
+            # anne 核正同款規則套用在 V4：③本期新增收入 Δ 只有
+            # v4_delta_quality_status=="ok" 時，原幣精確值才可信；USD 換算
+            # 還要求兩邊代幣同時有即時報價，缺價維持 None，不當 0。
+            quality_status = pos.get("v4_delta_quality_status")
+            if quality_status != "ok":
+                pos["fee_income_delta_usd"] = None
+                pos["fee_income_delta_note"] = pos.get("v4_delta_quality_reason")
+            else:
+                delta_usd_sum = 0.0
+                delta_complete = True
+                for i in (0, 1):
+                    raw_val = pos.get(f"fee_income_delta_token{i}_raw")
+                    decimals = decimals_by_index.get(i)
+                    price = price_by_index.get(i)
+                    if raw_val is None or decimals is None:
+                        delta_complete = False
+                        continue
+                    amount = int(raw_val) / (10 ** decimals)
+                    if amount != 0:
+                        if price is None:
+                            delta_complete = False
+                        else:
+                            delta_usd_sum += price * amount
+                if delta_complete:
+                    pos["fee_income_delta_usd"] = delta_usd_sum
+                    pos["fee_income_delta_note"] = None
+                else:
+                    pos["fee_income_delta_usd"] = None
+                    pos["fee_income_delta_note"] = (
+                        "Δ 原幣精確值已算出，但 token0/token1 缺即時 USD 報價，不以 0 頂替。"
+                    )
 
 
 def write_snapshots(chain_results: list[dict]) -> int:
@@ -612,10 +743,18 @@ def write_snapshots(chain_results: list[dict]) -> int:
                 cumulative_claimed_usd=pos.get("cumulative_claimed_usd"),
                 cumulative_decrease_principal_usd=pos.get("cumulative_decrease_principal_usd"),
                 cumulative_fee_income_usd=pos.get("cumulative_fee_income_usd"),
-                # fee_income_delta_usd 要跟「上一筆快照」比較才能算，寫入當下這筆
-                # snapshot 時還沒有「上一筆」可比——改在 attach_observed_apr()
+                # V3：fee_income_delta_usd 要跟「上一筆快照」比較才能算，寫入當下
+                # 這筆 snapshot 時還沒有「上一筆」可比——改在 attach_observed_apr()
                 # 讀到完整歷史後現算，再透過 update_fee_income_delta() 回填這一筆。
-                fee_income_delta_usd=None,
+                # V4：Δ 在 fetch_v4_chain()／enrich_v4_with_usd() 已經用原幣精確
+                # feeGrowth diff 算好（見 v4_delta_quality_status），這裡直接寫入，
+                # attach_observed_apr() 不會再覆蓋 v4 部位這欄。
+                fee_income_delta_usd=(pos.get("fee_income_delta_usd") if protocol == "v4" else None),
+                v4_fee_growth_inside0_raw=pos.get("v4_fee_growth_inside0_raw"),
+                v4_fee_growth_inside1_raw=pos.get("v4_fee_growth_inside1_raw"),
+                snapshot_block_number=pos.get("v4_snapshot_block_number"),
+                v4_delta_quality_status=pos.get("v4_delta_quality_status"),
+                v4_delta_quality_reason=pos.get("v4_delta_quality_reason"),
             )
             count += 1
     conn.close()
@@ -722,6 +861,7 @@ def attach_observed_apr(chain_results: list[dict]) -> None:
     conn = store.get_connection()
     for chain_result in chain_results:
         chain_id = chain_result["chain_id"]
+        protocol = chain_result.get("protocol")
         for pos in chain_result.get("positions", []):
             if "token_id" not in pos or "error" in pos:
                 continue
@@ -748,33 +888,41 @@ def attach_observed_apr(chain_results: list[dict]) -> None:
                 )
                 pos["base_established"] = False
 
-                # anne 2026-10-03 核正版 ③本期新增收入 Δ ＝ 本期末累計 fee 收入
-                # － 上期末累計 fee 收入；累計 fee 收入本身已經在 enrich_with_usd()
-                # 套過精確恆等式（累計已領＋目前可提領總額－累計撤出本金）扣掉了
-                # decreaseLiquidity() 的本金，這裡只是單純做差，不再重複拆本金。
-                # 故意不拿 delta_24h_usd（部位總值+可提領總額的總變化）當 fee
-                # 收入——那會把幣價漲跌、也可能把撤資本金都算成 fee，anne 明確禁止。
-                today_cum_income = today_row.get("cumulative_fee_income_usd")
-                prev_cum_income = prev_row.get("cumulative_fee_income_usd")
-                delta_result = wallet_apr_calc.compute_fee_income_delta(
-                    today_cum_income, prev_cum_income
-                )
-                pos["fee_income_delta_usd"] = delta_result["delta_usd"]
-                pos["fee_income_delta_note"] = delta_result["note"]
-                store.update_fee_income_delta(
-                    conn,
-                    ts=today_row["ts"],
-                    wallet_addr=WALLET_ADDRESS,
-                    chain_id=chain_id,
-                    token_id=pos["token_id"],
-                    fee_income_delta_usd=delta_result["delta_usd"],
-                )
+                if protocol == "v3":
+                    # anne 2026-10-03 核正版 ③本期新增收入 Δ ＝ 本期末累計 fee 收入
+                    # － 上期末累計 fee 收入；累計 fee 收入本身已經在 enrich_with_usd()
+                    # 套過精確恆等式（累計已領＋目前可提領總額－累計撤出本金）扣掉了
+                    # decreaseLiquidity() 的本金，這裡只是單純做差，不再重複拆本金。
+                    # 故意不拿 delta_24h_usd（部位總值+可提領總額的總變化）當 fee
+                    # 收入——那會把幣價漲跌、也可能把撤資本金都算成 fee，anne 明確禁止。
+                    today_cum_income = today_row.get("cumulative_fee_income_usd")
+                    prev_cum_income = prev_row.get("cumulative_fee_income_usd")
+                    delta_result = wallet_apr_calc.compute_fee_income_delta(
+                        today_cum_income, prev_cum_income
+                    )
+                    pos["fee_income_delta_usd"] = delta_result["delta_usd"]
+                    pos["fee_income_delta_note"] = delta_result["note"]
+                    store.update_fee_income_delta(
+                        conn,
+                        ts=today_row["ts"],
+                        wallet_addr=WALLET_ADDRESS,
+                        chain_id=chain_id,
+                        token_id=pos["token_id"],
+                        fee_income_delta_usd=delta_result["delta_usd"],
+                    )
+                # v4：fee_income_delta_usd／note 已在 enrich_v4_with_usd() 用原幣
+                # 精確 Δ（feeGrowthInside diff，見 v4_delta_quality_status）＋即時
+                # 報價算好，也已經在 write_snapshots() 寫進這一筆快照——這裡刻意
+                # 不覆蓋：V3 那套「累計 Collect 恆等式做差」依賴 cumulative_fee_
+                # income_usd，V4 目前沒有累計已領事件掃描（StateView 不提供事件），
+                # 硬套這段邏輯只會把剛算好的正確值蓋成 None。
             else:
                 pos["delta_24h_usd"] = None
                 pos["base_established"] = True
                 pos["delta_note"] = "基準已建立；第二筆快照後才有實測每日 delta"
-                pos["fee_income_delta_usd"] = None
-                pos["fee_income_delta_note"] = "基準已建立；第二筆快照後才有「本期新增收入 Δ」"
+                if protocol == "v3":
+                    pos["fee_income_delta_usd"] = None
+                    pos["fee_income_delta_note"] = "基準已建立；第二筆快照後才有「本期新增收入 Δ」"
     conn.close()
 
 

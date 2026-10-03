@@ -135,9 +135,15 @@ CREATE TABLE IF NOT EXISTS wallet_position_snapshot (
   snapshot_block_number INTEGER,      -- 這筆快照對應的鏈上區塊高度（讓 has_v4_position_
                                       -- activity_in_range 能用「上次快照區塊～這次快照區塊」
                                       -- 當掃描區間，不用猜時間戳對應的區塊）
-  v4_delta_quality_status TEXT,       -- v4 fee delta 的品質狀態：'ok'｜'no_activity'｜
-                                      -- 'activity_unknown'｜'insufficient_snapshot'，決定
-                                      -- 這筆 delta 能不能被下游信任顯示
+  v4_delta_quality_status TEXT,       -- v4 fee delta 的品質狀態（見
+                                      -- wallet_apr_calc.compute_v4_fee_delta_quality 的
+                                      -- 完整判定邏輯）：'ok'（無活動＋上一筆齊全，diff
+                                      -- 為精確原幣值）｜'activity_detected'（區間內有
+                                      -- ModifyLiquidity，diff 不可信）｜'activity_unknown'
+                                      -- （存在性查詢失敗或 raw 值異常下降，fail-closed）｜
+                                      -- 'insufficient_snapshot'（無上一筆或缺必要欄位）｜
+                                      -- 'growth_unavailable'（本次 feeGrowthInside 讀取就
+                                      -- 失敗）。非 'ok' 時 delta 一律 NULL，不得硬湊。
   v4_delta_quality_reason TEXT,       -- 上面狀態的人類可讀原因（例如 RPC 失敗訊息、或
                                       -- 「上一筆快照缺區塊高度」），絕不是數值欄位
   PRIMARY KEY (ts, wallet_addr, chain_id, token_id)

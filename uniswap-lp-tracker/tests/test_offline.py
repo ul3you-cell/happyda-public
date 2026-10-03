@@ -2287,5 +2287,181 @@ class TestHasV4PositionActivityInRange(unittest.TestCase):
         self.assertEqual(topics[2], wallet_rpc_client._address_to_topic(self.SENDER))
 
 
+class TestComputeV4FeeDeltaQuality(unittest.TestCase):
+    """t_4be89664 第 2 段：wallet_apr_calc.compute_v4_fee_delta_quality() 純函式。
+    涵蓋 fail-closed 的每一個分支，禁止用 block-1 回算或估算冒充精確值。"""
+
+    GOOD_PREV_ROW = {
+        "v4_fee_growth_inside0_raw": "1000000000000000000000000000000",
+        "v4_fee_growth_inside1_raw": "2000000000000000000000000000000",
+        "snapshot_block_number": 20000000,
+    }
+
+    def test_no_previous_row_is_insufficient_snapshot(self):
+        result = wallet_apr_calc.compute_v4_fee_delta_quality(
+            previous_row=None, current_raw0=1, current_raw1=1,
+            current_liquidity=100, has_activity=False,
+        )
+        self.assertEqual(result["status"], "insufficient_snapshot")
+        self.assertIsNone(result["delta0_raw"])
+        self.assertIsNone(result["delta1_raw"])
+        self.assertIsNotNone(result["reason"])
+
+    def test_previous_row_missing_raw_or_block_is_insufficient_snapshot(self):
+        for broken_row in (
+            {**self.GOOD_PREV_ROW, "v4_fee_growth_inside0_raw": None},
+            {**self.GOOD_PREV_ROW, "v4_fee_growth_inside1_raw": None},
+            {**self.GOOD_PREV_ROW, "snapshot_block_number": None},
+            {},
+        ):
+            result = wallet_apr_calc.compute_v4_fee_delta_quality(
+                previous_row=broken_row, current_raw0=10**30, current_raw1=10**30,
+                current_liquidity=100, has_activity=False,
+            )
+            self.assertEqual(result["status"], "insufficient_snapshot")
+            self.assertIsNone(result["delta0_raw"])
+
+    def test_activity_query_failure_is_fail_closed_not_no_activity(self):
+        result = wallet_apr_calc.compute_v4_fee_delta_quality(
+            previous_row=self.GOOD_PREV_ROW, current_raw0=10**30, current_raw1=10**30,
+            current_liquidity=100, has_activity=None,
+            activity_error="RPC 連線失敗（模擬）",
+        )
+        self.assertEqual(result["status"], "activity_unknown")
+        self.assertIsNone(result["delta0_raw"])
+        self.assertIsNone(result["delta1_raw"])
+        self.assertIn("模擬", result["reason"])
+
+    def test_activity_detected_blocks_delta(self):
+        result = wallet_apr_calc.compute_v4_fee_delta_quality(
+            previous_row=self.GOOD_PREV_ROW,
+            current_raw0=int(self.GOOD_PREV_ROW["v4_fee_growth_inside0_raw"]) + 10**20,
+            current_raw1=int(self.GOOD_PREV_ROW["v4_fee_growth_inside1_raw"]) + 10**20,
+            current_liquidity=100, has_activity=True,
+        )
+        self.assertEqual(result["status"], "activity_detected")
+        self.assertIsNone(result["delta0_raw"])
+        self.assertIsNone(result["delta1_raw"])
+
+    def test_raw_value_decreasing_is_treated_as_anomaly_not_zero(self):
+        result = wallet_apr_calc.compute_v4_fee_delta_quality(
+            previous_row=self.GOOD_PREV_ROW,
+            current_raw0=int(self.GOOD_PREV_ROW["v4_fee_growth_inside0_raw"]) - 1,
+            current_raw1=int(self.GOOD_PREV_ROW["v4_fee_growth_inside1_raw"]),
+            current_liquidity=100, has_activity=False,
+        )
+        self.assertEqual(result["status"], "activity_unknown")
+        self.assertIsNone(result["delta0_raw"])
+
+    def test_no_activity_with_full_history_computes_exact_raw_delta(self):
+        liquidity = 5 * 2**128  # 選個方便整除驗證的 liquidity
+        current_raw0 = int(self.GOOD_PREV_ROW["v4_fee_growth_inside0_raw"]) + 3
+        current_raw1 = int(self.GOOD_PREV_ROW["v4_fee_growth_inside1_raw"]) + 7
+        result = wallet_apr_calc.compute_v4_fee_delta_quality(
+            previous_row=self.GOOD_PREV_ROW, current_raw0=current_raw0, current_raw1=current_raw1,
+            current_liquidity=liquidity, has_activity=False,
+        )
+        self.assertEqual(result["status"], "ok")
+        self.assertIsNone(result["reason"])
+        self.assertEqual(result["delta0_raw"], 3 * 5)
+        self.assertEqual(result["delta1_raw"], 7 * 5)
+
+    def test_no_change_in_raw_values_gives_zero_delta_not_null(self):
+        current_raw0 = int(self.GOOD_PREV_ROW["v4_fee_growth_inside0_raw"])
+        current_raw1 = int(self.GOOD_PREV_ROW["v4_fee_growth_inside1_raw"])
+        result = wallet_apr_calc.compute_v4_fee_delta_quality(
+            previous_row=self.GOOD_PREV_ROW, current_raw0=current_raw0, current_raw1=current_raw1,
+            current_liquidity=12345, has_activity=False,
+        )
+        self.assertEqual(result["status"], "ok")
+        self.assertEqual(result["delta0_raw"], 0)
+        self.assertEqual(result["delta1_raw"], 0)
+
+
+class TestEvaluateV4DeltaQualityWiring(unittest.TestCase):
+    """t_4be89664 第 2 段：wallet_live_fetch._evaluate_v4_delta_quality() 這一層
+    I/O 串接（store 歷史 + rpc 活動查詢），全程用假的 DB 路徑／http_post，不打
+    真實 RPC，驗證它會正確組出 wallet_apr_calc.compute_v4_fee_delta_quality()
+    需要的引數並 fail-closed 轉發結果。"""
+
+    POOL_ID = "0x" + "cd" * 32
+    CHAIN_ID = 1
+    TOKEN_ID = 429477
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp(prefix="wallet-tracker-v4wiring-test-")
+        self.db_path = os.path.join(self.tmpdir, "test.sqlite3")
+        self._patch_db = mock.patch.object(wallet_snapshot_store, "DEFAULT_DB_PATH", Path(self.db_path))
+        self._patch_db.start()
+
+    def tearDown(self):
+        self._patch_db.stop()
+        import shutil
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def test_first_snapshot_is_insufficient_snapshot_without_any_rpc_call(self):
+        def fake_post(rpc_url, payload):
+            raise AssertionError("第一筆快照不該打任何 RPC（沒有基準可比）")
+
+        with mock.patch.object(wallet_rpc_client, "_default_http_post", fake_post):
+            result = wallet_live_fetch._evaluate_v4_delta_quality(
+                rpc_url="https://fake-rpc.invalid", chain_id=self.CHAIN_ID, token_id=self.TOKEN_ID,
+                pool_id_hex=self.POOL_ID, current_raw0=10**30, current_raw1=10**30,
+                current_liquidity=100, current_block=20000100,
+            )
+        self.assertEqual(result["status"], "insufficient_snapshot")
+
+    def test_second_snapshot_with_no_activity_computes_ok_delta(self):
+        conn = wallet_snapshot_store.get_connection(self.db_path)
+        wallet_snapshot_store.insert_snapshot(
+            conn, ts=100, wallet_addr=wallet_live_fetch.WALLET_ADDRESS, chain_id=self.CHAIN_ID,
+            token_id=self.TOKEN_ID, pool_addr="0xpool", tick_lower=-100, tick_upper=100,
+            liquidity="100", in_range=True, fees_accrued_usd=None, position_value_usd=None,
+            v4_fee_growth_inside0_raw="1000", v4_fee_growth_inside1_raw="2000",
+            snapshot_block_number=20000000, v4_delta_quality_status="insufficient_snapshot",
+            v4_delta_quality_reason="第一筆快照",
+        )
+        conn.close()
+
+        def fake_post(rpc_url, payload):
+            if payload.get("method") == "eth_getLogs":
+                return {"jsonrpc": "2.0", "id": 1, "result": []}
+            raise AssertionError(f"非預期的 RPC 呼叫：{payload}")
+
+        with mock.patch.object(wallet_rpc_client, "_default_http_post", fake_post):
+            result = wallet_live_fetch._evaluate_v4_delta_quality(
+                rpc_url="https://fake-rpc.invalid", chain_id=self.CHAIN_ID, token_id=self.TOKEN_ID,
+                pool_id_hex=self.POOL_ID, current_raw0=1000 + 5 * 2**128, current_raw1=2000 + 9 * 2**128,
+                current_liquidity=1, current_block=20000100,
+            )
+        self.assertEqual(result["status"], "ok")
+        self.assertEqual(result["delta0_raw"], 5)
+        self.assertEqual(result["delta1_raw"], 9)
+
+    def test_activity_rpc_failure_is_fail_closed(self):
+        conn = wallet_snapshot_store.get_connection(self.db_path)
+        wallet_snapshot_store.insert_snapshot(
+            conn, ts=100, wallet_addr=wallet_live_fetch.WALLET_ADDRESS, chain_id=self.CHAIN_ID,
+            token_id=self.TOKEN_ID, pool_addr="0xpool", tick_lower=-100, tick_upper=100,
+            liquidity="100", in_range=True, fees_accrued_usd=None, position_value_usd=None,
+            v4_fee_growth_inside0_raw="1000", v4_fee_growth_inside1_raw="2000",
+            snapshot_block_number=20000000, v4_delta_quality_status="insufficient_snapshot",
+            v4_delta_quality_reason="第一筆快照",
+        )
+        conn.close()
+
+        def fake_post(rpc_url, payload):
+            raise wallet_rpc_client.WalletRpcError("模擬節點額度用盡")
+
+        with mock.patch.object(wallet_rpc_client, "_default_http_post", fake_post):
+            result = wallet_live_fetch._evaluate_v4_delta_quality(
+                rpc_url="https://fake-rpc.invalid", chain_id=self.CHAIN_ID, token_id=self.TOKEN_ID,
+                pool_id_hex=self.POOL_ID, current_raw0=10**30, current_raw1=10**30,
+                current_liquidity=1, current_block=20000100,
+            )
+        self.assertEqual(result["status"], "activity_unknown")
+        self.assertIsNone(result["delta0_raw"])
+
+
 if __name__ == "__main__":
     unittest.main()

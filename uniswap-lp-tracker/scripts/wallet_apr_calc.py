@@ -151,6 +151,87 @@ def compute_fee_income_delta(
     return {"delta_usd": delta, "note": None}
 
 
+def compute_v4_fee_delta_quality(
+    previous_row: dict | None,
+    current_raw0: int,
+    current_raw1: int,
+    current_liquidity: int,
+    has_activity: bool | None,
+    activity_error: str | None = None,
+) -> dict:
+    """V4 本期新增收入（原幣精確 Δ）的品質判定——t_4be89664 第 2 段。
+
+    回傳 {"status", "reason", "delta0_raw", "delta1_raw"}。
+
+    規則（fail-closed，禁止用 block-1 feeGrowth 回算或估算冒充精確已領）：
+      - previous_row 是 None，或缺 v4_fee_growth_inside0/1_raw／
+        snapshot_block_number（第一筆快照、舊資料、或尚未升級的呼叫端）
+        -> "insufficient_snapshot"，Δ 皆 None。
+      - activity_error 非 None（has_v4_position_activity_in_range() 本身
+        查詢失敗）-> "activity_unknown"，fail-closed：絕不假設沒有活動。
+      - current_raw < previous_raw（理論上 feeGrowthInside 單調不減，出現
+        下降代表資料異常或 pool 重建）-> "activity_unknown"，不計算 Δ。
+      - has_activity is True（區間內偵測到這個部位的 ModifyLiquidity）
+        -> "activity_detected"：checkpoint／liquidity 可能已變動，diff 不再
+        是精確值，Δ 皆 None。
+      - 以上都通過（確認無活動、上一筆快照齊全、raw 值單調不減）-> "ok"：
+        diff = (current_raw − previous_raw) * liquidity // 2**128 是精確值
+        （不是估算）——因為確認期間內 liquidity／checkpoint 都沒被動過，
+        feeGrowthInside 的增量本身就等於這段期間真正新增的手續費。
+    """
+    if previous_row is None:
+        return {
+            "status": "insufficient_snapshot",
+            "reason": "尚無上一筆 v4 快照，無法建立比較基準（第一筆快照，基準已建立）。",
+            "delta0_raw": None,
+            "delta1_raw": None,
+        }
+    prev_raw0 = previous_row.get("v4_fee_growth_inside0_raw")
+    prev_raw1 = previous_row.get("v4_fee_growth_inside1_raw")
+    prev_block = previous_row.get("snapshot_block_number")
+    if prev_raw0 is None or prev_raw1 is None or prev_block is None:
+        return {
+            "status": "insufficient_snapshot",
+            "reason": "上一筆快照缺 v4 fee growth 原始值或區塊高度（可能是舊資料或尚未升級的快照）。",
+            "delta0_raw": None,
+            "delta1_raw": None,
+        }
+    if activity_error is not None:
+        return {
+            "status": "activity_unknown",
+            "reason": f"查詢此部位期間是否有活動失敗，fail-closed 不假設沒有活動：{activity_error}",
+            "delta0_raw": None,
+            "delta1_raw": None,
+        }
+    try:
+        prev_raw0_int = int(prev_raw0)
+        prev_raw1_int = int(prev_raw1)
+    except (TypeError, ValueError):
+        return {
+            "status": "insufficient_snapshot",
+            "reason": "上一筆快照的 v4 fee growth 原始值格式異常，無法比較。",
+            "delta0_raw": None,
+            "delta1_raw": None,
+        }
+    if current_raw0 < prev_raw0_int or current_raw1 < prev_raw1_int:
+        return {
+            "status": "activity_unknown",
+            "reason": "feeGrowthInside 原始值較上一筆下降，與「無活動」假設矛盾（可能是資料異常），fail-closed 不計算 Δ。",
+            "delta0_raw": None,
+            "delta1_raw": None,
+        }
+    if has_activity:
+        return {
+            "status": "activity_detected",
+            "reason": "上一筆快照～本次快照之間偵測到這個部位的 ModifyLiquidity 活動，checkpoint／liquidity 可能已變動，差值不可信。",
+            "delta0_raw": None,
+            "delta1_raw": None,
+        }
+    delta0_raw = (current_raw0 - prev_raw0_int) * current_liquidity // (2**128)
+    delta1_raw = (current_raw1 - prev_raw1_int) * current_liquidity // (2**128)
+    return {"status": "ok", "reason": None, "delta0_raw": delta0_raw, "delta1_raw": delta1_raw}
+
+
 def _window_apr(window_rows: list[dict], window_days: int) -> tuple[float | None, int]:
     """回傳 (apr_pct或None, 缺 fees_accrued_usd 的天數)。"""
     missing = sum(1 for r in window_rows if r.get("fees_accrued_usd") is None)

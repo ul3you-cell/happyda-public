@@ -128,6 +128,18 @@ CREATE TABLE IF NOT EXISTS wallet_position_snapshot (
                                       -- compute_cumulative_fee_income_usd 的推導）
   fee_income_delta_usd REAL,          -- ③本期新增收入 Δ ＝ 本期末累計 fee 收入 － 上期末累計
                                       -- fee 收入（已扣本金後的差，anne 2026-10-03 核正版）
+  v4_fee_growth_inside0_raw TEXT,      -- v4 StateView.getFeeGrowthInside() 當下的
+                                      -- feeGrowthInside0X128 原始快照（uint256，字串存避免
+                                      -- 精度失真）；只有 v4 部位會寫，v3 部位一律 NULL
+  v4_fee_growth_inside1_raw TEXT,      -- 同上，currency1 側
+  snapshot_block_number INTEGER,      -- 這筆快照對應的鏈上區塊高度（讓 has_v4_position_
+                                      -- activity_in_range 能用「上次快照區塊～這次快照區塊」
+                                      -- 當掃描區間，不用猜時間戳對應的區塊）
+  v4_delta_quality_status TEXT,       -- v4 fee delta 的品質狀態：'ok'｜'no_activity'｜
+                                      -- 'activity_unknown'｜'insufficient_snapshot'，決定
+                                      -- 這筆 delta 能不能被下游信任顯示
+  v4_delta_quality_reason TEXT,       -- 上面狀態的人類可讀原因（例如 RPC 失敗訊息、或
+                                      -- 「上一筆快照缺區塊高度」），絕不是數值欄位
   PRIMARY KEY (ts, wallet_addr, chain_id, token_id)
 );
 
@@ -244,6 +256,11 @@ _NEW_SNAPSHOT_COLUMNS = (
     ("fee_income_delta_usd", "REAL"),
     ("cumulative_decrease_principal_usd", "REAL"),
     ("cumulative_fee_income_usd", "REAL"),
+    ("v4_fee_growth_inside0_raw", "TEXT"),
+    ("v4_fee_growth_inside1_raw", "TEXT"),
+    ("snapshot_block_number", "INTEGER"),
+    ("v4_delta_quality_status", "TEXT"),
+    ("v4_delta_quality_reason", "TEXT"),
 )
 
 
@@ -285,6 +302,11 @@ def insert_snapshot(
     fee_income_delta_usd: float | None = None,
     cumulative_decrease_principal_usd: float | None = None,
     cumulative_fee_income_usd: float | None = None,
+    v4_fee_growth_inside0_raw: str | None = None,
+    v4_fee_growth_inside1_raw: str | None = None,
+    snapshot_block_number: int | None = None,
+    v4_delta_quality_status: str | None = None,
+    v4_delta_quality_reason: str | None = None,
 ) -> None:
     """寫入一筆快照。用 INSERT OR REPLACE：每日排程重跑同一天（同一
     ts/wallet/chain/token_id）視為修正，不視為錯誤——排程本來就可能重跑
@@ -292,7 +314,11 @@ def insert_snapshot(
 
     新增的 claimable_*/cumulative_claimed_*/fee_income_delta_usd 全部預設
     None（呼叫端尚未升級也能繼續用舊簽章呼叫），對應 anne 2026-10-03 spec
-    的①目前可領／②累計已領／③本期新增收入 Δ 三欄。"""
+    的①目前可領／②累計已領／③本期新增收入 Δ 三欄。
+
+    v4_fee_growth_inside*_raw／snapshot_block_number／v4_delta_quality_* 同樣
+    全部預設 None——這是 V4 fee delta 第 1 段的快照資料層與活動閘門所需欄位，
+    v3 部位或尚未升級的呼叫端完全不受影響，舊資料缺值一律維持 NULL。"""
     conn.execute(
         """
         INSERT OR REPLACE INTO wallet_position_snapshot
@@ -301,8 +327,10 @@ def insert_snapshot(
            claimable_0_raw, claimable_1_raw,
            cumulative_claimed_0_raw, cumulative_claimed_1_raw,
            cumulative_claimed_usd, fee_income_delta_usd,
-           cumulative_decrease_principal_usd, cumulative_fee_income_usd)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           cumulative_decrease_principal_usd, cumulative_fee_income_usd,
+           v4_fee_growth_inside0_raw, v4_fee_growth_inside1_raw,
+           snapshot_block_number, v4_delta_quality_status, v4_delta_quality_reason)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             ts, wallet_addr.lower(), chain_id, token_id, pool_addr.lower(),
@@ -312,6 +340,8 @@ def insert_snapshot(
             cumulative_claimed_0_raw, cumulative_claimed_1_raw,
             cumulative_claimed_usd, fee_income_delta_usd,
             cumulative_decrease_principal_usd, cumulative_fee_income_usd,
+            v4_fee_growth_inside0_raw, v4_fee_growth_inside1_raw,
+            snapshot_block_number, v4_delta_quality_status, v4_delta_quality_reason,
         ),
     )
     conn.commit()
@@ -352,7 +382,9 @@ def fetch_position_history(
                claimable_0_raw, claimable_1_raw,
                cumulative_claimed_0_raw, cumulative_claimed_1_raw,
                cumulative_claimed_usd, fee_income_delta_usd,
-               cumulative_decrease_principal_usd, cumulative_fee_income_usd
+               cumulative_decrease_principal_usd, cumulative_fee_income_usd,
+               v4_fee_growth_inside0_raw, v4_fee_growth_inside1_raw,
+               snapshot_block_number, v4_delta_quality_status, v4_delta_quality_reason
         FROM wallet_position_snapshot
         WHERE wallet_addr = ? AND chain_id = ? AND token_id = ?
         ORDER BY ts ASC

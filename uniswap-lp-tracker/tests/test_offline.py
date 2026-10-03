@@ -11,6 +11,7 @@ from __future__ import annotations
 import io
 import json
 import os
+import sqlite3
 import stat
 import sys
 import tempfile
@@ -2034,6 +2035,256 @@ class TestFeeIncomeDelta(unittest.TestCase):
             result = wallet_apr_calc.compute_fee_income_delta(**kwargs)
             self.assertIsNone(result["delta_usd"])
             self.assertIsNotNone(result["note"])
+
+
+class TestWalletSnapshotStoreV4FeeDeltaColumns(unittest.TestCase):
+    """t_27c34751 第 1 段：V4 兩幣原始 fee 快照／快照區塊高度／delta 品質狀態
+    欄位的 schema、insert/fetch round trip、舊資料遷移 idempotent、缺值 NULL。"""
+
+    def setUp(self):
+        self.tmpdir = tempfile.mkdtemp(prefix="wallet-tracker-v4col-test-")
+        self.db_path = os.path.join(self.tmpdir, "test.sqlite3")
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
+
+    def _snapshot(self, ts, **overrides):
+        base = dict(
+            ts=ts, wallet_addr="0xABCDEF0000000000000000000000000000ABCD",
+            chain_id=1, token_id=42, pool_addr="0xPOOL", tick_lower=-100, tick_upper=100,
+            liquidity="123456789012345678901234", in_range=True,
+            fees_accrued_usd=1.0, position_value_usd=10000.0,
+        )
+        base.update(overrides)
+        return base
+
+    def test_insert_and_fetch_round_trip_v4_columns(self):
+        conn = wallet_snapshot_store.get_connection(self.db_path)
+        wallet_snapshot_store.insert_snapshot(
+            conn,
+            **self._snapshot(
+                100,
+                v4_fee_growth_inside0_raw="123456789012345678901234567890",
+                v4_fee_growth_inside1_raw="987654321098765432109876543210",
+                snapshot_block_number=20123456,
+                v4_delta_quality_status="ok",
+                v4_delta_quality_reason=None,
+            ),
+        )
+        history = wallet_snapshot_store.fetch_position_history(
+            conn, wallet_addr="0xabcdef0000000000000000000000000000abcd", chain_id=1, token_id=42
+        )
+        self.assertEqual(len(history), 1)
+        row = history[0]
+        self.assertEqual(row["v4_fee_growth_inside0_raw"], "123456789012345678901234567890")
+        self.assertEqual(row["v4_fee_growth_inside1_raw"], "987654321098765432109876543210")
+        self.assertEqual(row["snapshot_block_number"], 20123456)
+        self.assertEqual(row["v4_delta_quality_status"], "ok")
+        self.assertIsNone(row["v4_delta_quality_reason"])
+        conn.close()
+
+    def test_omitted_v4_columns_default_to_null(self):
+        # v3 部位或尚未升級的呼叫端：完全不傳這批新參數，一律是 NULL，不是 0 或空字串。
+        conn = wallet_snapshot_store.get_connection(self.db_path)
+        wallet_snapshot_store.insert_snapshot(conn, **self._snapshot(100))
+        history = wallet_snapshot_store.fetch_position_history(
+            conn, wallet_addr="0xabcdef0000000000000000000000000000abcd", chain_id=1, token_id=42
+        )
+        row = history[0]
+        for key in (
+            "v4_fee_growth_inside0_raw", "v4_fee_growth_inside1_raw",
+            "snapshot_block_number", "v4_delta_quality_status", "v4_delta_quality_reason",
+        ):
+            self.assertIsNone(row[key], f"{key} 應在未提供時維持 NULL")
+        conn.close()
+
+    def test_legacy_row_inserted_before_migration_gets_null_not_error(self):
+        # 模擬「舊資料庫在這批欄位存在之前就已經有資料」：先建立一個只有舊
+        # schema（不含這批欄位）的 DB，寫入一筆舊資料，再跑一次 ensure_schema
+        # 遷移，確認舊資料讀出來時新欄位是 NULL，不是遷移失敗或資料被破壞。
+        conn = sqlite3.connect(self.db_path)
+        conn.row_factory = sqlite3.Row
+        conn.executescript(
+            """
+            CREATE TABLE wallet_position_snapshot (
+              ts INTEGER NOT NULL, wallet_addr TEXT NOT NULL, chain_id INTEGER NOT NULL,
+              token_id INTEGER NOT NULL, pool_addr TEXT NOT NULL,
+              tick_lower INTEGER NOT NULL, tick_upper INTEGER NOT NULL,
+              liquidity TEXT NOT NULL, in_range INTEGER NOT NULL,
+              fees_accrued_usd REAL, position_value_usd REAL,
+              PRIMARY KEY (ts, wallet_addr, chain_id, token_id)
+            );
+            """
+        )
+        conn.execute(
+            """
+            INSERT INTO wallet_position_snapshot
+              (ts, wallet_addr, chain_id, token_id, pool_addr, tick_lower, tick_upper,
+               liquidity, in_range, fees_accrued_usd, position_value_usd)
+            VALUES (999, '0xlegacy', 1, 7, '0xpool', -1, 1, '1', 1, 5.0, 500.0)
+            """
+        )
+        conn.commit()
+        wallet_snapshot_store.ensure_schema(conn)  # 第一次遷移
+        wallet_snapshot_store.ensure_schema(conn)  # 第二次：必須 idempotent，不丟例外
+        history = wallet_snapshot_store.fetch_position_history(
+            conn, wallet_addr="0xlegacy", chain_id=1, token_id=7
+        )
+        self.assertEqual(len(history), 1)
+        row = history[0]
+        self.assertEqual(row["fees_accrued_usd"], 5.0)  # 舊欄位資料沒被破壞
+        for key in (
+            "v4_fee_growth_inside0_raw", "v4_fee_growth_inside1_raw",
+            "snapshot_block_number", "v4_delta_quality_status", "v4_delta_quality_reason",
+        ):
+            self.assertIsNone(row[key])
+        conn.close()
+
+    def test_ensure_schema_idempotent_on_brand_new_db(self):
+        conn = wallet_snapshot_store.get_connection(self.db_path)
+        # get_connection() 內部已經跑過一次 ensure_schema；再跑兩次確認不出錯。
+        wallet_snapshot_store.ensure_schema(conn)
+        wallet_snapshot_store.ensure_schema(conn)
+        conn.close()
+
+
+class TestHasV4PositionActivityInRange(unittest.TestCase):
+    """t_27c34751 第 1 段：has_v4_position_activity_in_range()——只回存在性，
+    不回算 claimed fee。全程用假的 http_post 注入，不打真實 RPC。"""
+
+    POOL_ID = "0x" + "ab" * 32
+    SENDER = "0x1234567890123456789012345678901234567890"  # v4 PositionManager 地址（假設）
+    TOKEN_ID = 42
+    CHAIN_ID = 1
+
+    def _modify_liquidity_log(self, tick_lower, tick_upper, liquidity_delta, token_id):
+        salt = wallet_rpc_client.v4_salt_from_token_id(token_id)
+        data = (
+            "0x"
+            + _encode_signed_word(tick_lower)
+            + _encode_signed_word(tick_upper)
+            + _encode_signed_word(liquidity_delta)
+            + salt[2:]
+        )
+        return {"data": data}
+
+    def _fake_post_factory(self, logs, latest_block=1000):
+        def fake_post(rpc_url, payload):
+            method = payload.get("method")
+            if method == "eth_blockNumber":
+                return {"jsonrpc": "2.0", "id": 1, "result": hex(latest_block)}
+            if method == "eth_getLogs":
+                return {"jsonrpc": "2.0", "id": 1, "result": logs}
+            raise AssertionError(f"未預期的方法：{method}")
+        return fake_post
+
+    def test_no_activity_returns_false(self):
+        result = wallet_rpc_client.has_v4_position_activity_in_range(
+            "https://fake-rpc.invalid", self.POOL_ID, self.SENDER, self.TOKEN_ID,
+            from_block=100, to_block=200, chain_id=self.CHAIN_ID,
+            http_post=self._fake_post_factory([]),
+        )
+        self.assertFalse(result)
+
+    def test_zero_liquidity_delta_still_counts_as_activity(self):
+        log = self._modify_liquidity_log(-100, 100, 0, self.TOKEN_ID)
+        result = wallet_rpc_client.has_v4_position_activity_in_range(
+            "https://fake-rpc.invalid", self.POOL_ID, self.SENDER, self.TOKEN_ID,
+            from_block=100, to_block=200, chain_id=self.CHAIN_ID,
+            http_post=self._fake_post_factory([log]),
+        )
+        self.assertTrue(result)
+
+    def test_positive_liquidity_delta_counts_as_activity(self):
+        log = self._modify_liquidity_log(-100, 100, 5_000_000_000, self.TOKEN_ID)
+        result = wallet_rpc_client.has_v4_position_activity_in_range(
+            "https://fake-rpc.invalid", self.POOL_ID, self.SENDER, self.TOKEN_ID,
+            from_block=100, to_block=200, chain_id=self.CHAIN_ID,
+            http_post=self._fake_post_factory([log]),
+        )
+        self.assertTrue(result)
+
+    def test_negative_liquidity_delta_counts_as_activity(self):
+        log = self._modify_liquidity_log(-100, 100, -5_000_000_000, self.TOKEN_ID)
+        result = wallet_rpc_client.has_v4_position_activity_in_range(
+            "https://fake-rpc.invalid", self.POOL_ID, self.SENDER, self.TOKEN_ID,
+            from_block=100, to_block=200, chain_id=self.CHAIN_ID,
+            http_post=self._fake_post_factory([log]),
+        )
+        self.assertTrue(result)
+
+    def test_log_with_different_token_id_salt_does_not_count(self):
+        # 同一個 pool/sender 下，別顆 NFT（不同 tokenId -> 不同 salt）的 log
+        # 混進來時，不能被誤判成「這顆部位有活動」。
+        other_log = self._modify_liquidity_log(-100, 100, 1000, token_id=999)
+        result = wallet_rpc_client.has_v4_position_activity_in_range(
+            "https://fake-rpc.invalid", self.POOL_ID, self.SENDER, self.TOKEN_ID,
+            from_block=100, to_block=200, chain_id=self.CHAIN_ID,
+            http_post=self._fake_post_factory([other_log]),
+        )
+        self.assertFalse(result)
+
+    def test_rpc_error_propagates_fail_closed_not_swallowed_as_false(self):
+        def fake_post(rpc_url, payload):
+            raise wallet_rpc_client.WalletRpcError("模擬節點額度用盡")
+
+        with self.assertRaises(wallet_rpc_client.WalletRpcError):
+            wallet_rpc_client.has_v4_position_activity_in_range(
+                "https://fake-rpc.invalid", self.POOL_ID, self.SENDER, self.TOKEN_ID,
+                from_block=100, to_block=200, chain_id=self.CHAIN_ID,
+                http_post=fake_post,
+            )
+
+    def test_json_rpc_error_object_propagates_fail_closed(self):
+        def fake_post(rpc_url, payload):
+            return {"jsonrpc": "2.0", "id": 1, "error": {"code": -32000, "message": "query returned more than 10000 results"}}
+
+        with self.assertRaises(wallet_rpc_client.WalletRpcError):
+            wallet_rpc_client.has_v4_position_activity_in_range(
+                "https://fake-rpc.invalid", self.POOL_ID, self.SENDER, self.TOKEN_ID,
+                from_block=100, to_block=200, chain_id=self.CHAIN_ID,
+                http_post=fake_post,
+            )
+
+    def test_unsupported_chain_id_does_not_guess_pool_manager_address(self):
+        with self.assertRaises(wallet_rpc_client.WalletRpcError):
+            wallet_rpc_client.has_v4_position_activity_in_range(
+                "https://fake-rpc.invalid", self.POOL_ID, self.SENDER, self.TOKEN_ID,
+                from_block=100, to_block=200, chain_id=999999,
+                http_post=self._fake_post_factory([]),
+            )
+
+    def test_invalid_pool_id_shape_rejected(self):
+        with self.assertRaises(ValueError):
+            wallet_rpc_client.has_v4_position_activity_in_range(
+                "https://fake-rpc.invalid", "0xnotbytes32", self.SENDER, self.TOKEN_ID,
+                from_block=100, to_block=200, chain_id=self.CHAIN_ID,
+                http_post=self._fake_post_factory([]),
+            )
+
+    def test_sends_correct_topics_to_pool_manager_address(self):
+        captured = {}
+
+        def fake_post(rpc_url, payload):
+            method = payload.get("method")
+            if method == "eth_getLogs":
+                captured["params"] = payload["params"][0]
+            return {"jsonrpc": "2.0", "id": 1, "result": []}
+
+        wallet_rpc_client.has_v4_position_activity_in_range(
+            "https://fake-rpc.invalid", self.POOL_ID, self.SENDER, self.TOKEN_ID,
+            from_block=100, to_block=200, chain_id=self.CHAIN_ID,
+            http_post=fake_post,
+        )
+        self.assertEqual(
+            captured["params"]["address"],
+            wallet_rpc_client.V4_POOL_MANAGER_ADDRESS_BY_CHAIN[self.CHAIN_ID],
+        )
+        topics = captured["params"]["topics"]
+        self.assertEqual(topics[0], wallet_rpc_client.MODIFY_LIQUIDITY_EVENT_TOPIC0)
+        self.assertEqual(topics[1], self.POOL_ID.lower())
+        self.assertEqual(topics[2], wallet_rpc_client._address_to_topic(self.SENDER))
 
 
 if __name__ == "__main__":

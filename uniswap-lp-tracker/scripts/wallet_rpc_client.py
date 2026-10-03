@@ -88,6 +88,18 @@ V4_POSITION_MANAGER_ADDRESS_BY_CHAIN = {
     130: "0x4529a01c7a0410167c5740c487a8de60232617bf",
 }
 
+# Uniswap v4 PoolManager（singleton，所有 pool 的 ModifyLiquidity/Swap 事件都從這顆
+# 合約發出）。逐字核對自 docs.uniswap.org/contracts/v4/deployments 與
+# developers.uniswap.org/contracts/v4/deployments，2026-10-03 web_search 核對。
+V4_POOL_MANAGER_ADDRESS_BY_CHAIN = {
+    1: "0x000000000004444c5dc75cB358380D2e3dE08A90",
+    42161: "0x360e68faccca8ca495c1b759fd9eee466db9fb32",
+    10: "0x9a13f98cb987694c9f086b1f5eb990eea8264ec3",
+    8453: "0x498581ff718922c3f8e6a244956af099b2652b2b",
+    56: "0x28e2ea090877bf75740558f6bfb36a5ffee9e9df",
+    130: "0x1f98400000000000000000000000000000000004",
+}
+
 # StateView deployments from the official Uniswap v4 deployment table.
 V4_STATE_VIEW_ADDRESS_BY_CHAIN = {
     1: "0x7ffe42c4a5deea5b0fec41c94c136cf115597227",
@@ -295,6 +307,22 @@ COLLECT_EVENT_TOPIC0 = keccak256_hex(b"Collect(uint256,address,uint256,uint256)"
 # 精確恆等式）。只有 tokenId 是 indexed，liquidity/amount0/amount1 都在 data。
 DECREASE_LIQUIDITY_EVENT_TOPIC0 = keccak256_hex(
     b"DecreaseLiquidity(uint256,uint128,uint256,uint256)"
+)
+
+# ModifyLiquidity(PoolId indexed id, address indexed sender, int24 tickLower,
+# int24 tickUpper, int256 liquidityDelta, bytes32 salt) —— Uniswap v4-core
+# PoolManager 的標準事件（官方介面 IPoolManager.sol 逐字核對：PoolId 是
+# `type PoolId is bytes32`，事件簽章雜湊用底層型別 bytes32，不是 PoolId）。
+# id／sender 是 indexed topic，tickLower/tickUpper/liquidityDelta/salt 四個
+# 都在 data 裡，依宣告順序排列，全部是固定 32-byte slot（int24/int256 都做
+# 全 32-byte 二補數符號延伸，跟本檔案既有的 decode_int_word() 同一套邏輯）。
+# v4 PositionManager 呼叫 PoolManager.modifyLiquidity() 時，`sender` 就是
+# PositionManager 本身的地址（PositionManager 是 PoolManager 眼中的唯一
+# 呼叫者），`salt` 固定傳 `bytes32(tokenId)`（periphery 原始碼逐字核對：
+# Position.calculatePositionKey 用 tokenId 當 salt，讓同一個 pool/tick range
+# 下不同 NFT 的部位互相隔離）。
+MODIFY_LIQUIDITY_EVENT_TOPIC0 = keccak256_hex(
+    b"ModifyLiquidity(bytes32,address,int24,int24,int256,bytes32)"
 )
 
 
@@ -963,6 +991,82 @@ def get_cumulative_decrease_liquidity_principal(
         "log_count": len(logs),
         "scanned_to_block": to_block_num,
     }
+
+
+def decode_modify_liquidity_event_log(log: dict) -> dict:
+    """解碼一筆 ModifyLiquidity 事件 log：data 依序是
+    tickLower(int24)+tickUpper(int24)+liquidityDelta(int256)+salt(bytes32)，
+    全部各佔一個 32-byte word（ABI 對靜態欄位一律補滿 32-byte slot）。"""
+    words = _hex_words(log.get("data", "0x"))
+    if len(words) != 4:
+        raise ValueError(f"ModifyLiquidity event data 應為 4 個 32-byte slot，實際 {len(words)} 個")
+    return {
+        "tick_lower": decode_int_word(words[0]),
+        "tick_upper": decode_int_word(words[1]),
+        "liquidity_delta": decode_int_word(words[2]),
+        "salt": "0x" + words[3],
+    }
+
+
+def v4_salt_from_token_id(token_id: int) -> str:
+    """v4 periphery 原始碼核對：PositionManager 呼叫 modifyLiquidity() 時固定用
+    `bytes32(tokenId)` 當 salt（高位補零的 32-byte）——跟 encode_uint_arg() 的
+    編碼規則完全相同，這裡只是給一個語意明確的名字，避免呼叫端搞混跟
+    encode_uint_arg(其他數字參數) 的差別。"""
+    return "0x" + encode_uint_arg(token_id)
+
+
+def has_v4_position_activity_in_range(
+    rpc_url: str,
+    pool_id: str,
+    position_manager_sender: str,
+    token_id: int,
+    from_block: int,
+    to_block: int,
+    chain_id: int,
+    http_post: Optional[HttpPost] = None,
+) -> bool:
+    """只回答「這個區塊範圍內，PoolManager 有沒有收到過這個 v4 部位
+    （poolId + PositionManager sender + salt=bytes32(tokenId)）的 ModifyLiquidity
+    呼叫」這個存在性問題——完全不嘗試從這些事件回算 claimed fee（那需要搭配
+    feeGrowthInside 快照差值，是 wallet_apr_calc 的責任，不是這支 RPC client）。
+
+    用 poolId（topics[1]）+ sender（topics[2]，必為呼叫 PoolManager 的
+    PositionManager 合約地址，不是 NFT owner）兩個 indexed 欄位先在節點端
+    過濾，再用 data 裡的 salt 精確比對 tokenId——同一個 pool 底下不同 tickLower/
+    tickUpper 的部位，salt 永遠是各自的 tokenId，不會互相混淆，所以這裡不需要
+    額外再比對 tickLower/tickUpper 就能唯一鎖定這顆 NFT 的部位；tick_lower/
+    tick_upper 仍保留在函式簽章上是為了未來呼叫端想額外用它們做人工複核時
+    有現成的值可用（目前邏輯不依賴它們做過濾）。
+
+    **Fail-closed**：eth_get_logs() 失敗（節點錯誤、額度用盡、範圍遞迴切分到
+    底仍失敗）一律讓 WalletRpcError 原樣往外拋，絕不吞掉改回傳 False——那會讓
+    「真的有活動但查不到」跟「真的沒有活動」混為一談，呼叫端（snapshot 寫入
+    流程）必須能分辨「不知道」跟「確定沒有」。
+
+    回傳 True／False：只代表「這段區塊範圍內查到／沒查到匹配的 ModifyLiquidity
+    log」，不代表任何金額或方向（增加流動性跟減少流動性、liquidityDelta 為 0
+    的呼叫，只要 salt 匹配就一律算「有活動」——呼叫端只需要知道「這段期間
+    是否被動過」來判斷要不要信任/重算 fee delta，不需要本函式替它分類動作
+    種類）。
+    """
+    if chain_id not in V4_POOL_MANAGER_ADDRESS_BY_CHAIN:
+        raise WalletRpcError(f"chain_id={chain_id} 沒有已核對過的 v4 PoolManager 位址")
+    if not re.fullmatch(r"0x[0-9a-fA-F]{64}", pool_id):
+        raise ValueError("pool_id 必須是 0x 開頭的 bytes32")
+    to_address = V4_POOL_MANAGER_ADDRESS_BY_CHAIN[chain_id]
+    topics = [
+        MODIFY_LIQUIDITY_EVENT_TOPIC0,
+        pool_id.lower(),
+        _address_to_topic(position_manager_sender),
+    ]
+    logs = eth_get_logs(rpc_url, to_address, topics, from_block, to_block, http_post=http_post)
+    expected_salt = v4_salt_from_token_id(token_id).lower()
+    for log in logs:
+        decoded = decode_modify_liquidity_event_log(log)
+        if decoded["salt"].lower() == expected_salt:
+            return True
+    return False
 
 
 def get_pool_address(

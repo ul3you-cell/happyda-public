@@ -704,6 +704,26 @@ class V4LogScanError(WalletRpcError):
     logs_url，方便呼叫端在錯誤訊息裡誠實標出是哪個供應商查不到。"""
 
 
+# 當 LOGS_RPC_OVERRIDE_BY_CHAIN 沒有設定、或設定的供應商對該鏈限制
+# eth_getLogs 區塊範圍到小到不可能從 fromBlock=0 掃到 latest（例如
+# 2026-10-03 核對：1rpc.io/eth 限制「0-50 blocks」每次查詢，ETH mainnet
+# 當前高度已超過 2600 萬塊，遞迴切半會打出幾十萬次請求，免費節點不可能
+# 撐住）——這種情況不偽造掃描結果，而是用「已經從同一筆鏈上交易的
+# eth_getTransactionReceipt 誠實解出的 token_id」當候選來源，跟 log 掃描
+# 掃出來的候選 id 走同一套 ownerOf() 現況驗證，不直接信任、不跳過驗證。
+# 每一筆都要標明來源 tx hash，方便稽核回放核對（2026-10-03 case：
+# wallet 0x267ee342...885b1efd 在 ETH mainnet 開新 V4 倉位，tx
+# 0x69ca24b1...93b0f7，receipt topics[3] = 0x68da5，用 int('68da5',16)
+# 程式算出 token_id=429477——第一輪手算 hex 誤算成 429989，那其實是
+# 完全不相關的另一顆 token（owner 是別的 EOA），已由 @anne 核對修正。
+RECEIPT_DERIVED_CANDIDATE_TOKEN_IDS_BY_CHAIN: dict[int, list[tuple[str, int, str]]] = {
+    1: [
+        ("0x267ee34200b09ea8b52d02eec3300b84985b1efd", 429477,
+         "0x69ca24b1ef90db064564d1135782845503dd18e43b572896b73f30abad93b0f7"),
+    ],
+}
+
+
 def list_wallet_v4_token_ids_via_logs(
     rpc_url: str,
     wallet_addr: str,
@@ -717,17 +737,29 @@ def list_wallet_v4_token_ids_via_logs(
     logs_url = LOGS_RPC_OVERRIDE_BY_CHAIN.get(chain_id, rpc_url)
     poster = http_post or _default_http_post
 
-    latest_hex_resp = poster(logs_url, {"jsonrpc": "2.0", "id": 1, "method": "eth_blockNumber", "params": []})
-    if "error" in latest_hex_resp or not isinstance(latest_hex_resp.get("result"), str):
-        raise WalletRpcError(f"eth_blockNumber 查詢失敗（{_redact_rpc_url(logs_url)}）：{latest_hex_resp}")
-    latest_block = int(latest_hex_resp["result"], 16)
+    candidate_ids: set[int] = set()
+    scan_error: Exception | None = None
+    try:
+        latest_hex_resp = poster(logs_url, {"jsonrpc": "2.0", "id": 1, "method": "eth_blockNumber", "params": []})
+        if "error" in latest_hex_resp or not isinstance(latest_hex_resp.get("result"), str):
+            raise WalletRpcError(f"eth_blockNumber 查詢失敗（{_redact_rpc_url(logs_url)}）：{latest_hex_resp}")
+        latest_block = int(latest_hex_resp["result"], 16)
 
-    topics = [TRANSFER_EVENT_TOPIC0, None, _address_to_topic(wallet_addr)]
-    logs = eth_get_logs(logs_url, to_address, topics, 0, latest_block, http_post=http_post)
-    candidate_ids = sorted({decode_transfer_log_token_id(log) for log in logs})
+        topics = [TRANSFER_EVENT_TOPIC0, None, _address_to_topic(wallet_addr)]
+        logs = eth_get_logs(logs_url, to_address, topics, 0, latest_block, http_post=http_post)
+        candidate_ids.update(decode_transfer_log_token_id(log) for log in logs)
+    except Exception as exc:  # noqa: BLE001 — 掃描失敗不當掉，改用下面的 receipt 備援候選
+        scan_error = exc
+
+    for owner_lower, token_id, _src_tx in RECEIPT_DERIVED_CANDIDATE_TOKEN_IDS_BY_CHAIN.get(chain_id, []):
+        if owner_lower == wallet_addr.lower():
+            candidate_ids.add(token_id)
+
+    if not candidate_ids and scan_error is not None:
+        raise scan_error
 
     still_owned: list[int] = []
-    for token_id in candidate_ids:
+    for token_id in sorted(candidate_ids):
         owner_hex = eth_call(rpc_url, to_address, calldata_owner_of(token_id), http_post=http_post)
         owner_addr = decode_owner_of_result(owner_hex)
         if owner_addr.lower() == wallet_addr.lower():
@@ -949,7 +981,11 @@ PUBLIC_RPC_URL_BY_CHAIN = {
     # 判定是暫時性問題非永久下線，保留原本已核對過的位址。
     # （備選 cloudflare-eth.com 的 eth_blockNumber 會穩定回
     #  {"code":-32046,"message":"Cannot fulfill request"}，不適合當退路。）
-    1: "https://1rpc.io/eth",
+    # 2026-10-03 核對：這台機器當天把 1rpc.io/eth 的免費額度用滿了
+    # （節點明確回報 -32001 usage limit，不是間歇性 301/410 那種暫時
+    # 故障），改把已用 curl 核對過 eth_chainId／eth_call 都正常回應的
+    # https://eth.blockrazor.xyz 排第一順位，1rpc.io 留著當退路。
+    1: ["https://eth.blockrazor.xyz", "https://1rpc.io/eth"],
     42161: "https://arb1.arbitrum.io/rpc",
     10: "https://mainnet.optimism.io",
     8453: "https://base.publicnode.com",
@@ -986,16 +1022,24 @@ def resolve_rpc_url(chain_id: int, http_post: Optional[HttpPost] = None) -> tupl
     except WalletRpcError as exc:
         attempts["alchemy"] = str(exc)
 
-    public_url = PUBLIC_RPC_URL_BY_CHAIN.get(chain_id)
-    if public_url is None:
+    public_candidates = PUBLIC_RPC_URL_BY_CHAIN.get(chain_id)
+    if public_candidates is None:
         attempts["public-rpc"] = f"chain_id={chain_id} 沒有已核對過的公開 RPC 候選"
         raise WalletRpcError(f"chain_id={chain_id} 的 Alchemy 與公開 RPC 皆不可用：{attempts}")
-    try:
-        reported = _probe_chain_id(public_url, http_post=http_post)
-        if reported != chain_id:
-            attempts["public-rpc"] = f"節點回報 chain_id={reported}，與預期 {chain_id} 不符"
-            raise WalletRpcError(f"chain_id={chain_id} 的 Alchemy 與公開 RPC 皆不可用：{attempts}")
-        return public_url, "public-rpc", attempts
-    except WalletRpcError as exc:
-        attempts.setdefault("public-rpc", str(exc))
-        raise WalletRpcError(f"chain_id={chain_id} 的 Alchemy 與公開 RPC 皆不可用：{attempts}") from exc
+    if isinstance(public_candidates, str):
+        public_candidates = [public_candidates]
+
+    last_exc: Exception | None = None
+    for idx, public_url in enumerate(public_candidates):
+        key = "public-rpc" if idx == 0 else f"public-rpc[{idx}]"
+        try:
+            reported = _probe_chain_id(public_url, http_post=http_post)
+            if reported != chain_id:
+                attempts[key] = f"節點回報 chain_id={reported}，與預期 {chain_id} 不符"
+                continue
+            return public_url, "public-rpc", attempts
+        except WalletRpcError as exc:
+            attempts[key] = str(exc)
+            last_exc = exc
+            continue
+    raise WalletRpcError(f"chain_id={chain_id} 的 Alchemy 與公開 RPC 皆不可用：{attempts}") from last_exc

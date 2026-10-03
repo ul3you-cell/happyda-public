@@ -116,7 +116,10 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         逐鏈查詢＝0 或供應商不支援時會如實顯示區塊與原因。V3 fee 以唯讀
         <code>eth_call</code> 模擬 <code>collect()</code> 取得；V4 poolId 用純 Python
         Ethereum Keccak-256 計算並以 Unichain StateView 交叉驗證，非零 liquidity 部位顯示
-        區間內狀態、可取得的 USD 價值及 fee-growth 估算可領 fee；零流動性歷史部位
+        區間內狀態、可取得的 USD 價值及「目前可提領總額」（collect() 模擬結果，
+        <strong>含尚未拆分的本金與 fee，不是純可領 fee</strong>——decreaseLiquidity()
+        撤出的本金會先寫進同一個 tokensOwed 欄位，要套累計已領＋可提領總額－累計撤出
+        本金的恆等式才能還原純 fee 收入，見下方「本期新增收入 Δ」欄）；零流動性歷史部位
         僅保留在內部稽核資料，不列於使用者明細。每日 delta／observed APR 需要至少
         兩筆快照才能算，第一筆快照一律顯示「基準已建立」，不造數字。</li>
       <li><strong>部位內的 token 數量是「目前倉位組成（會隨池價變動，非開倉時存入量）」</strong>：
@@ -203,7 +206,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         <th data-key="fee_tier_pct" data-type="num" aria-sort="none">Fee Tier</th>
         <th data-key="position_status" data-type="text" aria-sort="none">流動性狀態</th>
         <th data-key="position_value_usd" data-type="num" aria-sort="none">部位價值 USD</th>
-        <th data-key="fees_owed_usd" data-type="num" aria-sort="none">可領 Fee USD</th>
+        <th data-key="fees_owed_usd" data-type="num" aria-sort="none">目前可提領總額 USD<br><small>(含本金，非純fee)</small></th>
         <th data-key="in_range" data-type="text" aria-sort="none">In-range</th>
         <th data-key="delta_24h_usd" data-type="num" aria-sort="none">24h Delta</th>
         <th data-key="observed_apr_7d_pct" data-type="num" aria-sort="none">實測 APR 7d</th>
@@ -681,13 +684,16 @@ def main() -> int:
         value_summary = (f"${sum(value_known):,.2f}" if len(value_known) == active_total
                          else f"N/A（僅 {len(value_known)}/{active_total} 個活躍部位有完整 USD 價格）")
         fee_summary = (f"${sum(fees_known):,.6f}" if len(fees_known) == active_total
-                       else f"N/A（僅 {len(fees_known)}/{active_total} 個活躍部位可完整換算 USD fee）")
+                       else f"N/A（僅 {len(fees_known)}/{active_total} 個活躍部位可完整換算 USD）")
         failed_chains = [
             r["chain_name"] for r in chains if r.get("error")
         ]
         note_parts = [
             f"非零 liquidity 活躍部位：{active_total}",
-            f"活躍部位總估值：{value_summary}；可領 fee：{fee_summary}",
+            # anne 2026-10-03 核正：fees_owed_usd 是 collect() 模擬出來的「目前
+            # 可提領總額」，含尚未拆分的 decreaseLiquidity() 本金，不是純 fee，
+            # 絕不可在摘要文字標成「可領 fee」。
+            f"活躍部位總估值：{value_summary}；目前可提領總額（含本金，非純fee）：{fee_summary}",
             f"最後查詢時間：{datetime.fromtimestamp(wallet_data.get('generated_at', 0), tz=timezone.utc).isoformat()}",
         ]
         if failed_chains:

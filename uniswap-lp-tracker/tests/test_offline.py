@@ -1913,32 +1913,123 @@ class TestCollectEventDecode(unittest.TestCase):
         self.assertEqual(result["scanned_to_block"], 0x64)
 
 
-class TestFeeIncomeDelta(unittest.TestCase):
-    """anne 2026-10-03 spec ③本期新增收入 Δ ＝ 本期末可領 − 上期末可領 ＋ 期間已領。"""
+class TestDecreaseLiquidityEventDecode(unittest.TestCase):
+    """anne 2026-10-03 核正：decreaseLiquidity() 本金要能從事件單獨掃出來，
+    才能跟 Collect／可提領總額的「本金＋fee」混合值做恆等式扣本金。"""
 
-    def test_no_claim_during_period_delta_equals_claimable_increase(self):
-        # 期間沒有 claim：期間已領＝0，Δ 就單純是可領金額的增加量。
+    def test_decrease_liquidity_topic0_is_32_byte_hash(self):
+        self.assertTrue(wallet_rpc_client.DECREASE_LIQUIDITY_EVENT_TOPIC0.startswith("0x"))
+        self.assertEqual(len(wallet_rpc_client.DECREASE_LIQUIDITY_EVENT_TOPIC0), 66)
+        # Collect 跟 DecreaseLiquidity 是不同事件簽章，topic0 不能撞在一起
+        # ——否則掃描會把兩種事件混在同一組 log 裡，本金跟 fee 又分不開了。
+        self.assertNotEqual(
+            wallet_rpc_client.DECREASE_LIQUIDITY_EVENT_TOPIC0,
+            wallet_rpc_client.COLLECT_EVENT_TOPIC0,
+        )
+
+    def test_decode_decrease_liquidity_event_log(self):
+        liquidity = 555
+        amount0 = 1000
+        amount1 = 2000
+        data = (
+            "0x"
+            + wallet_rpc_client.encode_uint_arg(liquidity)
+            + wallet_rpc_client.encode_uint_arg(amount0)
+            + wallet_rpc_client.encode_uint_arg(amount1)
+        )
+        decoded = wallet_rpc_client.decode_decrease_liquidity_event_log({"data": data})
+        self.assertEqual(decoded["liquidity"], liquidity)
+        self.assertEqual(decoded["amount0"], amount0)
+        self.assertEqual(decoded["amount1"], amount1)
+
+    def test_get_cumulative_decrease_liquidity_principal_sums_logs(self):
+        def make_log(liquidity: int, amount0: int, amount1: int) -> dict:
+            data = (
+                "0x"
+                + wallet_rpc_client.encode_uint_arg(liquidity)
+                + wallet_rpc_client.encode_uint_arg(amount0)
+                + wallet_rpc_client.encode_uint_arg(amount1)
+            )
+            return {"data": data}
+
+        logs = [make_log(10, 500, 600), make_log(20, 700, 800)]
+
+        def fake_http_post(url: str, payload: dict) -> dict:
+            method = payload.get("method")
+            if method == "eth_blockNumber":
+                return {"jsonrpc": "2.0", "id": 1, "result": "0xc8"}
+            if method == "eth_getLogs":
+                return {"jsonrpc": "2.0", "id": 1, "result": logs}
+            raise AssertionError(f"未預期的方法：{method}")
+
+        result = wallet_rpc_client.get_cumulative_decrease_liquidity_principal(
+            "https://fake-rpc.invalid", token_id=7, chain_id=1, http_post=fake_http_post,
+        )
+        self.assertEqual(result["amount0_raw"], 1200)
+        self.assertEqual(result["amount1_raw"], 1400)
+        self.assertEqual(result["log_count"], 2)
+
+
+class TestCumulativeFeeIncomeIdentity(unittest.TestCase):
+    """anne 2026-10-03 核正：累計 fee 收入 = 累計已領 + 目前可提領總額 - 累計撤出本金。"""
+
+    def test_identity_excludes_decrease_liquidity_principal(self):
+        # 假設歷史上從沒 claim 過（累計已領=0），可提領總額裡混了 50 的本金
+        # （因為 decreaseLiquidity 撤出過）加 8 的真實 fee，累計撤出本金=50。
+        # 正確的累計 fee 收入應該只剩 8，不能把 50 也算進去。
+        result = wallet_apr_calc.compute_cumulative_fee_income_usd(
+            cumulative_collected_usd=0.0,
+            current_claimable_usd=58.0,
+            cumulative_decrease_principal_usd=50.0,
+        )
+        self.assertAlmostEqual(result["value_usd"], 8.0)
+        self.assertIsNone(result["note"])
+
+    def test_identity_with_prior_collects_too(self):
+        result = wallet_apr_calc.compute_cumulative_fee_income_usd(
+            cumulative_collected_usd=12.0,
+            current_claimable_usd=5.0,
+            cumulative_decrease_principal_usd=3.0,
+        )
+        self.assertAlmostEqual(result["value_usd"], 14.0)  # 12 + 5 - 3
+
+    def test_missing_any_input_returns_none_not_zero(self):
+        for kwargs in (
+            {"cumulative_collected_usd": None, "current_claimable_usd": 1.0, "cumulative_decrease_principal_usd": 0.0},
+            {"cumulative_collected_usd": 1.0, "current_claimable_usd": None, "cumulative_decrease_principal_usd": 0.0},
+            {"cumulative_collected_usd": 1.0, "current_claimable_usd": 1.0, "cumulative_decrease_principal_usd": None},
+        ):
+            result = wallet_apr_calc.compute_cumulative_fee_income_usd(**kwargs)
+            self.assertIsNone(result["value_usd"])
+            self.assertIsNotNone(result["note"])
+
+
+class TestFeeIncomeDelta(unittest.TestCase):
+    """anne 2026-10-03 核正版：③本期新增收入 Δ ＝ 本期末累計 fee 收入 － 上期末累計 fee 收入
+    （兩邊的累計 fee 收入都已經是 compute_cumulative_fee_income_usd() 扣過本金的結果）。"""
+
+    def test_delta_is_plain_difference_of_cumulative_income(self):
         result = wallet_apr_calc.compute_fee_income_delta(
-            current_claimable_usd=15.0, previous_claimable_usd=10.0, period_claimed_usd=0.0,
+            current_cumulative_fee_income_usd=15.0, previous_cumulative_fee_income_usd=10.0,
         )
         self.assertAlmostEqual(result["delta_usd"], 5.0)
         self.assertIsNone(result["note"])
 
-    def test_mid_period_claim_does_not_go_negative(self):
-        # anne 原話案例：上期末可領 100，期間使用者 claim 掉全部 100，可領歸零後
-        # 重新累積到本期末可領 20。單純比較 (20 - 100) = -80 會誤判成「虧了」，
-        # 正確公式要加回「期間已領 100」：20 - 100 + 100 = 20（這期真的賺了 20）。
+    def test_decrease_liquidity_principal_already_excluded_upstream_does_not_show_as_negative_fee(self):
+        # 模擬 anne 原案例的核正版：上期撤資前累計 fee 收入 80（已扣本金），
+        # 使用者在期間 decreaseLiquidity 撤出 100 本金並 claim 走，但因為兩筆
+        # 快照的 cumulative_fee_income_usd 都已經在算出來時扣掉了本金，
+        # 本期末累計 fee 收入仍正常累積到 100（80 的舊 fee + 20 新 fee），
+        # Δ = 100 - 80 = 20，不會被本金污染成負值或虛增。
         result = wallet_apr_calc.compute_fee_income_delta(
-            current_claimable_usd=20.0, previous_claimable_usd=100.0, period_claimed_usd=100.0,
+            current_cumulative_fee_income_usd=100.0, previous_cumulative_fee_income_usd=80.0,
         )
         self.assertAlmostEqual(result["delta_usd"], 20.0)
-        self.assertGreaterEqual(result["delta_usd"], 0.0)
 
     def test_missing_any_input_returns_none_not_zero(self):
         for kwargs in (
-            {"current_claimable_usd": None, "previous_claimable_usd": 1.0, "period_claimed_usd": 0.0},
-            {"current_claimable_usd": 1.0, "previous_claimable_usd": None, "period_claimed_usd": 0.0},
-            {"current_claimable_usd": 1.0, "previous_claimable_usd": 1.0, "period_claimed_usd": None},
+            {"current_cumulative_fee_income_usd": None, "previous_cumulative_fee_income_usd": 1.0},
+            {"current_cumulative_fee_income_usd": 1.0, "previous_cumulative_fee_income_usd": None},
         ):
             result = wallet_apr_calc.compute_fee_income_delta(**kwargs)
             self.assertIsNone(result["delta_usd"])

@@ -82,34 +82,72 @@ def compute_wallet_position_metrics(daily_rows_asc: list[dict]) -> dict:
     return result
 
 
-def compute_fee_income_delta(
+def compute_cumulative_fee_income_usd(
+    cumulative_collected_usd: float | None,
     current_claimable_usd: float | None,
-    previous_claimable_usd: float | None,
-    period_claimed_usd: float | None,
+    cumulative_decrease_principal_usd: float | None,
 ) -> dict:
-    """anne 2026-10-03 spec：③本期新增收入 Δ ＝ 本期末可領 − 上期末可領 ＋ 期間已領。
+    """anne 2026-10-03 核正後的精確恆等式：
 
-    這個公式刻意不是「單純比較兩次可領金額的差」——如果中途使用者真的
-    claim 過一次，可領金額會先被清空再重新累積，單純比較會算出一個很大的
-    負值（誤以為這期虧了手續費），加回「期間已領」才能還原出這期真正新
-    產生的手續費收入，不受中途是否 claim 影響。
+        累計 fee 收入 = 累計 Collect 已領 ＋ 目前可提領總額 － 累計 DecreaseLiquidity 本金
 
-    任何一個輸入是 None（表示某一段資料缺失或 RPC 失敗），整段回 None，
-    不做「缺一段就當 0」的假設——那樣會把「不知道」偽裝成「真的是 0」。
+    背景：V3 的 `decreaseLiquidity()` 會把撤出的本金也寫進
+    `position.tokensOwed`，之後不管是 `Collect` 事件還是
+    `simulate_collect()` 的結果都是「本金＋fee」混在一起，單獨看任何一個
+    都分不出哪部分是本金——必須額外扣掉「累計 DecreaseLiquidity 本金」才能
+    還原出純 fee 收入。在沒有另外拆 fee-growth 的前提下，`current_claimable_usd`
+    （目前可提領總額）本身**不是**純 fee，只有套進這個恆等式、再跟上一筆快照
+    做差之後，才能得到可信的「本期新增 fee 收入」。
+
+    任何一段輸入是 None（資料缺失或 RPC 失敗），整段回 None，不做「缺一段
+    就當 0」的假設——那樣會把「不知道」偽裝成「真的是 0」。
     """
-    if current_claimable_usd is None or previous_claimable_usd is None or period_claimed_usd is None:
+    if (
+        cumulative_collected_usd is None
+        or current_claimable_usd is None
+        or cumulative_decrease_principal_usd is None
+    ):
         missing = [
             name for name, v in (
-                ("本期末可領", current_claimable_usd),
-                ("上期末可領", previous_claimable_usd),
-                ("期間已領", period_claimed_usd),
+                ("累計 Collect 已領", cumulative_collected_usd),
+                ("目前可提領總額", current_claimable_usd),
+                ("累計 DecreaseLiquidity 本金", cumulative_decrease_principal_usd),
+            ) if v is None
+        ]
+        return {
+            "value_usd": None,
+            "note": "缺少「" + "、".join(missing) + "」資料，無法套用精確恆等式算出累計 fee 收入",
+        }
+    value = cumulative_collected_usd + current_claimable_usd - cumulative_decrease_principal_usd
+    return {"value_usd": value, "note": None}
+
+
+def compute_fee_income_delta(
+    current_cumulative_fee_income_usd: float | None,
+    previous_cumulative_fee_income_usd: float | None,
+) -> dict:
+    """③本期新增收入 Δ ＝ 本期末累計 fee 收入 － 上期末累計 fee 收入。
+
+    輸入必須是 compute_cumulative_fee_income_usd() 算出來的「已扣除
+    DecreaseLiquidity 本金」的累計值，不能直接拿 claimable 或 tokensOwed
+    代入——那兩者都可能混著本金，會把撤資誤算成收入（anne 2026-10-03 核正）。
+    這個函式單純做差，取差之前的「拆本金」工作已經在
+    compute_cumulative_fee_income_usd() 做完，不在這裡重複判斷。
+
+    任一輸入是 None 就回 None，不當 0。
+    """
+    if current_cumulative_fee_income_usd is None or previous_cumulative_fee_income_usd is None:
+        missing = [
+            name for name, v in (
+                ("本期末累計 fee 收入", current_cumulative_fee_income_usd),
+                ("上期末累計 fee 收入", previous_cumulative_fee_income_usd),
             ) if v is None
         ]
         return {
             "delta_usd": None,
             "note": "缺少「" + "、".join(missing) + "」資料，無法計算本期新增收入 Δ",
         }
-    delta = current_claimable_usd - previous_claimable_usd + period_claimed_usd
+    delta = current_cumulative_fee_income_usd - previous_cumulative_fee_income_usd
     return {"delta_usd": delta, "note": None}
 
 

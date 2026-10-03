@@ -119,8 +119,15 @@ CREATE TABLE IF NOT EXISTS wallet_position_snapshot (
   cumulative_claimed_usd REAL,        -- 累計已領換算成 USD（用「本次查詢同一時間點」價格，
                                       -- 不是各次 collect 當下的歷史價格——跟 fees_accrued_usd
                                       -- 用同一套即時報價，避免混用不同時間點的幣價）
-  fee_income_delta_usd REAL,          -- ③本期新增收入 Δ ＝ 本期末可領 − 上期末可領 ＋ 期間已領
-                                      -- （anne 2026-10-03 spec；中途 claim 後不會誤變負值）
+  cumulative_decrease_principal_usd REAL, -- 累計透過 decreaseLiquidity() 撤出的本金（USD，
+                                      -- 同一時間點報價）。anne 2026-10-03 核正：
+                                      -- tokensOwed／Collect／可領總額都「本金＋fee」混在
+                                      -- 一起，這欄是從中扣掉本金、還原純 fee 收入的依據
+  cumulative_fee_income_usd REAL,     -- 精確恆等式算出的累計純 fee 收入 ＝ 累計已領 ＋
+                                      -- 目前可提領總額 － 累計撤出本金（見 wallet_apr_calc.
+                                      -- compute_cumulative_fee_income_usd 的推導）
+  fee_income_delta_usd REAL,          -- ③本期新增收入 Δ ＝ 本期末累計 fee 收入 － 上期末累計
+                                      -- fee 收入（已扣本金後的差，anne 2026-10-03 核正版）
   PRIMARY KEY (ts, wallet_addr, chain_id, token_id)
 );
 
@@ -235,6 +242,8 @@ _NEW_SNAPSHOT_COLUMNS = (
     ("cumulative_claimed_1_raw", "TEXT"),
     ("cumulative_claimed_usd", "REAL"),
     ("fee_income_delta_usd", "REAL"),
+    ("cumulative_decrease_principal_usd", "REAL"),
+    ("cumulative_fee_income_usd", "REAL"),
 )
 
 
@@ -274,6 +283,8 @@ def insert_snapshot(
     cumulative_claimed_1_raw: str | None = None,
     cumulative_claimed_usd: float | None = None,
     fee_income_delta_usd: float | None = None,
+    cumulative_decrease_principal_usd: float | None = None,
+    cumulative_fee_income_usd: float | None = None,
 ) -> None:
     """寫入一筆快照。用 INSERT OR REPLACE：每日排程重跑同一天（同一
     ts/wallet/chain/token_id）視為修正，不視為錯誤——排程本來就可能重跑
@@ -289,8 +300,9 @@ def insert_snapshot(
            liquidity, in_range, fees_accrued_usd, position_value_usd,
            claimable_0_raw, claimable_1_raw,
            cumulative_claimed_0_raw, cumulative_claimed_1_raw,
-           cumulative_claimed_usd, fee_income_delta_usd)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+           cumulative_claimed_usd, fee_income_delta_usd,
+           cumulative_decrease_principal_usd, cumulative_fee_income_usd)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             ts, wallet_addr.lower(), chain_id, token_id, pool_addr.lower(),
@@ -299,6 +311,7 @@ def insert_snapshot(
             claimable_0_raw, claimable_1_raw,
             cumulative_claimed_0_raw, cumulative_claimed_1_raw,
             cumulative_claimed_usd, fee_income_delta_usd,
+            cumulative_decrease_principal_usd, cumulative_fee_income_usd,
         ),
     )
     conn.commit()
@@ -338,7 +351,8 @@ def fetch_position_history(
                fees_accrued_usd, position_value_usd,
                claimable_0_raw, claimable_1_raw,
                cumulative_claimed_0_raw, cumulative_claimed_1_raw,
-               cumulative_claimed_usd, fee_income_delta_usd
+               cumulative_claimed_usd, fee_income_delta_usd,
+               cumulative_decrease_principal_usd, cumulative_fee_income_usd
         FROM wallet_position_snapshot
         WHERE wallet_addr = ? AND chain_id = ? AND token_id = ?
         ORDER BY ts ASC

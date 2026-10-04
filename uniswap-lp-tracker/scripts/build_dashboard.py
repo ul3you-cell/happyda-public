@@ -35,6 +35,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="dashboard-build-marker" content="{build_marker}">
 <title>Uniswap 多鏈 LP／熱門池唯讀儀表板 — {generated_date}</title>
 <style>
   :root {{ color-scheme: light; --blue:#1a73e8; --ink:#263238; --line:#d9e2ec; --paper:#fff; --bg:#f4f7fb;
@@ -79,6 +80,9 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   .filter-toggle label {{ display:block; margin:4px 0; cursor:pointer; }}
   .filter-toggle select {{ margin-left:6px; padding:3px 7px; border:1px solid var(--line); border-radius:5px; background:#fff; }}
   .filter-note {{ margin:6px 0 0; color:#667085; font-size:.8rem; }}
+  .src-toggle summary {{ cursor:pointer; color:var(--blue); white-space:normal; }}
+  .src-toggle .src-full {{ white-space:normal; max-width:460px; margin-top:4px; word-break:break-all; color:var(--ink); }}
+  td:has(.src-toggle) {{ white-space:normal; }}
   .wallet-box {{ margin:14px 0; padding:12px 14px; border:1px dashed var(--line); border-radius:8px; background:#fbfcfe; }}
   .wallet-note {{ font-size:.82rem; color:#556; margin:6px 0 10px; }}
   .wallet-input-row {{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; }}
@@ -114,10 +118,11 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       <li>下方「我的 LP 部位」表格是唯讀 RPC（eth_call）直接查詢錢包
         <code>0x267EE34200b09Ea8b52D02EeC3300b84985B1eFd</code> 的 Uniswap v3／v4 部位，
         逐鏈查詢＝0 或供應商不支援時會如實顯示區塊與原因。V3 fee 以唯讀
-        <code>eth_call</code> 模擬 <code>collect()</code> 取得；V4 poolId 用純 Python
+        <code>eth_call</code> 模擬 <code>collect()</code> 取得 V3 fee；V4 顯示鏈上 StateView 推得的
+        token0/token1 未領 fee 原幣數量與快照 fee Δ，不套用 V3 的 collect 總額欄位。V4 poolId 用純 Python
         Ethereum Keccak-256 計算並以 Unichain StateView 交叉驗證，非零 liquidity 部位顯示
-        區間內狀態、可取得的 USD 價值及「目前可提領總額」（collect() 模擬結果，
-        <strong>含尚未拆分的本金與 fee，不是純可領 fee</strong>——decreaseLiquidity()
+        區間內狀態、可取得的 USD 價值及 V3「目前可提領總額」（collect() 模擬結果，
+        <strong>僅 V3 此欄含尚未拆分的本金與 fee，不是純可領 fee</strong>——decreaseLiquidity()
         撤出的本金會先寫進同一個 tokensOwed 欄位，要套累計已領＋可提領總額－累計撤出
         本金的恆等式才能還原純 fee 收入，見下方「本期新增收入 Δ」欄）；零流動性歷史部位
         僅保留在內部稽核資料，不列於使用者明細。每日 delta／observed APR 需要至少
@@ -193,6 +198,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   <p class="footer-count" id="footer-count">本頁顯示：<span id="visible-count">0</span> 筆 ／ 共 <span id="total-count">0</span> 筆（每頁 25 筆，排序只改變順序與分頁內容，不改變總筆數）</p>
   <div class="pager-bar" id="pager"></div>
 
+  <section id="wallet-section">
   <h2>我的 LP 部位（唯讀 RPC 直接查詢錢包 <code>{wallet_address_short}</code>）</h2>
   <p class="filter-note">{wallet_summary_note}</p>
   <div class="table-wrap">
@@ -203,10 +209,15 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         <th data-key="chain_name" data-type="text" aria-sort="none">鏈</th>
         <th data-key="protocol" data-type="text" aria-sort="none">協定</th>
         <th data-key="pair_label" data-type="text" aria-sort="none">Pair</th>
+        <th data-key="token_id" data-type="bigint" aria-sort="none">Position Token ID</th>
         <th data-key="fee_tier_pct" data-type="num" aria-sort="none">Fee Tier</th>
         <th data-key="position_status" data-type="text" aria-sort="none">流動性狀態</th>
         <th data-key="position_value_usd" data-type="num" aria-sort="none">部位價值 USD</th>
-        <th data-key="fees_owed_usd" data-type="num" aria-sort="none">目前可提領總額 USD<br><small>(含本金，非純fee)</small></th>
+        <th data-key="unclaimed_fee_raw_token0" data-type="text" aria-sort="none">未領 fee token0 原幣</th>
+        <th data-key="unclaimed_fee_raw_token1" data-type="text" aria-sort="none">未領 fee token1 原幣</th>
+        <th data-key="fee_income_delta_token0_raw" data-type="text" aria-sort="none">本期新增 fee Δ token0 原幣</th>
+        <th data-key="fee_income_delta_token1_raw" data-type="text" aria-sort="none">本期新增 fee Δ token1 原幣</th>
+        <th data-key="delta_quality_reason" data-type="text" aria-sort="none">Δ 資料品質／原因</th>
         <th data-key="in_range" data-type="text" aria-sort="none">In-range</th>
         <th data-key="delta_24h_usd" data-type="num" aria-sort="none">24h Delta</th>
         <th data-key="observed_apr_7d_pct" data-type="num" aria-sort="none">實測 APR 7d</th>
@@ -220,6 +231,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   </div>
   <p class="footer-count" id="wallet-footer-count">本頁顯示：<span id="wallet-visible-count">0</span> 筆 ／ 共 <span id="wallet-total-count">0</span> 筆</p>
   <div class="pager-bar" id="wallet-pager"></div>
+  </section>
 
   <script type="application/json" id="wallet-data">{wallet_rows_json}</script>
   <script type="application/json" id="pool-data">{rows_json}</script>
@@ -281,6 +293,23 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     return value.toFixed(2).replace(/\.00$/, '').replace(/(\.\d)0$/, '$1');
   }}
 
+  function escapeHtml(s) {{
+    return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }}
+
+  function renderSourceCell(v) {{
+    if (!v) return null;
+    const s = String(v), safe = escapeHtml(s);
+    return s.length <= 46 ? safe : '<details class="src-toggle"><summary>' + escapeHtml(s.slice(0, 46) + '…') + '</summary><div class="src-full">' + safe + '</div></details>';
+  }}
+
+  function formatHumanTime(v) {{
+    if (v === null || v === undefined || v === '') return null;
+    const d = new Date(typeof v === 'number' ? v * 1000 : v);
+    if (isNaN(d.getTime())) return escapeHtml(String(v));
+    return new Intl.DateTimeFormat('zh-TW', {{ timeZone:'Asia/Taipei', dateStyle:'medium', timeStyle:'medium', hour12:false }}).format(d) + '（台北）';
+  }}
+
   function formatUsdCompact(value) {{
     if (value === null || value === undefined || value === '') return null;
     const n = Number(value);
@@ -326,10 +355,8 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         const label = statusLabels[displayKey] || displayKey;
         return '<span class="badge b-' + displayKey + '">' + label + '</span>';
       }}
-      if (key === 'source') {{
-        if (!v) return null;
-        return '<span title="' + v.replace(/"/g, '&quot;') + '">' + (v.length > 46 ? v.slice(0, 46) + '…' : v) + '</span>';
-      }}
+      if (key === 'source') return renderSourceCell(v);
+      if (key === 'snapshot_time') return formatHumanTime(v);
       return v;
     }}
 
@@ -477,15 +504,22 @@ HTML_TEMPLATE = """<!DOCTYPE html>
   (function() {{
     // 「我的 LP 部位」表格：資料來自後端 wallet_live_fetch.py 唯讀 RPC 查詢結果，
     // 重用上面已定義的 sortRowsPure / compareValues 純函式，邏輯不重寫。
-    const wRows = JSON.parse(document.getElementById('wallet-data').textContent);
+    const wRowsAll = JSON.parse(document.getElementById('wallet-data').textContent);
+    const wRows = wRowsAll.filter(r => r.position_status !== '已查詢＝0' && r.position_status !== '查詢錯誤');
     const wTbody = document.querySelector('#wallet-table tbody');
     if (!wTbody) return;
+    if (wRows.length === 0) {{
+      document.getElementById('wallet-section').style.display = 'none';
+      return;
+    }}
     let wSortState = {{ key: null, dir: 1 }};
     let wCurrentPage = 1;
     let wCurrentSorted = wRows;
     const W_PAGE_SIZE = 20;
-    const wCols = ['chain_name','protocol','pair_label','fee_tier_pct','position_status',
-                   'position_value_usd','fees_owed_usd','in_range','delta_24h_usd',
+    const wCols = ['chain_name','protocol','pair_label','token_id','fee_tier_pct','position_status',
+                   'position_value_usd','unclaimed_fee_raw_token0','unclaimed_fee_raw_token1',
+                   'fee_income_delta_token0_raw','fee_income_delta_token1_raw','delta_quality_reason',
+                   'in_range','delta_24h_usd',
                    'observed_apr_7d_pct','observed_apr_30d_pct','snapshot_time','source'];
 
     function wFmtCell(row, key) {{
@@ -505,14 +539,14 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         const exact = '$' + Number(v).toLocaleString('en-US', {{ maximumFractionDigits: 6 }});
         return '<span title="精確值：' + exact + '">' + formatUsdCompact(v) + '</span>';
       }}
+      if (key === 'unclaimed_fee_raw_token0' || key === 'unclaimed_fee_raw_token1' || key === 'fee_income_delta_token0_raw' || key === 'fee_income_delta_token1_raw') return v === null || v === undefined ? null : escapeHtml(v);
+      if (key === 'delta_quality_reason') return v || row.delta_quality_status || row.fee_income_delta_note || null;
       if (key === 'in_range') {{
         if (v === null || v === undefined) return null;
         return v ? '<span class="badge b-live">in-range</span>' : '<span class="badge b-not_found">out-of-range</span>';
       }}
-      if (key === 'source') {{
-        if (!v) return null;
-        return '<span title="' + String(v).replace(/"/g, '&quot;') + '">' + (String(v).length > 46 ? String(v).slice(0, 46) + '…' : v) + '</span>';
-      }}
+      if (key === 'source') return renderSourceCell(v);
+      if (key === 'snapshot_time') return formatHumanTime(v);
       return v;
     }}
 
@@ -694,7 +728,7 @@ def main() -> int:
             # 可提領總額」，含尚未拆分的 decreaseLiquidity() 本金，不是純 fee，
             # 絕不可在摘要文字標成「可領 fee」。
             f"活躍部位總估值：{value_summary}；目前可提領總額（含本金，非純fee）：{fee_summary}",
-            f"最後查詢時間：{datetime.fromtimestamp(wallet_data.get('generated_at', 0), tz=timezone.utc).isoformat()}",
+            f"最後查詢時間：{datetime.fromtimestamp(wallet_data.get('generated_at', 0), tz=timezone.utc).astimezone(wallet_live_fetch._TAIPEI_TZ).strftime('%Y-%m-%d %H:%M:%S')}（台北）",
         ]
         if failed_chains:
             note_parts.append(f"查詢失敗（詳見下表來源欄的真實錯誤訊息）：{', '.join(failed_chains)}")
@@ -716,6 +750,7 @@ def main() -> int:
 
     html = HTML_TEMPLATE.format(
         generated_date=datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+        build_marker="v4-fee-delta-" + datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ"),
         generated_at=data["generated_at"],
         endpoint=ENDPOINT,
         total_rows=meta["total_rows"],

@@ -16,8 +16,10 @@ range/liquidity，其餘欄位誠實標示「資料源不支援」，不猜測�
 from __future__ import annotations
 
 import json
+import re
 import sys
 import time
+from decimal import Decimal
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -50,9 +52,8 @@ V4_NATIVE_PRICE_ADDRESS_BY_CHAIN = {
 
 
 def _redact(exc: Exception) -> str:
-    # wallet_rpc_client / wallet_price_client 的例外訊息本身已經先遮蔽過 URL/key，
-    # 這裡直接轉字串即可，不需要重複遮蔽。
-    return str(exc)
+    # Do not persist endpoint hosts or paths in public snapshots/dashboard output.
+    return re.sub(r"https?://[^\s)\]\[\"']+", "[RPC endpoint]", str(exc))
 
 
 def _eth_call_post(rpc_url: str, payload: dict) -> dict:
@@ -959,6 +960,15 @@ def build_wallet_rows(wallet_data: dict) -> list[dict]:
 
             token0_symbol = _symbol_of(pos.get("token0"))
             token1_symbol = _symbol_of(pos.get("token1"))
+            def _token_amount(raw, token_field):
+                if raw is None:
+                    return None
+                decimals = token_field.get("decimals") if isinstance(token_field, dict) else None
+                if decimals is None:
+                    return f"{raw} base units"
+                amount = format(Decimal(str(raw)).scaleb(-int(decimals)), "f")
+                return amount.rstrip("0").rstrip(".") if "." in amount else amount
+
             pair_label = None
             if token0_symbol and token1_symbol:
                 pair_label = f"{token0_symbol}/{token1_symbol}"
@@ -971,6 +981,7 @@ def build_wallet_rows(wallet_data: dict) -> list[dict]:
                 "chain_name": chain_name,
                 "protocol": protocol,
                 "pair_label": pair_label,
+                "token_id": pos.get("token_id"),
                 "fee_tier_pct": pos.get("fee_tier_pct"),
                 "position_value_usd": pos.get("position_value_usd"),
                 "fees_owed_usd": pos.get("fees_owed_usd"),
@@ -982,6 +993,17 @@ def build_wallet_rows(wallet_data: dict) -> list[dict]:
                       or pos.get("active") is not None) else None,
                 "token0_symbol": _symbol_of(pos.get("token0")),
                 "token1_symbol": _symbol_of(pos.get("token1")),
+                "unclaimed_fee_raw_token0": _token_amount(pos.get("fees_owed_0_raw"), pos.get("token0")),
+                "unclaimed_fee_raw_token1": _token_amount(pos.get("fees_owed_1_raw"), pos.get("token1")),
+                "fee_income_delta_token0_raw": _token_amount(pos.get("fee_income_delta_token0_raw"), pos.get("token0")),
+                "fee_income_delta_token1_raw": _token_amount(pos.get("fee_income_delta_token1_raw"), pos.get("token1")),
+                "delta_quality_status": pos.get("v4_delta_quality_status"),
+                "delta_quality_reason": (
+                    pos.get("v4_delta_quality_reason")
+                    or pos.get("fee_income_delta_note")
+                    or ("可計算；前後快照基準有效，且區間內未檢出部位 activity。"
+                        if pos.get("v4_delta_quality_status") == "ok" else None)
+                ),
                 "token0_value_usd": pos.get("token0_value_usd"),
                 "token1_value_usd": pos.get("token1_value_usd"),
                 "in_range": pos.get("in_range"),

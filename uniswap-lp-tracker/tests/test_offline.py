@@ -1827,7 +1827,7 @@ class TestBuildWalletRows(unittest.TestCase):
         self.assertEqual(len(rows), 1)
         self.assertEqual(rows[0]["position_status"], "活躍（非零 liquidity）")
 
-    def test_frontend_row_omits_protocol_internals_and_raw_token_amounts(self):
+    def test_frontend_row_shows_token_id_but_omits_protocol_internals_and_token_amounts(self):
         wallet_data = {
             "v3": [{"chain_name": "Arbitrum", "protocol": "v3", "error": None,
                     "queried_at": 1790500000, "positions": [{
@@ -1840,7 +1840,7 @@ class TestBuildWalletRows(unittest.TestCase):
             "v4": [],
         }
         row = wallet_live_fetch.build_wallet_rows(wallet_data)[0]
-        self.assertNotIn("token_id", row)
+        self.assertEqual(row["token_id"], 99)
         self.assertNotIn("current_tick", row)
         self.assertNotIn("token0_amount", row)
         self.assertNotIn("token1_amount", row)

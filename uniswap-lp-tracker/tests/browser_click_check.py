@@ -51,9 +51,11 @@ COLUMNS = [
 # #wallet-table thead（見 wCols 定義），跟 #pool-table 用同一顆 CDP 連線，
 # 不是另開一份離線 fixture 驗證。
 WALLET_COLUMNS = [
-    "chain_name", "protocol", "pair_label", "fee_tier_pct", "position_status",
-    "position_value_usd", "fees_owed_usd", "in_range", "delta_24h_usd",
-    "observed_apr_7d_pct", "observed_apr_30d_pct", "snapshot_time", "source",
+    "chain_name", "protocol", "pair_label", "token_id", "fee_tier_pct", "position_status",
+    "position_value_usd", "unclaimed_fee_raw_token0", "unclaimed_fee_raw_token1",
+    "fee_income_delta_token0_raw", "fee_income_delta_token1_raw", "delta_quality_reason",
+    "in_range", "delta_24h_usd", "observed_apr_7d_pct", "observed_apr_30d_pct",
+    "snapshot_time", "source",
 ]
 
 
@@ -486,27 +488,41 @@ def main() -> int:
                   (() => {
                     const headers = Array.from(document.querySelectorAll('#wallet-table thead th'))
                       .map(th => th.textContent.trim());
-                    const forbidden = ['Token ID', 'Token0 數量', 'Token1 數量', 'Current Tick'];
+                    const buildMarker = document.querySelector('meta[name="dashboard-build-marker"]')?.content || '';
                     const rows = JSON.parse(document.getElementById('wallet-data').textContent);
                     const activeRows = rows.filter(r => r.position_status === '活躍（非零 liquidity）');
+                    const required = [['Ethereum', 429477], ['Arbitrum', 212750]];
+                    const requiredRows = required.map(([chain, id]) => {
+                      const row = rows.find(r => r.chain_name === chain && Number(r.token_id) === id);
+                      return row ? { chain, token_id: row.token_id, pair: row.pair_label,
+                        fee0: row.unclaimed_fee_raw_token0, fee1: row.unclaimed_fee_raw_token1,
+                        delta0: row.fee_income_delta_token0_raw, delta1: row.fee_income_delta_token1_raw,
+                        reason: row.delta_quality_reason } : null;
+                    });
                     const summary = Array.from(document.querySelectorAll('.filter-note'))
                       .map(el => el.textContent).find(text => text.includes('活躍部位總估值')) || '';
-                    return { headers, forbiddenPresent: forbidden.filter(h => headers.includes(h)),
-                      activeRows: activeRows.length, zeroSummaryVisible: summary.includes('非零 liquidity 活躍部位：0'),
+                    return { headers, buildMarker, activeRows: activeRows.length, requiredRows,
+                      hasFeeHeaders: headers.some(h => h.includes('未領 fee token0')) && headers.some(h => h.includes('新增 fee Δ token1')),
+                      hasDeltaReason: headers.some(h => h.includes('資料品質／原因')),
+                      zeroSummaryVisible: summary.includes('非零 liquidity 活躍部位：0'),
                       exposesHistoryCount: summary.includes('NFT 持有總數') || summary.includes('歷史 NFT') };
                   })()
                 """)
                 display_ok = (
                     isinstance(display_contract, dict)
-                    and not display_contract["forbiddenPresent"]
-                    and display_contract["activeRows"] == 0
-                    and display_contract["zeroSummaryVisible"]
+                    and display_contract["buildMarker"].startswith("v4-fee-delta-")
+                    and display_contract["activeRows"] > 0
+                    and all(r and r["fee0"] and r["fee1"] and r["reason"] for r in display_contract["requiredRows"])
+                    and display_contract["hasFeeHeaders"]
+                    and display_contract["hasDeltaReason"]
                     and not display_contract["exposesHistoryCount"]
                 )
                 print(("OK  " if display_ok else "FAIL")
-                      + f" [活躍 LP／前台欄位] active={display_contract.get('activeRows') if isinstance(display_contract, dict) else 'N/A'} "
-                      + f"hidden_columns_absent={not display_contract.get('forbiddenPresent') if isinstance(display_contract, dict) else False} "
-                      + f"zero_summary={display_contract.get('zeroSummaryVisible') if isinstance(display_contract, dict) else False} "
+                      + f" [V4 fee 顯示] active={display_contract.get('activeRows') if isinstance(display_contract, dict) else 'N/A'} "
+                      + f"build_marker={display_contract.get('buildMarker') if isinstance(display_contract, dict) else 'N/A'} "
+                      + f"fee_rows={display_contract.get('requiredRows') if isinstance(display_contract, dict) else 'N/A'} "
+                      + f"fee_headers={display_contract.get('hasFeeHeaders') if isinstance(display_contract, dict) else False} "
+                      + f"delta_reason={display_contract.get('hasDeltaReason') if isinstance(display_contract, dict) else False} "
                       + f"history_count_hidden={not display_contract.get('exposesHistoryCount') if isinstance(display_contract, dict) else False}")
                 if not display_ok:
                     failures += 1

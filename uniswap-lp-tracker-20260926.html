@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="dashboard-build-marker" content="v4-fee-delta-20261004T003428Z">
+<meta name="dashboard-build-marker" content="v4-fee-delta-20261004T004624Z">
 <title>Uniswap 多鏈 LP／熱門池唯讀儀表板 — 2026-10-04</title>
 <style>
   :root { color-scheme: light; --blue:#1a73e8; --ink:#263238; --line:#d9e2ec; --paper:#fff; --bg:#f4f7fb;
@@ -265,6 +265,13 @@
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
+  function formatTokenAmount(value, symbol) {
+    if (value === null || value === undefined) return null;
+    const label = (typeof symbol === 'string' && symbol.trim()
+      && !/^0x[0-9a-f]{4}…[0-9a-f]{4}$/i.test(symbol.trim())) ? symbol.trim() : '未知幣別';
+    return escapeHtml(label + ' ' + String(value));
+  }
+
   function renderSourceCell(v) {
     if (!v) return null;
     const s = String(v), safe = escapeHtml(s);
@@ -507,7 +514,10 @@
         const exact = '$' + Number(v).toLocaleString('en-US', { maximumFractionDigits: 6 });
         return '<span title="精確值：' + exact + '">' + formatUsdCompact(v) + '</span>';
       }
-      if (key === 'unclaimed_fee_raw_token0' || key === 'unclaimed_fee_raw_token1' || key === 'fee_income_delta_token0_raw' || key === 'fee_income_delta_token1_raw') return v === null || v === undefined ? null : escapeHtml(v);
+      if (key === 'unclaimed_fee_raw_token0') return formatTokenAmount(v, row.token0_symbol);
+      if (key === 'unclaimed_fee_raw_token1') return formatTokenAmount(v, row.token1_symbol);
+      if (key === 'fee_income_delta_token0_raw') return formatTokenAmount(v, row.token0_symbol);
+      if (key === 'fee_income_delta_token1_raw') return formatTokenAmount(v, row.token1_symbol);
       if (key === 'delta_quality_reason') return v || row.delta_quality_status || row.fee_income_delta_note || null;
       if (key === 'in_range') {
         if (v === null || v === undefined) return null;

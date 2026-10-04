@@ -279,6 +279,10 @@ _WALLET_MONOTONIC_CHECK_JS = """
   const rows = Array.from(document.querySelectorAll('#wallet-table tbody tr'));
   const raw = rows.map(r => {
     const cell = r.cells[%(idx)d];
+    if (['unclaimed_fee_raw_token0', 'unclaimed_fee_raw_token1',
+         'fee_income_delta_token0_raw', 'fee_income_delta_token1_raw'].includes(th.dataset.key)) {
+      return cell.textContent.trim().replace(/^[^ ]+\\s+/, '');
+    }
     const badge = cell.querySelector('.badge');
     if (badge) {
       const cls = Array.from(badge.classList).find(c => c.startsWith('b-'));
@@ -494,9 +498,15 @@ def main() -> int:
                     const required = [['Ethereum', 429477], ['Arbitrum', 212750]];
                     const requiredRows = required.map(([chain, id]) => {
                       const row = rows.find(r => r.chain_name === chain && Number(r.token_id) === id);
+                      const rendered = Array.from(document.querySelectorAll('#wallet-table tbody tr'))
+                        .find(tr => Number(tr.cells[3]?.textContent.trim()) === id);
                       return row ? { chain, token_id: row.token_id, pair: row.pair_label,
                         fee0: row.unclaimed_fee_raw_token0, fee1: row.unclaimed_fee_raw_token1,
                         delta0: row.fee_income_delta_token0_raw, delta1: row.fee_income_delta_token1_raw,
+                        fee0Text: rendered?.cells[7]?.textContent.trim(),
+                        fee1Text: rendered?.cells[8]?.textContent.trim(),
+                        delta0Text: rendered?.cells[9]?.textContent.trim(),
+                        delta1Text: rendered?.cells[10]?.textContent.trim(),
                         reason: row.delta_quality_reason } : null;
                     });
                     const summary = Array.from(document.querySelectorAll('.filter-note'))
@@ -513,6 +523,14 @@ def main() -> int:
                     and display_contract["buildMarker"].startswith("v4-fee-delta-")
                     and display_contract["activeRows"] > 0
                     and all(r and r["fee0"] and r["fee1"] and r["reason"] for r in display_contract["requiredRows"])
+                    and display_contract["requiredRows"][0]["fee0Text"].startswith("ETH ")
+                    and display_contract["requiredRows"][0]["fee1Text"].startswith("USDC ")
+                    and display_contract["requiredRows"][0]["delta0Text"].startswith("ETH ")
+                    and display_contract["requiredRows"][0]["delta1Text"].startswith("USDC ")
+                    and display_contract["requiredRows"][1]["fee0Text"].startswith("WBTC ")
+                    and display_contract["requiredRows"][1]["fee1Text"].startswith("USDC ")
+                    and display_contract["requiredRows"][1]["delta0Text"].startswith("WBTC ")
+                    and display_contract["requiredRows"][1]["delta1Text"].startswith("USDC ")
                     and display_contract["hasFeeHeaders"]
                     and display_contract["hasDeltaReason"]
                     and not display_contract["exposesHistoryCount"]

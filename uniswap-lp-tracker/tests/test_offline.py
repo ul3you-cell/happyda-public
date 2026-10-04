@@ -1847,6 +1847,27 @@ class TestBuildWalletRows(unittest.TestCase):
         self.assertEqual(row["token0_value_usd"], 2500.0)
         self.assertEqual(row["token1_value_usd"], 2500.0)
 
+    def test_fee_amount_rows_keep_each_token_symbol_separate(self):
+        wallet_data = {
+            "v3": [],
+            "v4": [{"chain_name": "Ethereum", "protocol": "v4", "error": None,
+                    "queried_at": 1791073931, "positions": [{
+                        "token_id": 429477, "active": True, "liquidity": 1,
+                        "token0": {"symbol": "ETH", "decimals": 18},
+                        "token1": {"symbol": "USDC", "decimals": 6},
+                        "fees_owed_0_raw": "225515900636963",
+                        "fees_owed_1_raw": "527128",
+                        "fee_income_delta_token0_raw": "442053951713",
+                        "fee_income_delta_token1_raw": "0",
+                    }]}],
+        }
+        row = wallet_live_fetch.build_wallet_rows(wallet_data)[0]
+        self.assertEqual((row["token0_symbol"], row["token1_symbol"]), ("ETH", "USDC"))
+        self.assertEqual(row["unclaimed_fee_raw_token0"], "0.000225515900636963")
+        self.assertEqual(row["unclaimed_fee_raw_token1"], "0.527128")
+        self.assertEqual(row["fee_income_delta_token0_raw"], "0.000000442053951713")
+        self.assertEqual(row["fee_income_delta_token1_raw"], "0")
+
 
 class TestCollectEventDecode(unittest.TestCase):
     """anne 2026-10-03 spec ②累計已領：驗證 Collect 事件 topic0／data 解碼。"""

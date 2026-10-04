@@ -297,6 +297,13 @@ HTML_TEMPLATE = """<!DOCTYPE html>
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }}
 
+  function formatTokenAmount(value, symbol) {{
+    if (value === null || value === undefined) return null;
+    const label = (typeof symbol === 'string' && symbol.trim()
+      && !/^0x[0-9a-f]{{4}}…[0-9a-f]{{4}}$/i.test(symbol.trim())) ? symbol.trim() : '未知幣別';
+    return escapeHtml(label + ' ' + String(value));
+  }}
+
   function renderSourceCell(v) {{
     if (!v) return null;
     const s = String(v), safe = escapeHtml(s);
@@ -539,7 +546,10 @@ HTML_TEMPLATE = """<!DOCTYPE html>
         const exact = '$' + Number(v).toLocaleString('en-US', {{ maximumFractionDigits: 6 }});
         return '<span title="精確值：' + exact + '">' + formatUsdCompact(v) + '</span>';
       }}
-      if (key === 'unclaimed_fee_raw_token0' || key === 'unclaimed_fee_raw_token1' || key === 'fee_income_delta_token0_raw' || key === 'fee_income_delta_token1_raw') return v === null || v === undefined ? null : escapeHtml(v);
+      if (key === 'unclaimed_fee_raw_token0') return formatTokenAmount(v, row.token0_symbol);
+      if (key === 'unclaimed_fee_raw_token1') return formatTokenAmount(v, row.token1_symbol);
+      if (key === 'fee_income_delta_token0_raw') return formatTokenAmount(v, row.token0_symbol);
+      if (key === 'fee_income_delta_token1_raw') return formatTokenAmount(v, row.token1_symbol);
       if (key === 'delta_quality_reason') return v || row.delta_quality_status || row.fee_income_delta_note || null;
       if (key === 'in_range') {{
         if (v === null || v === undefined) return null;

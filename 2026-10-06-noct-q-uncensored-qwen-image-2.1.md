@@ -9,10 +9,10 @@
 
 在 M4 Mac mini 32 GB 上跑 Noct-Q-Uncensored-Qwen-Image-2.1 有**兩條主路徑**：
 
-1. **ComfyUI + GGUF（推薦入門）**——社群 GGUF 版本、跨平台、Apple Silicon 走 MPS／Metal，開發者社群最大、坑最少。32 GB 統一記憶體跑 int4/int8 沒問題。
-2. **Core ML（最快，Apple 原生）**——Devin Lai 的 `Qwen-Image-2.1-Coreml`，已在 M5 32 GB 實測比 PyTorch MPS 快 2.4–2.6×；macOS 15+ 必要，**M4 還沒有正式基準**，得自己測。
+1. **ComfyUI + GGUF（推薦入門）**——社群 GGUF 版本、跨平台、Apple Silicon 走 MPS／Metal，文件與範例較多。32 GB 統一記憶體有較多餘裕，但是否穩定仍要以實跑為準。
+2. **Core ML（Apple 原生）**——Devin Lai 的 `Qwen-Image-2.1-Coreml` 在 M5 32 GB 的單一公開基準比 PyTorch MPS 快 2.4–2.6×；macOS 15+ 必要，**M4 還沒有正式基準**，得自己測。
 
-> ⚠ **授權注意**：Qwen Research License 限**非商業使用**。圖片若含可辨識真實人物，肖像權在你。
+> ⚠ **授權注意**：Qwen Research License 限**非商業使用**。不要以可辨識真人製作私密或性化影像，尤其不得涉及未成年或未經同意內容。
 
 ---
 
@@ -34,11 +34,11 @@
 | 平台 | 跨平台 | Apple Silicon only |
 | macOS | 12+ | **15+**（必要） |
 | Python | 3.10+ | 3.11–3.13 |
-| 速度（M 系列） | 中等，社群有 mflux 4-bit 加速 | 官方實測 M5 32 GB 跑 1024² 比 MPS 快 2.4–2.6× |
+| 速度（M 系列） | 中等，可用量化模型降低記憶體壓力 | 專案在 M5 32 GB 的單一基準跑 1024² 比 MPS 快 2.4–2.6×；不能直接推論到 M4 |
 | 工作流 | 拖拉節點、視覺化 | 命令列 CLI + Python API |
 | 編輯（img2img） | ✅ 官方編輯模板 | ❌ 目前只支援文生圖 |
 | 自訂 prompt | ✅ | ✅（要裝可選 text encoder，依賴較多） |
-| **M4 32 GB 實測資料** | 16 GB M4 Air 有 Medium 實測報告（見 §5） | 官方只測 M5，**M4 要自己跑一次** |
+| **M4 32 GB 實測資料** | 沒有可重現的公開 M4 32 GB 基準 | 該專案公開基準只測 M5，**M4 要自己跑一次** |
 | 第一選擇 | **第一次跑就選這條** | 已經會用、想榨效能再來 |
 
 ---
@@ -112,7 +112,7 @@ pip install -r ComfyUI-GGUF/requirements.txt
 pip install -U "huggingface_hub[cli]"
 huggingface-cli download abenzerps/Qwen-Image-2.1-Uncensored-GGUF \
   --local-dir ComfyUI/models/diffusion_models/ \
-  --include "*q4*"
+  --include "qwen-image-2.1-UC-Q4_K_M.gguf"
 huggingface-cli download Comfy-Org/Qwen-Image-2.1 \
   --local-dir ComfyUI/models/ \
   --include "text_encoders/qwen3vl_8b_int8_convrot.safetensors" \
@@ -169,13 +169,13 @@ python main.py --lowvram
 python main.py --preview-method auto --use-pytorch-cross-attention
 ```
 
-> 一般 32 GB 跑 Q4 不會 OOM，僅在同時開很多瀏覽器分頁時可能。
+> 32 GB 跑 Q4 通常較有餘裕，但模型版本、解析度與同時開啟的程式都會影響記憶體；第一次請以低負載環境實跑確認。
 
 ---
 
-## 4. 路徑 B：Core ML（最快，Apple 原生）
+## 4. 路徑 B：Core ML（Apple 原生；M4 須自行實測）
 
-> 適合：想榨 M4 GPU 全部效能、只用 T2I（不要編輯）、可以接受命令列。
+> 適合：只用 T2I（不要編輯）、可以接受命令列，且願意在 M4 上自行量測速度與記憶體用量。
 
 ### 4.1 系統需求
 
@@ -225,11 +225,11 @@ python encode_prompt.py "a lighthouse in a storm, long exposure" --name lighthou
 python generate.py --prompt-embeds assets/prompts/lighthouse.npz --out lighthouse.png
 ```
 
-> ⚠ encode 階段會另外下載官方 Qwen3-VL 文字編碼器，記憶體用量比生成更高。32 GB 機應該沒問題。
+> ⚠ encode 階段會另外下載官方 Qwen3-VL 文字編碼器，記憶體用量可能比生成更高；32 GB 較有餘裕，但仍應以第一次實跑為準。
 
 ### 4.5 M4 實測尚未公開
 
-官方只測了 M5 32 GB，FAQ 明寫：**M1/M2/M3/M4 還沒正式基準**。如果你跑起來，建議回 issue 填 hardware report 幫社群補資料。
+該專案公開基準只測了 M5 32 GB，FAQ 明寫：**M1/M2/M3/M4 還沒正式基準**。如果你跑起來，建議回 issue 填 hardware report 幫社群補資料。
 
 ---
 
@@ -243,7 +243,7 @@ python generate.py --prompt-embeds assets/prompts/lighthouse.npz --out lighthous
   │       │   └─ 否 → 用官方 t2i 模板
   │       └─ 跑得很慢？
   │           ├─ Q8 太慢 → 換 Q4 GGUF
-  │           └─ 還是不順 → 進階：把文字編碼器放 SSD
+  │           └─ 還是不順 → 關閉其他重度程式，並改用較小量化模型後重測
   │
   └─ 已經會用、想榨效能 → 路徑 B（Core ML）
         └─ 之後若要編輯 → 回到 ComfyUI
@@ -255,11 +255,10 @@ python generate.py --prompt-embeds assets/prompts/lighthouse.npz --out lighthous
 
 ## 6. 你的硬體（M4 32 GB）額外注意
 
-- **統一記憶體是共享的**：Safari、Chrome、Slack 一開就會分給 GPU 1–3 GB。跑圖前關掉重瀏覽器、Slack、VS Code 之外的大程式。
-- **MPS 不等於 CUDA**：有些 PyTorch op 在 MPS 上沒實作或慢，ComfyUI 偶爾會跳錯。遇到時換 GGUF 路徑通常繞得過去。
-- **M4 沒有 Pro / Max 的媒體引擎加速**：出圖速度比 M4 Pro / Max 慢 20–30%。32 GB 統一記憶體的 M4 Pro/Max 體驗會更好；標準 M4 算夠用，不算強。
-- **不要拿 16 GB 版來對標**：M4 Air 16 GB 跑 Q4 + `--low-ram` 還 OK，但 1024² 開 20 steps 一張要 1 分多鐘（Medium 實測）。你的 32 GB 會舒服得多。
-- **散熱**：Mac mini 標準版沒有風扇，機殼溫度會拉高。如果連續出圖讓機身燙手，裝個 **Cooler Master Notepal** 散熱墊或放通風處；不影響效能但延長零件壽命。
+- **統一記憶體是共享的**：瀏覽器、Slack、VS Code 與圖像模型共用同一池記憶體。跑圖前先關掉重度程式，並以系統實際記憶體壓力為準。
+- **MPS 不等於 CUDA**：有些 PyTorch op 在 MPS 上可能未實作或較慢。GGUF 是另一種載入方式，不能保證解決每一種 MPS 問題。
+- **不要把媒體引擎當成出圖速度指標**：Apple 規格中，M4 為 10 核 GPU、120 GB/s 記憶體頻寬；M4 Pro 為 16 核 GPU、273 GB/s。兩者都有影片媒體引擎，但其規格不能直接換算成圖像生成快多少。
+- **Core ML 的 M4 數據仍缺**：目前公開基準是 M5 MacBook Pro 32 GB；第一次跑時請記錄相同解析度與 steps 的耗時，再決定是否改走這條路。
 
 ---
 
@@ -300,9 +299,9 @@ Qwen-Image-2.1（以及 Noct Q）吃**敘述文**，不吃 tag 列表。模板�
 ## 9. 為什麼 Noct Q 這條路線要小心
 
 - **授權**：Qwen Research License 限**非商業**。商業用途要直接洽阿里拿商用授權。
-- **肖像權**：在台灣，散布以他人肖像生成的色情影像可能觸犯《刑法》第 235 條（散布猥褻物品）與《個人資料保護法》；在多數司法管轄區都是嚴重法律問題。
-- **平台政策**：把這類輸出丟上 X、IG、Discord、Threads 都可能直接被刪號；HF repo 也是被標 `Not-For-All-Audiences`。
-- **別拿來做小孩或非同意的內容**：所有主要司法管轄區都視為兒少性影像（CSAM）罪，無任何灰色地帶。
+- **真人肖像與隱私**：不要以真人製作私密或性化影像；適用法律會隨地點、散布方式與同意情況而不同，具體情況應向合格法律專業人士確認。
+- **平台政策**：X、Instagram、Discord、Threads 等平台可能限制或移除這類內容，並可能對帳號採取處分；發布前應先確認當下規範。HF repo 也標示 `Not-For-All-Audiences`。
+- **別拿來做小孩或非同意的內容**：這些情況涉及嚴重傷害與重大法律風險，絕對不要做。
 
 ---
 
@@ -317,6 +316,8 @@ Qwen-Image-2.1（以及 Noct Q）吃**敘述文**，不吃 tag 列表。模板�
 | 5 | https://medium.com/@hyperai/qwen-image-2-1-uncensored-local-deployment-a-16gb-macbook-air-can-run-it-3a98394f7bf4 | 已讀原文 | 2026-10-06 |
 | 6 | https://huggingface.co/abenzerps/Qwen-Image-2.1-Uncensored-GGUF | 僅搜尋摘要 | 2026-10-06 |
 | 7 | https://huggingface.co/Comfy-Org/Qwen-Image-2.1 | 僅搜尋摘要 | 2026-10-06 |
+| 8 | https://support.apple.com/en-us/121555 | Apple 技術規格原文 | 2026-10-06 |
+| 9 | https://huggingface.co/api/models/abenzerps/Qwen-Image-2.1-Uncensored-GGUF | HF API 檔案清單原文 | 2026-10-06 |
 
 ---
 
@@ -352,7 +353,7 @@ cd ../..
 # 6. 抓模型（Q4 GGUF + 官方 text encoder + VAE）
 pip install -U "huggingface_hub[cli]"
 huggingface-cli download abenzerps/Qwen-Image-2.1-Uncensored-GGUF \
-  --local-dir models/diffusion_models --include "*q4*"
+  --local-dir models/diffusion_models --include "qwen-image-2.1-UC-Q4_K_M.gguf"
 huggingface-cli download Comfy-Org/Qwen-Image-2.1 \
   --local-dir . \
   --include "text_encoders/qwen3vl_8b_int8_convrot.safetensors" \

@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Noct-Q-Uncensored-Qwen-Image-2.1 — Mac mini M4 32GB 安裝指南</title>
+<style>
+:root {
+  --bg: #f7f6f1;
+  --fg: #1d2421;
+  --muted: #5c6660;
+  --accent: #2f6f5e;
+  --accent-soft: #d4e7df;
+  --warn-bg: #fff3cd;
+  --warn-border: #f0b429;
+  --code-bg: #1d2421;
+  --code-fg: #e8efe9;
+  --border: #d8d4c5;
+  --card: #ffffff;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: -apple-system, "PingFang TC", "Noto Sans TC", "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+body { max-width: 880px; margin: 0 auto; padding: 32px 24px 96px; }
+header {
+  border-bottom: 2px solid var(--accent);
+  padding-bottom: 16px;
+  margin-bottom: 32px;
+}
+header .eyebrow {
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+header h1 {
+  margin: 0 0 8px;
+  font-size: 28px;
+  line-height: 1.3;
+}
+header .meta {
+  color: var(--muted);
+  font-size: 14px;
+}
+h2 {
+  margin-top: 40px;
+  margin-bottom: 12px;
+  font-size: 22px;
+  border-left: 4px solid var(--accent);
+  padding-left: 12px;
+}
+h3 {
+  margin-top: 24px;
+  margin-bottom: 8px;
+  font-size: 18px;
+  color: var(--accent);
+}
+p { margin: 8px 0 12px; }
+.lead {
+  background: var(--accent-soft);
+  border-radius: 8px;
+  padding: 16px 20px;
+  font-size: 15px;
+}
+.lead strong { color: var(--accent); }
+.warn {
+  background: var(--warn-bg);
+  border: 1px solid var(--warn-border);
+  border-left: 4px solid var(--warn-border);
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin: 16px 0;
+  font-size: 14px;
+}
+.warn strong { color: #8a5a00; }
+.toc {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin: 20px 0 32px;
+}
+.toc h3 { margin: 0 0 8px; font-size: 15px; color: var(--muted); }
+.toc ol { margin: 0; padding-left: 20px; }
+.toc li { margin: 4px 0; }
+.toc a { color: var(--accent); text-decoration: none; }
+.toc a:hover { text-decoration: underline; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0 20px;
+  font-size: 14px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+th, td {
+  text-align: left;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+th {
+  background: var(--accent-soft);
+  color: var(--fg);
+  font-weight: 600;
+  font-size: 13px;
+}
+tr:last-child td { border-bottom: 0; }
+td code { font-size: 13px; }
+code, pre {
+  font-family: "SF Mono", Menlo, Consolas, "Courier New", monospace;
+}
+code {
+  background: #e8e3d0;
+  color: #1d2421;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+}
+pre {
+  background: var(--code-bg);
+  color: var(--code-fg);
+  padding: 14px 16px;
+  border-radius: 8px;
+  overflow-x: auto;
+  font-size: 13px;
+  line-height: 1.55;
+  margin: 12px 0;
+}
+pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  font-size: inherit;
+}
+pre .c { color: #8a9b8e; } /* comment */
+ul, ol { padding-left: 22px; }
+li { margin: 4px 0; }
+.steps { counter-reset: step; list-style: none; padding-left: 0; }
+.steps > li {
+  counter-increment: step;
+  position: relative;
+  padding: 12px 16px 12px 56px;
+  margin: 8px 0;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+.steps > li::before {
+  content: counter(step);
+  position: absolute;
+  left: 14px;
+  top: 12px;
+  width: 28px;
+  height: 28px;
+  background: var(--accent);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+}
+.evidence {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 12px 16px;
+  margin: 12px 0;
+  font-size: 13px;
+}
+.evidence strong { color: var(--muted); }
+.evidence .lvl { color: var(--accent); font-weight: 600; }
+.evidence a { color: var(--accent); }
+.checklist { list-style: none; padding-left: 0; }
+.checklist li { padding: 4px 0 4px 24px; position: relative; }
+.checklist li::before {
+  content: "☐";
+  position: absolute;
+  left: 0;
+  color: var(--accent);
+  font-size: 18px;
+}
+hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+  margin: 40px 0 24px;
+}
+footer {
+  margin-top: 48px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 13px;
+}
+.kbd {
+  display: inline-block;
+  border: 1px solid var(--border);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-size: 12px;
+  background: var(--card);
+  font-family: "SF Mono", Menlo, monospace;
+}
+.note {
+  font-size: 13px;
+  color: var(--muted);
+  font-style: italic;
+  margin: 4px 0 0;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">研究報告 / Scout profile</div>
+  <h1>Noct-Q-Uncensored-Qwen-Image-2.1<br>在 Mac mini M4（32 GB）上的安裝與使用指南</h1>
+  <div class="meta">
+    研究日期：2026-10-06（台北時間）&nbsp;·&nbsp;
+    目標機器：<strong>Mac mini M4 標準版、32 GB 統一記憶體</strong>
+  </div>
+</header>
+
+<div class="lead">
+  <strong>一句話結論：</strong>在 M4 Mac mini 32 GB 上跑 Noct-Q-Uncensored-Qwen-Image-2.1 有<strong>兩條主路徑</strong>——
+  <strong>(A) ComfyUI + GGUF</strong>（推薦入門、社群資源多）與
+  <strong>(B) Core ML（devin-lai）</strong>（Apple 原生、最快）。
+  本指南預設走路徑 A。
+</div>
+
+<div class="warn">
+  <strong>⚠ 授權與用途注意</strong>：Qwen Research License 限<strong>非商業使用</strong>。
+  HF repo 已被標 <code>Not-For-All-Audiences</code>，主模型用於生成裸露與成人場景。
+  商業用途要直接洽阿里拿商用授權；任何涉及真實人物、未成年、或非同意內容的生成都是違法行為。
+</div>
+
+<nav class="toc">
+  <h3>目錄</h3>
+  <ol>
+    <li><a href="#what">模型是什麼（30 秒版本）</a></li>
+    <li><a href="#compare">兩條路線對比</a></li>
+    <li><a href="#path-a">路徑 A：ComfyUI + GGUF（推薦）</a></li>
+    <li><a href="#path-b">路徑 B：Core ML（最快）</a></li>
+    <li><a href="#choose">怎麼選？</a></li>
+    <li><a href="#m4">M4 32 GB 額外注意</a></li>
+    <li><a href="#prompt">Prompt 怎麼寫</a></li>
+    <li><a href="#trouble">疑難排解速查</a></li>
+    <li><a href="#safety">法律與平台政策</a></li>
+    <li><a href="#sources">來源與擷取日期</a></li>
+  </ol>
+</nav>
+
+<h2 id="what">1. 模型是什麼（30 秒版本）</h2>
+
+<ul>
+  <li>作者 <strong>Noctaluna</strong> 把 <code>Qwen/Qwen-Image-2.1</code> 的 transformer 權重改過，產出<strong>無需 LoRA 就能生成裸體與成人場景</strong>的單檔 checkpoint。</li>
+  <li>HF repo 已標記 <code>Not-For-All-Audiences</code>。</li>
+  <li>主模型檔：<code>NoctQ_V4_int8_convrot.safetensors</code>（7.3 GB，V4；V3 為舊版同名不同 hash）。</li>
+  <li>完整圖庫、不同精度（int4 / fp8 / bf16 / fp16）與評測在 Civitai。</li>
+</ul>
+
+<p class="note">不接受這類用途的話，直接跑官方 <code>Qwen/Qwen-Image-2.1</code> 即可，步驟幾乎一樣。</p>
+
+<h2 id="compare">2. 兩條路線對比</h2>
+
+<table>
+  <thead>
+    <tr><th>項目</th><th>ComfyUI + GGUF</th><th>Core ML（devin-lai）</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>平台</td><td>跨平台</td><td>Apple Silicon only</td></tr>
+    <tr><td>macOS</td><td>12+</td><td><strong>15+</strong>（必要）</td></tr>
+    <tr><td>Python</td><td>3.10+</td><td>3.11–3.13</td></tr>
+    <tr><td>速度（M 系列）</td><td>中等，可搭配 mflux 4-bit 加速</td><td>官方 M5 32 GB 實測比 PyTorch MPS 快 <strong>2.4–2.6×</strong></td></tr>
+    <tr><td>工作流</td><td>拖拉節點、視覺化</td><td>CLI + Python API</td></tr>
+    <tr><td>圖片編輯（img2img）</td><td>✅ 官方編輯模板</td><td>❌ 目前只支援文生圖</td></tr>
+    <tr><td>自訂 prompt</td><td>✅</td><td>✅（要裝可選 text encoder，依賴較多）</td></tr>
+    <tr><td>M4 32 GB 實測資料</td><td>有（M4 16 GB Air 社群報告）</td><td>官方只測 M5，<strong>M4 要自己跑一次</strong></td></tr>
+    <tr><td>第一選擇</td><td><strong>第一次跑就選這條</strong></td><td>已會用、想榨效能再來</td></tr>
+  </tbody>
+</table>
+
+<h2 id="path-a">3. 路徑 A：ComfyUI + GGUF（推薦）</h2>
+
+<h3>3.1 系統需求</h3>
+<ul>
+  <li>macOS 15 或更新（ComfyUI 在 14+ 都能跑，15+ 較穩）</li>
+  <li>Python 3.11</li>
+  <li>磁碟空間：模型本體約 <strong>15–20 GB</strong>，首次安裝 ComfyUI + 依賴另加 5–10 GB</li>
+  <li><strong>MPS / Metal 自動啟用</strong>——M4 內建 GPU 會被 ComfyUI 自動偵測</li>
+</ul>
+
+<h3>3.2 安裝 ComfyUI</h3>
+<p>打開「終端機」（按 <span class="kbd">⌘</span> + <span class="kbd">空白鍵</span> 輸入 Terminal）：</p>
+
+<pre><code># 1. 如果還沒裝 Homebrew，先裝
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+
+# 2. 用 Homebrew 裝 Python 3.11 與 git
+brew install python@3.11 git
+
+# 3. 抓 ComfyUI
+git clone https://github.com/comfyanonymous/ComfyUI.git
+cd ComfyUI
+
+# 4. 建立虛擬環境（建議，避免污染系統 Python）
+python3.11 -m venv .venv
+source .venv/bin/activate
+
+# 5. 升 pip，裝 PyTorch（Apple Silicon 版）
+pip install --upgrade pip
+pip install torch torchvision torchaudio
+
+# 6. 裝 ComfyUI 依賴
+pip install -r requirements.txt
+</code></pre>
+
+<p class="note">PyTorch 在 Apple Silicon 上會走 MPS。<strong>不要裝 NVIDIA CUDA 版</strong>，對 M 系列沒用。</p>
+
+<h3>3.3 安裝 GGUF 載入插件</h3>
+<p>Noct Q 社群有提供 GGUF 版本。要在 ComfyUI 用 GGUF 格式，要裝插件：</p>
+
+<pre><code>cd custom_nodes
+git clone https://github.com/leejet/ComfyUI-GGUF.git
+pip install -r ComfyUI-GGUF/requirements.txt
+cd ../..
+</code></pre>
+
+<h3>3.4 下載模型（總計約 14 GB）</h3>
+
+<table>
+  <thead>
+    <tr><th>檔案</th><th>大小</th><th>放哪</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Noct Q 社群 GGUF（Q4 或 Q8，看你記憶體）</td><td><strong>5–6 GB（Q4）</strong> / 7–9 GB（Q8）</td><td><code>ComfyUI/models/diffusion_models/</code></td></tr>
+    <tr><td><code>qwen3vl_8b_int8_convrot.safetensors</code></td><td>約 8 GB</td><td><code>ComfyUI/models/text_encoders/</code></td></tr>
+    <tr><td><code>qwen_image_2.1_vae_bf16.safetensors</code></td><td>約 0.5 GB</td><td><code>ComfyUI/models/vae/</code></td></tr>
+  </tbody>
+</table>
+
+<p>下載連結：</p>
+<ul>
+  <li>社群 GGUF（Noct Q）：<a href="https://huggingface.co/abenzerps/Qwen-Image-2.1-Uncensored-GGUF">huggingface.co/abenzerps/Qwen-Image-2.1-Uncensored-GGUF</a></li>
+  <li>官方文字編碼器（Comfy-Org）：<a href="https://huggingface.co/Comfy-Org/Qwen-Image-2.1/blob/main/text_encoders/qwen3vl_8b_int8_convrot.safetensors">下載</a></li>
+  <li>官方 VAE：<a href="https://huggingface.co/Comfy-Org/Qwen-Image-2.1/blob/main/vae/qwen_image_2.1_vae_bf16.safetensors">下載</a></li>
+</ul>
+
+<p>用 <code>huggingface-cli</code> 一次抓完（要在 ComfyUI 資料夾執行）：</p>
+
+<pre><code>pip install -U "huggingface_hub[cli]"
+huggingface-cli login   # 貼你的 HF token
+
+# 主模型：Q4 量化（給 32 GB 機剛好）
+huggingface-cli download abenzerps/Qwen-Image-2.1-Uncensored-GGUF \
+  --local-dir models/diffusion_models \
+  --include "*q4*"
+
+# 文字編碼器 + VAE
+huggingface-cli download Comfy-Org/Qwen-Image-2.1 \
+  --local-dir . \
+  --include "text_encoders/qwen3vl_8b_int8_convrot.safetensors" \
+           "vae/qwen_image_2.1_vae_bf16.safetensors"
+
+mkdir -p models/text_encoders models/vae
+mv text_encoders/qwen3vl_8b_int8_convrot.safetensors models/text_encoders/
+mv vae/qwen_image_2.1_vae_bf16.safetensors models/vae/
+</code></pre>
+
+<p class="note">
+32 GB 統一記憶體：建議 <strong>GGUF Q4</strong>（約 5–6 GB）給主模型，留更多記憶體給文字編碼器與系統。
+要最高品質可選 Q8 或原版 <code>NoctQ_V4_int8_convrot.safetensors</code>（7.3 GB）。
+</p>
+
+<h3>3.5 啟動 ComfyUI</h3>
+
+<pre><code>cd ~/ComfyUI
+source .venv/bin/activate
+python main.py
+</code></pre>
+
+<p>第一次啟動會在背景跑 <code>pip install</code> 補依賴，看到 <code>To see the GUI go to: http://127.0.0.1:8188</code> 就開瀏覽器（Safari/Chrome）進去。</p>
+
+<h3>3.6 載入工作流</h3>
+
+<p>兩個方法（選一個）：</p>
+
+<ol>
+  <li><strong>拖拉 JSON</strong>：從 HF repo 抓 <code>NoctQ_V4_workflow.json</code>，直接拖到 ComfyUI 視窗。</li>
+  <li><strong>用官方模板</strong>：在 ComfyUI 視窗的 <strong>Workflow → Browse Templates</strong> 搜 "Qwen-Image-2.1"，會看到 Comfy-Org 官方 T2I / Edit / 去背（背景移除）三個模板。</li>
+</ol>
+
+<p>官方模板預設用<strong>官方</strong> Qwen-Image-2.1。要跑 Noct Q 改兩個 Loader 節點：</p>
+
+<ul>
+  <li>把 <code>Load Diffusion Model</code> 換成 <code>Unet Loader (GGUF)</code>，選 Noct Q GGUF</li>
+  <li>把 <code>CLIPLoader</code> 的類型選 <code>qwen_image</code></li>
+</ul>
+
+<h3>3.7 建議參數</h3>
+
+<table>
+  <thead>
+    <tr><th>項目</th><th>推薦值</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Sampler</td><td><code>euler</code></td></tr>
+    <tr><td>Scheduler</td><td><code>simple</code></td></tr>
+    <tr><td>Steps</td><td><strong>25</strong>（官方模板預設）</td></tr>
+    <tr><td>CFG</td><td><strong>1</strong>（官方模板預設，跳過 negative pass）</td></tr>
+    <tr><td>解析度</td><td>1024 × 1536 直幅（Noct Q 推薦）或 1024 × 1024</td></tr>
+  </tbody>
+</table>
+
+<p class="note">想要 negative prompt 生效，CFG 改成 3；速度約慢一倍。</p>
+
+<h3>3.8 啟動低記憶體模式（必要時）</h3>
+<p>如果跑到一半 OOM（記憶體不足被系統殺掉）：</p>
+
+<pre><code>python main.py --lowvram
+</code></pre>
+
+<p class="note">一般 32 GB 跑 Q4 不會 OOM，僅在同時開很多瀏覽器分頁時可能。</p>
+
+<h2 id="path-b">4. 路徑 B：Core ML（最快，Apple 原生）</h2>
+
+<p class="note">適合：想榨 M4 GPU 全部效能、只用 T2I（不要編輯）、可以接受命令列。</p>
+
+<h3>4.1 系統需求</h3>
+<ul>
+  <li><strong>macOS 15 或更新</strong>（必要）</li>
+  <li>Python 3.11、3.12 或 3.13</li>
+  <li>磁碟空間：模型包 <strong>14.74 GB</strong> + 依賴與編譯空間</li>
+</ul>
+
+<h3>4.2 安裝</h3>
+
+<pre><code>git clone https://github.com/devin-lai/Qwen-Image-2.1-Coreml.git
+cd Qwen-Image-2.1-Coreml
+python3.11 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+
+# 下載預轉好的 Core ML 套件
+python download_models.py
+</code></pre>
+
+<p class="note">第一次跑會編譯 Core ML 模型，較慢；之後會 cache。</p>
+
+<h3>4.3 第一次出圖</h3>
+
+<pre><code>python generate.py --out neon.png
+</code></pre>
+
+<p>這會用 repo 內建的 neon 招牌 prompt 出 1024 × 1024 圖，40 steps。預設 <code>cpu_and_gpu</code>（GPU 加速）。</p>
+
+<h3>4.4 自訂 prompt</h3>
+<p>裝可選依賴 + 編碼 prompt 一次：</p>
+
+<pre><code>pip install '.[torch-reference]'
+python encode_prompt.py "a lighthouse in a storm, long exposure" --name lighthouse
+python generate.py --prompt-embeds assets/prompts/lighthouse.npz --out lighthouse.png
+</code></pre>
+
+<p class="note">encode 階段會另外下載官方 Qwen3-VL 文字編碼器，記憶體用量比生成更高。32 GB 機應該沒問題。</p>
+
+<h3>4.5 M4 實測尚未公開</h3>
+<p>官方只測了 M5 32 GB，FAQ 明寫：<strong>M1/M2/M3/M4 還沒正式基準</strong>。跑起來建議到 <a href="https://github.com/devin-lai/Qwen-Image-2.1-Coreml/issues">issue 區</a> 填 hardware report 補資料。</p>
+
+<h2 id="choose">5. 怎麼選？</h2>
+
+<div class="evidence">
+  <strong>決策樹</strong><br>
+  第一次跑 Qwen-Image 系列嗎？
+  <ul style="margin: 6px 0;">
+    <li><strong>是</strong> → 路徑 A（ComfyUI）
+      <ul>
+        <li>要編輯既有圖片？→ 用 Comfy-Org 官方 <code>image_edit</code> 模板</li>
+        <li>否 → 用官方 <code>t2i</code> 模板</li>
+        <li>跑得很慢？→ Q4 GGUF；或加 <code>--lowvram</code></li>
+      </ul>
+    </li>
+    <li><strong>已經會用、想榨效能</strong> → 路徑 B（Core ML）</li>
+  </ul>
+</div>
+
+<p class="note">32 GB 統一記憶體其實很夠。如果跑 ComfyUI 時瀏覽器、Slack 同時在吃 RAM，先用 <strong>Q4 GGUF</strong> 留 buffer；熟手了再換 Q8。</p>
+
+<h2 id="m4">6. M4 32 GB 額外注意</h2>
+
+<ul>
+  <li><strong>統一記憶體是共享的</strong>：Safari、Chrome、Slack 一開就會分給 GPU 1–3 GB。跑圖前關掉重瀏覽器、Slack、VS Code 之外的大程式。</li>
+  <li><strong>MPS 不等於 CUDA</strong>：有些 PyTorch op 在 MPS 上沒實作或慢，ComfyUI 偶爾會跳錯。遇到時換 GGUF 路徑通常繞得過去。</li>
+  <li><strong>M4 沒有 Pro / Max 的媒體引擎加速</strong>：出圖速度比 M4 Pro / Max 慢 20–30%。32 GB 統一記憶體的 M4 Pro/Max 體驗會更好；標準 M4 算夠用，不算強。</li>
+  <li><strong>不要拿 16 GB 版來對標</strong>：M4 Air 16 GB 跑 Q4 + <code>--low-ram</code> 還 OK，但 1024² 開 20 steps 一張要 1 分多鐘。你的 32 GB 會舒服得多。</li>
+  <li><strong>散熱</strong>：Mac mini 標準版沒有風扇，機殼溫度會拉高。連續出圖讓機身燙手，裝個散熱墊或放通風處；不影響效能但延長零件壽命。</li>
+</ul>
+
+<h2 id="prompt">7. Prompt 怎麼寫</h2>
+
+<p>Qwen-Image-2.1（以及 Noct Q）吃<strong>敘述文</strong>，不吃 tag 列表。模板：</p>
+
+<pre><code>[構圖/鏡頭] + [主體（含明確年齡）] + [動作] + [場景] + [光線] + [風格]
+</code></pre>
+
+<p>範例（英文）：</p>
+
+<blockquote>
+A close three-quarter portrait of a woman in her late twenties sitting on a sunlit balcony, soft morning light, shallow depth of field, photographic style.
+</blockquote>
+
+<p>進階：</p>
+
+<blockquote>
+A low-angle wide shot of a man in his early thirties jogging along a wet seaside boardwalk at dawn, orange sodium streetlights reflecting on the puddles, soft mist, cinematic.
+</blockquote>
+
+<p>範例（中文也支援）：</p>
+
+<blockquote>
+一張 35mm 街拍：夜晚的香港霓虹巷弄裡一位二十多歲的女性撐著透明傘，雨水在路面反射霓虹色彩，淺景深，菲林顆粒。
+</blockquote>
+
+<h2 id="trouble">8. 疑難排解速查</h2>
+
+<table>
+  <thead>
+    <tr><th>症狀</th><th>可能原因</th><th>解法</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>ComfyUI 啟動後看不到 GGUF loader</td><td>沒裝 ComfyUI-GGUF</td><td>回到 §3.3</td></tr>
+    <tr><td>出圖全黑 / 全噪訊</td><td>VAE 沒選對 / 解析度非 32 倍數</td><td>確認 VAE 檔名、解析度</td></tr>
+    <tr><td>OOM / 程式被殺</td><td>統一記憶體被其他程式佔走</td><td>關其他程式；換 Q4；加 <code>--lowvram</code></td></tr>
+    <tr><td>Core ML 報 <code>computeUnits</code> 錯誤</td><td>macOS &lt; 15</td><td>升 macOS 或改用路徑 A</td></tr>
+    <tr><td>PyTorch 報 "MPS backend not available"</td><td>沒裝 Apple Silicon 版 PyTorch</td><td><code>pip install --upgrade torch</code>（不要 CUDA 版）</td></tr>
+    <tr><td>文字渲染奇怪</td><td>CFG 太高</td><td>試 CFG 1（預設）或 2</td></tr>
+    <tr><td>中文出圖文字糊</td><td>Q4 量化掉字</td><td>換 Q8 或原版 int8</td></tr>
+  </tbody>
+</table>
+
+<h2 id="safety">9. 法律與平台政策</h2>
+
+<div class="warn">
+  <strong>授權</strong>：Qwen Research License 限<strong>非商業</strong>。商業用途要直接洽阿里拿商用授權。<br><br>
+  <strong>肖像權</strong>：在台灣，散布以他人肖像生成的色情影像可能觸犯《刑法》第 235 條（散布猥褻物品）與《個人資料保護法》；在多數司法管轄區都是嚴重法律問題。<br><br>
+  <strong>平台政策</strong>：把這類輸出丟上 X、IG、Discord、Threads 都可能直接被刪號；HF repo 也是被標 <code>Not-For-All-Audiences</code>。<br><br>
+  <strong>紅線</strong>：<strong>絕對不要</strong>用於生成未成年、非同意、或真實人物的私密影像。在所有主要司法管轄區都視為兒少性影像（CSAM）罪，無灰色地帶。
+</div>
+
+<h2 id="sources">10. 來源與擷取日期</h2>
+
+<table>
+  <thead>
+    <tr><th>#</th><th>來源</th><th>證據等級</th><th>擷取</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>1</td><td><a href="https://huggingface.co/Noctaluna/Noct-Q-Uncensored-Qwen-Image-2.1/blob/main/README.md">HF · Noctaluna model card</a></td><td><span class="lvl">已讀原文</span></td><td>2026-10-06</td></tr>
+    <tr><td>2</td><td><a href="https://huggingface.co/spaces/MikeIck/Noct-Q-Uncensored-Qwen-Image-Demo">HF · MikeIck demo</a></td><td><span class="lvl">已讀原文</span></td><td>2026-10-06</td></tr>
+    <tr><td>3</td><td><a href="https://docs.comfy.org/tutorials/image/qwen/qwen-image-2-1">ComfyUI 官方文件 · Qwen-Image-2.1</a></td><td><span class="lvl">已讀原文</span></td><td>2026-10-06</td></tr>
+    <tr><td>4</td><td><a href="https://github.com/devin-lai/Qwen-Image-2.1-Coreml">GitHub · Qwen-Image-2.1-Coreml</a></td><td><span class="lvl">已讀原文</span></td><td>2026-10-06</td></tr>
+    <tr><td>5</td><td><a href="https://medium.com/@hyperai/qwen-image-2-1-uncensored-local-deployment-a-16gb-macbook-air-can-run-it-3a98394f7bf4">Medium · 16 GB M4 Air 實測</a></td><td><span class="lvl">已讀原文</span></td><td>2026-10-06</td></tr>
+    <tr><td>6</td><td><a href="https://huggingface.co/abenzerps/Qwen-Image-2.1-Uncensored-GGUF">HF · abenzerps 社群 GGUF</a></td><td>僅搜尋摘要</td><td>2026-10-06</td></tr>
+    <tr><td>7</td><td><a href="https://huggingface.co/Comfy-Org/Qwen-Image-2.1">HF · Comfy-Org Qwen-Image-2.1</a></td><td>僅搜尋摘要</td><td>2026-10-06</td></tr>
+  </tbody>
+</table>
+
+<hr>
+
+<footer>
+  <p>研究 / 文件：<strong>scout profile</strong>（<code>/Users/wangshaoyu/.hermes/workspace/research/scout/</code>）</p>
+  <p>實作 / 安裝 / 部署：請轉 <strong>dev</strong> 或 <strong>default main</strong> profile。本指南目前是純文件，<strong>沒有自動執行任何指令</strong>。</p>
+  <p>完整 Markdown 報告：<code>2026-10-06-noct-q-uncensored-qwen-image-2.1.md</code>（同目錄）</p>
+</footer>
+
+</body>
+</html>

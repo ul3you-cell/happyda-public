@@ -107,9 +107,64 @@ stock 合計 2,000,000 / 3,000,000 = 66.666...% ｜ bonds 合計 33.333...%
 00719B 新增：300,000 // 31.16 = 9,627 股 → 9,627 × 31.16 = 299,977.32 元</pre>
   <p class="small">0050／00719B 10/12 收盤價與委賣價已由 scout 端直抓 Yahoo 財經確認【已讀原文】；上表數字與使用者自行跑的腳本結果一致，沒有算錯。</p>
 
+  <h2>六、五檔配息與被動收入試算（0050／VTI／VEU／00719B／00720B，50／75／75／80／20 萬 = 300 萬）</h2>
+  <div class="danger-box">
+    <strong>此表經過一次更正，請只採信本節數字：</strong>scout 初版把 VTI／VEU 的「75 萬台幣部位」誤當「75 萬美元」計算，導致這兩檔年配息被多算約 3 倍（原誤植年現金流 ~12.6 萬／月均 ~1.05 萬）。anne 發現並更正算式，scout 已核對一致。下表為更正後版本。
+  </div>
+
+  <h3>6.1 五檔配息節奏（已讀原文確認）</h3>
+  <table>
+    <thead><tr><th>標的</th><th>配息頻率</th><th class="num">部位</th><th>除息月份（實證）</th><th class="num">當前年化配息率</th></tr></thead>
+    <tbody>
+      <tr><td>0050</td><td>半年配</td><td class="num">50 萬</td><td>1 月、7 月</td><td class="num">~1.5%</td></tr>
+      <tr><td>VTI</td><td>季配</td><td class="num">75 萬</td><td>3／6／9／12 月</td><td class="num">~1.04%</td></tr>
+      <tr><td>VEU</td><td>季配</td><td class="num">75 萬</td><td>3／6／9／12 月（12 月常含資本利得，金額明顯偏大）</td><td class="num">~2.37%</td></tr>
+      <tr><td>00719B</td><td>季配</td><td class="num">80 萬</td><td>1／4／7／10 月</td><td class="num">~3.5–4.0%</td></tr>
+      <tr><td>00720B</td><td>季配</td><td class="num">20 萬</td><td>1／4／7／10 月</td><td class="num">~5.0–6.0%</td></tr>
+    </tbody>
+  </table>
+  <p class="small">五檔全部落在 1／4／7／10 月與 3／6／9／12 月的季度交叉點；0050 因半年配只在 1、7 月進帳，這兩個月現金流最厚。VEU 12 月那筆含資本利得分配，歷史金額（2022 年底 $0.6186、2024 年底 $0.9403、2025 年底 $1.258）波動大，無法事前預估。</p>
+
+  <h3>6.2 年配息現金試算（更正版，TWD 部位 × TWD 計配息率，不需先換美元）</h3>
+  <table>
+    <thead><tr><th>標的</th><th class="num">部位（TWD）</th><th class="num">配息率（年化）</th><th class="num">年配息 TWD</th></tr></thead>
+    <tbody>
+      <tr><td>0050</td><td class="num">50 萬</td><td class="num">~1.5%</td><td class="num">7,500</td></tr>
+      <tr><td>VTI</td><td class="num">75 萬</td><td class="num">~1.04%</td><td class="num">7,800</td></tr>
+      <tr><td>VEU</td><td class="num">75 萬</td><td class="num">~2.37%</td><td class="num">17,775</td></tr>
+      <tr><td>00719B</td><td class="num">80 萬</td><td class="num">~3.7%</td><td class="num">29,600</td></tr>
+      <tr><td>00720B</td><td class="num">20 萬</td><td class="num">~5.5%</td><td class="num">11,000</td></tr>
+      <tr><td><strong>合計</strong></td><td class="num"><strong>300 萬</strong></td><td class="num"><strong>加權 2.46%</strong></td><td class="num"><strong>73,675</strong></td></tr>
+    </tbody>
+  </table>
+  <div class="pass-box">
+    <strong>一句話結論：</strong>300 萬以「當下配息率」保守估，每年現金流入約 <strong>73,675 TWD</strong>，加權配息率約 <strong>2.46%</strong>，月平均約 <strong>6,140 TWD</strong>。這是稅前、未扣美國預扣稅與台灣個人稅負的粗估，且配息率會隨淨值與利率環境變動，<strong>不能當成固定月薪</strong>。
+  </div>
+
+  <h3>6.3 長期年化總報酬（含價差，僅歷史參考）</h3>
+  <table>
+    <thead><tr><th>標的</th><th>長期年化總報酬（含息）</th><th>備註</th></tr></thead>
+    <tbody>
+      <tr><td>0050</td><td>~10–13%</td><td>22 年成立至今年化 ~12%，受惠台積電權重 56–58%，<strong>不能當未來年化</strong></td></tr>
+      <tr><td>VTI</td><td>~10–11%</td><td>10 年含息年化 ~11.5%；2022 年 -19.5%、2023 年 +26.1%，波動大</td></tr>
+      <tr><td>VEU</td><td>~5–7%</td><td>2022 年 -14.5%、2023 年 +18.8%；美元強勢年份常見負報酬，匯率是隱藏波動源</td></tr>
+      <tr><td>00719B</td><td>~2–3%（推測）</td><td>短天期美債，利率敏感度低</td></tr>
+      <tr><td>00720B</td><td>~4–6%（推測）</td><td>20 年期 BBB 美元公司債，利率敏感度高，升息時配息率會下降</td></tr>
+    </tbody>
+  </table>
+  <p class="small">加權估計：股票 200 萬＋債券 100 萬，長期年化（僅歷史參考，不等於未來）約 <strong>6–8%</strong>；單年波動極大（2022 股票型 -15~-20%、2023 股票型 +20~+26%），<strong>不要把年化當月化</strong>。月波動 σ：股票型約 ±4–6%／月、債券型約 ±1–2%／月，是統計分布不是任何單月保證值。</p>
+
+  <h3>6.4 查不到／不確定的部分</h3>
+  <ul>
+    <li>0050 2025 全年配息 $3.06 與 2026 預估落差大，可能是 2025 含較多已實現資本利得分配所致，2026 年度數字可能再上修。</li>
+    <li>VEU 12 月配息金額與當年海外股市資本利得實現量連動，無法事前預估。</li>
+    <li>00720B「年化配息率 ~5.5%」是用近四季配息 ÷ 當前淨值倒推，會隨淨值與利率環境變動。</li>
+    <li>月波動 σ／月期望值為年化推算值，非逐月實證，請勿當成預期值使用。</li>
+  </ul>
+
   <footer>
-    來源：中信 RSPStock <a href="https://www.ctbcbank.com/content/dam/minisite/long/fund/RSPStock/index.html" target="_blank">官方 Q&amp;A</a>、元大 <a href="https://www.yuantaetfs.com/product/detail/0050/Basic_information" target="_blank">0050 基本資料</a>、Yahoo 財經即時報價（2026/10/12）。<br>
-    由 Hermes Agent（dev-claude）彙整自多方（理專/anne、scout、dev-claude）交叉驗證對話，發布於 2026-10-12。本頁為個人決策紀錄，非投資建議。
+    來源：中信 RSPStock <a href="https://www.ctbcbank.com/content/dam/minisite/long/fund/RSPStock/index.html" target="_blank">官方 Q&amp;A</a>、元大 <a href="https://www.yuantaetfs.com/product/detail/0050/Basic_information" target="_blank">0050 基本資料</a>、Vanguard investor.vanguard.com（VTI/VEU 配息紀錄）、MoneyDJ／元大投信（00719B／00720B）、Yahoo 財經即時報價（2026/10/12）。<br>
+    由 Hermes Agent（dev-claude）彙整自多方（理專/anne、scout、dev-claude）交叉驗證對話，發布於 2026-10-12；第六節配息試算經 anne 更正、scout 確認一致。本頁為個人決策紀錄，非投資建議。
   </footer>
 </main>
 </body>

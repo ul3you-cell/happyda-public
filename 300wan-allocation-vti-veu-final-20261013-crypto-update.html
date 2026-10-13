@@ -33,155 +33,40 @@
   li { margin:.4rem 0; }
   code { background:#f1f3f4; padding:1px 5px; border-radius:4px; }
   footer { margin-top:2.5rem; color:#667085; font-size:.82rem; border-top:1px solid var(--line); padding-top:1rem; }
+  details { border:1px solid var(--line); border-radius:10px; margin:.9rem 0; background:#fbfcfe; }
+  details > summary { cursor:pointer; padding:12px 16px; font-weight:600; color:#1f3b65; list-style:none; }
+  details > summary::-webkit-details-marker { display:none; }
+  details > summary::before { content:"▸ "; color:var(--blue); }
+  details[open] > summary::before { content:"▾ "; }
+  details .inner { padding:0 16px 14px; }
   @media (max-width:700px) { body { padding:12px; } main { padding:18px; } h1 { font-size:1.5rem; } .summary { grid-template-columns:repeat(2,1fr); } table { display:block; overflow-x:auto; white-space:nowrap; } }
 </style>
 </head>
 <body>
 <main>
   <h1>500 萬配置定稿與區塊鏈曝險更新 <span class="tag">更新 2026-10-13</span></h1>
-  <p class="meta">決策群：理專(anne) / scout / dev-claude 多方交叉驗證；本次由理專 anne 補入既有 XAUT／BTC 曝險紀錄。非投資建議，僅為個人決策紀錄。</p>
-
-  <div class="danger-box">
-    <strong>定性澄清：</strong>這版是「台股核心 + 美國全市場 + 非美全球 + 債券防守」四支各做各的事，<strong>不是把本金大幅押注單一 AI/半導體主題</strong>。前版（0050+QQQ+VT）因 QQQ 與 VT/0050 高度重疊於 NVDA/AAPL/MSFT 等同一批公司而被否決，本版改用 VTI（美國全市場）與 VEU（美國以外全球）取代 QQQ，兩者持股重疊 0%。
-  </div>
+  <p class="meta">決策群：理專(anne) / scout / dev-claude 多方交叉驗證；本次由理專 anne 補入既有 XAUT／BTC 曝險紀錄，並改為「先看定案、需要才展開細節」版面。非投資建議，僅為個人決策紀錄。</p>
 
   <div class="pass-box">
-    <strong>結論（2026-10-13 定案）：</strong>方向選 <strong>A．長期資產成長</strong>，不改做「現金流優先」方案（6.5 已排除）。加碼 200 萬後最終配置為 <strong>500 萬：0050 70萬／VTI 175萬／VEU 115萬／00719B 120萬／00720B 20萬，股票 72%／債券 28%</strong>（6.6.1）。此配置自身殖利率：<strong>稅前 2.23%（年 111,355／月均 9,280）、稅後 1.95%（年 97,719／月均 8,143，已扣美股 30% 預扣稅）</strong>（6.6.2，與原 300 萬方案稅前 2.46% 非同一基準，已分開標示）。若未來要把月被動收入拉到 1 萬／1.25 萬，依這版稅後殖利率反推本金約需 615 萬／770 萬（6.6.3）。執行上：新增 200 萬拆 4 個月、每月 50 萬投入；每月定期定股 2 萬（0050 2,000／00719B 4,000／VTI 10,000／VEU 4,000）；中信 0.3% 優惠與「VTI/VEU 累積至約 1,000 美元再下單」的時程<strong>只在 2026/12/31 前有效</strong>，到期需重新確認費率（6.6.4）。前提：這筆錢至少放 10 年、緊急預備金與 5 年內用途已另留；72/28 配置在壞年份可能帳面少 30–35%，須承受得住才執行。全程經 理專(anne)/scout/dev-claude 交叉驗證，§6.6 定稿內容版 commit <code>1119a80</code>（本結論摘要為後續 commit，詳見 git log 最新一筆，不在此寫死 hash 以免每次更新本段都要再改一次），公開頁與本地檔 byte-for-byte 一致。
+    <strong>定案（2026-10-13）— 四個重點：</strong>
+    <ol>
+      <li>方向 <strong>A．長期資產成長</strong>（不做現金流優先方案）。加碼 200 萬後最終配置 <strong>500 萬：0050 70萬／VTI 175萬／VEU 115萬／00719B 120萬／00720B 20萬，股票 72%／債券 28%</strong>。</li>
+      <li>此配置稅後加權殖利率 <strong>1.95%，年 97,719／月均約 8,143 元</strong>（已扣美股 30% 配息預扣稅；稅前為 2.23%、年 111,355／月均 9,280，兩者分開列示）。</li>
+      <li>若要把月被動收入拉到 1 萬／1.25 萬，<strong>依這版稅後殖利率反推</strong>，本金約需 <strong>615 萬／770 萬</strong>（與 §6.2 原 300 萬方案的稅前 2.46% 不是同一基準，不能互相替代）。</li>
+      <li><strong>7 個月執行：</strong>M1–M3 完成原 300 萬（每月換匯約 50 萬台幣等值）、M4–M7 新增 200 萬（每月約 35 萬）；7 個月美元部位（VTI＋VEU）合計 290 萬，台幣部位合計 210 萬。</li>
+    </ol>
   </div>
-
-  <h2>一、總覽：新增 230 萬 + 原有 70 萬 = 300 萬</h2>
-  <div class="summary">
-    <div class="metric"><div class="number">16.7%</div><div class="label">0050（50萬）台股核心</div></div>
-    <div class="metric"><div class="number">25%</div><div class="label">VTI（75萬）美國全市場</div></div>
-    <div class="metric"><div class="number">25%</div><div class="label">VEU（75萬）非美全球</div></div>
-    <div class="metric"><div class="number">33.3%</div><div class="label">債券合計 100萬</div></div>
-  </div>
-  <p>股票 200 萬（66.7%）／債券 100 萬（33.3%）。股票內部：台灣 50 萬、美國 75 萬、非美國 75 萬。債券：原有 00719B 50 萬＋00720B 20 萬，新增 00719B 30 萬。</p>
-
-  <table>
-    <thead><tr><th>標的</th><th class="num">新增金額</th><th>角色定位</th><th>下單方式</th><th>限價規則</th><th>扣款日</th><th>換匯時機</th></tr></thead>
-    <tbody>
-      <tr><td><strong>0050</strong></td><td class="num">50 萬</td><td>台股核心（高度偏台積電，刻意保留）</td><td>分兩筆各 25 萬</td><td>不高於 115.00 元（10/12 收盤 114.80，委賣 115.00 有 1,606 張）</td><td>下一台股交易日 / 下月同日</td><td>不換美元</td></tr>
-      <tr><td><strong>VTI</strong></td><td class="num">75 萬</td><td>美國全市場核心</td><td>RSPStock 定期定股，連續 3 期，每期約 25 萬等值</td><td>中信固定機制：前一營業日收盤價 110% 當限價，不可自訂</td><td>每月 13 日</td><td>每期扣款前才換當期美元，不一次全換</td></tr>
-      <tr><td><strong>VEU</strong></td><td class="num">75 萬</td><td>美國以外全球股票分散</td><td>RSPStock 定期定股，連續 3 期，每期約 25 萬等值</td><td>同上，前一營業日收盤價 110%</td><td>每月 20 日（與 VTI 錯開一週）</td><td>每期扣款前才換當期美元</td></tr>
-      <tr><td><strong>00719B（新增）</strong></td><td class="num">30 萬</td><td>短天期美債防守，一次買完</td><td>單筆</td><td>不高於 31.16 元（10/12 收盤 31.16，委賣第一檔 31.16）</td><td>一次性</td><td>不換美元</td></tr>
-    </tbody>
-  </table>
-
-  <div class="notice">
-    <strong>風險警語（AI／半導體同向曝險）：</strong>相較前版（0050+QQQ+VT），本版美＋台合計曝險從 82.75% 降至 64%，科技曝險從 ~46% 降至 ~39.5%，NVDA/AAPL/MSFT 曝險各砍逾 4 成。但 0050 仍高度受台積電影響、VTI 也有大型科技權重，三檔在 AI 資本支出或半導體庫存循環反轉時仍可能同向下跌，不是完全互相緩衝。<strong>再平衡觸發規則：</strong>每年檢查一次，若股票部位中 0050 超過 30%、或 VTI／VEU 任一超過 42.5%，新增資金優先補不足的一邊，不因短期漲跌恐慌賣出。
-  </div>
-
-  <h2>二、為什麼不選 QQQ</h2>
-  <p>QQQ 本身不是壞標的，但放進這個組合會把 0050、VTI 已共同持有的半導體／大型科技再加重。前版估算下，股票部位約一半會綁在 AI／半導體同一條景氣鏈上；一旦遇到類似 2022 年升息或科技去庫存的情境，0050、QQQ、VT 很可能同向下跌，沒有直覺以為的分散效果。這版仍有科技與台積電曝險，但它是全球股票組合的一部分，不是刻意把整組合押成 AI 主題基金。</p>
-
-  <h2>三、RSPStock 是什麼？</h2>
-  <p><strong>RSPStock 是中信銀行的「美股定期定股」服務</strong>：不是自己開海外券商、每月自己挑時間下單，而是和中信約定「買哪一檔、每月哪天扣款、每次固定買幾股」，到了指定日由中信從你的中信外幣活存帳戶扣美元代為掛單，買到的部位放在信託帳戶裡。關鍵是<strong>固定股數</strong>，不是固定台幣金額：股價高時同樣幾股會扣比較多美元，股價低時扣比較少；每期「約 25 萬台幣等值」只是設定目標，實際扣款金額依當時股價與匯率波動。</p>
-
-  <h3>四個操作限制（CTBC RSPStock 官方 Q&A 已讀原文確認）</h3>
-  <table>
-    <thead><tr><th>條文</th><th>內容</th></tr></thead>
-    <tbody>
-      <tr><td>扣款帳戶</td><td>僅受理中信自己的外幣活（儲）期存款帳戶，不能用其他銀行帳戶或刷卡</td></tr>
-      <tr><td>股數上限</td><td>每筆最低 1 股、申購上限 100 股／期，以整股設定</td></tr>
-      <tr><td>限價規則</td><td>委託價格＝前一營業日收盤價的 110%，當日開盤掛單、留到收盤，委託價格盤中不更動，<strong>不保證成交</strong>（若美股開盤到收盤漲幅超過 10% 可能無法成交）；使用者不能自訂窄限價</td></tr>
-      <tr><td>扣款失敗</td><td>連續 3 次扣款失敗，系統自動停扣（庫存保留帳上，不主動贖回），需再申請恢復</td></tr>
-    </tbody>
-  </table>
 
   <div class="danger-box">
-    <strong>時間壓力（比選哪支 ETF 更急）：</strong>中信牌告申購手續費 1.5%，但「即日起～2026/12/31 簽約，可享每筆成交價金 0.3% 終身優惠」——這是<strong>限期簽約才鎖住的終身</strong>，2026/12/31 之後才首次簽約的人，0.3% 可能不再適用，會回到牌告 1.5%。今天 2026/10/12，距期限約 80 天。若尚未開通 RSPStock 又確定走這條路，建議 80 天內完成簽約；另有信託管理費年率 0.2%，依持有期間按日計算、贖回時扣除。
+    <strong>三項風險（常駐，不收合）：</strong>
+    <ul>
+      <li>這筆錢須<strong>至少放 10 年</strong>；緊急預備金與 5 年內要用的錢已另外保留，不在這 500 萬裡面。</li>
+      <li>72/28 股債配置在壞年份<strong>帳面可能暫時少 30–35%（約 150–175 萬）</strong>；做不到「不賣」就不該維持這個股票比重。</li>
+      <li>一次投入在統計上期望值較高，但新增 200 萬刻意拆 4 個月進場，是用一點期望報酬換較低的單筆後悔風險，屬刻意行為選擇。</li>
+    </ul>
   </div>
 
-  <h2>四、下單順序與操作提醒</h2>
-  <ol>
-    <li>先確認中信外幣帳戶與 RSPStock 約定可用，並確認 0.3% 優惠是否已鎖定（2026/12/31 前）。</li>
-    <li>設定 VTI／VEU 各 3 期的固定股數與扣款日；每一期開始前才換該期所需美元，不一次全換，避免把匯率時點風險集中在一天。</li>
-    <li>0050 新增 50 萬分兩次；00719B 新增 30 萬一次完成。實際限價要在下單當天用前一日收盤價重算，不沿用討論中的舊價格。</li>
-    <li>手機設兩個提醒：每月 12 日檢查 VTI 美元餘額是否備足、每月 19 日檢查 VEU 美元餘額是否備足——連續 3 次扣款失敗會悄悄自動停扣，系統不會主動跳警示提醒。</li>
-  </ol>
-
-  <h2>五、驗算（Python，與使用者自行試算一致）</h2>
-  <pre style="background:#f1f3f4;padding:14px;border-radius:8px;overflow-x:auto;">0050   : 500,000 / 3,000,000 = 16.666...%
-VTI    : 750,000 / 3,000,000 = 25.0%
-VEU    : 750,000 / 3,000,000 = 25.0%
-bonds  : 1,000,000 / 3,000,000 = 33.333...%
-stock 合計 2,000,000 / 3,000,000 = 66.666...% ｜ bonds 合計 33.333...%
-0050 第一筆：250,000 // 115 = 2,173 股 → 2,173 × 115 = 249,895 元
-00719B 新增：300,000 // 31.16 = 9,627 股 → 9,627 × 31.16 = 299,977.32 元</pre>
-  <p class="small">0050／00719B 10/12 收盤價與委賣價已由 scout 端直抓 Yahoo 財經確認【已讀原文】；上表數字與使用者自行跑的腳本結果一致，沒有算錯。</p>
-
-  <h2>六、五檔配息與被動收入試算（0050／VTI／VEU／00719B／00720B，50／75／75／80／20 萬 = 300 萬）</h2>
-  <div class="danger-box">
-    <strong>此表經過一次更正，請只採信本節數字：</strong>scout 初版把 VTI／VEU 的「75 萬台幣部位」誤當「75 萬美元」計算，導致這兩檔年配息被多算約 3 倍（原誤植年現金流 ~12.6 萬／月均 ~1.05 萬）。anne 發現並更正算式，scout 已核對一致。下表為更正後版本。
-  </div>
-
-  <h3>6.1 五檔配息節奏（已讀原文確認）</h3>
-  <table>
-    <thead><tr><th>標的</th><th>配息頻率</th><th class="num">部位</th><th>除息月份（實證）</th><th class="num">當前年化配息率</th></tr></thead>
-    <tbody>
-      <tr><td>0050</td><td>半年配</td><td class="num">50 萬</td><td>1 月、7 月</td><td class="num">~1.5%</td></tr>
-      <tr><td>VTI</td><td>季配</td><td class="num">75 萬</td><td>3／6／9／12 月</td><td class="num">~1.04%</td></tr>
-      <tr><td>VEU</td><td>季配</td><td class="num">75 萬</td><td>3／6／9／12 月（12 月常含資本利得，金額明顯偏大）</td><td class="num">~2.37%</td></tr>
-      <tr><td>00719B</td><td>季配</td><td class="num">80 萬</td><td>1／4／7／10 月</td><td class="num">~3.5–4.0%</td></tr>
-      <tr><td>00720B</td><td>季配</td><td class="num">20 萬</td><td>1／4／7／10 月</td><td class="num">~5.0–6.0%</td></tr>
-    </tbody>
-  </table>
-  <p class="small">五檔全部落在 1／4／7／10 月與 3／6／9／12 月的季度交叉點；0050 因半年配只在 1、7 月進帳，這兩個月現金流最厚。VEU 12 月那筆含資本利得分配，歷史金額（2022 年底 $0.6186、2024 年底 $0.9403、2025 年底 $1.258）波動大，無法事前預估。</p>
-
-  <h3>6.2 年配息現金試算（更正版，TWD 部位 × TWD 計配息率，不需先換美元）</h3>
-  <table>
-    <thead><tr><th>標的</th><th class="num">部位（TWD）</th><th class="num">配息率（年化）</th><th class="num">年配息 TWD</th></tr></thead>
-    <tbody>
-      <tr><td>0050</td><td class="num">50 萬</td><td class="num">~1.5%</td><td class="num">7,500</td></tr>
-      <tr><td>VTI</td><td class="num">75 萬</td><td class="num">~1.04%</td><td class="num">7,800</td></tr>
-      <tr><td>VEU</td><td class="num">75 萬</td><td class="num">~2.37%</td><td class="num">17,775</td></tr>
-      <tr><td>00719B</td><td class="num">80 萬</td><td class="num">~3.7%</td><td class="num">29,600</td></tr>
-      <tr><td>00720B</td><td class="num">20 萬</td><td class="num">~5.5%</td><td class="num">11,000</td></tr>
-      <tr><td><strong>合計</strong></td><td class="num"><strong>300 萬</strong></td><td class="num"><strong>加權 2.46%</strong></td><td class="num"><strong>73,675</strong></td></tr>
-    </tbody>
-  </table>
-  <div class="pass-box">
-    <strong>一句話結論：</strong>300 萬以「當下配息率」保守估，每年現金流入約 <strong>73,675 TWD</strong>，加權配息率約 <strong>2.46%</strong>，月平均約 <strong>6,140 TWD</strong>。這是稅前、未扣美國預扣稅與台灣個人稅負的粗估，且配息率會隨淨值與利率環境變動，<strong>不能當成固定月薪</strong>。
-  </div>
-
-  <h3>6.3 長期年化總報酬（含價差，僅歷史參考）</h3>
-  <table>
-    <thead><tr><th>標的</th><th>長期年化總報酬（含息）</th><th>備註</th></tr></thead>
-    <tbody>
-      <tr><td>0050</td><td>~10–13%</td><td>22 年成立至今年化 ~12%，受惠台積電權重 56–58%，<strong>不能當未來年化</strong></td></tr>
-      <tr><td>VTI</td><td>~10–11%</td><td>10 年含息年化 ~11.5%；2022 年 -19.5%、2023 年 +26.1%，波動大</td></tr>
-      <tr><td>VEU</td><td>~5–7%</td><td>2022 年 -14.5%、2023 年 +18.8%；美元強勢年份常見負報酬，匯率是隱藏波動源</td></tr>
-      <tr><td>00719B</td><td>~2–3%（推測）</td><td>短天期美債，利率敏感度低</td></tr>
-      <tr><td>00720B</td><td>~4–6%（推測）</td><td>20 年期 BBB 美元公司債，利率敏感度高，升息時配息率會下降</td></tr>
-    </tbody>
-  </table>
-  <p class="small">加權估計：股票 200 萬＋債券 100 萬，長期年化（僅歷史參考，不等於未來）約 <strong>6–8%</strong>；單年波動極大（2022 股票型 -15~-20%、2023 股票型 +20~+26%），<strong>不要把年化當月化</strong>。月波動 σ：股票型約 ±4–6%／月、債券型約 ±1–2%／月，是統計分布不是任何單月保證值。</p>
-
-  <h3>6.4 查不到／不確定的部分</h3>
-  <ul>
-    <li>0050 2025 全年配息 $3.06 與 2026 預估落差大，可能是 2025 含較多已實現資本利得分配所致，2026 年度數字可能再上修。</li>
-    <li>VEU 12 月配息金額與當年海外股市資本利得實現量連動，無法事前預估。</li>
-    <li>00720B「年化配息率 ~5.5%」是用近四季配息 ÷ 當前淨值倒推，會隨淨值與利率環境變動。</li>
-    <li>月波動 σ／月期望值為年化推算值，非逐月實證，請勿當成預期值使用。</li>
-  </ul>
-
-  <h3>6.5 補充判斷：2.46% 配息率低於美元定存或高配息股，這份配置還值得嗎？</h3>
-  <div class="danger-box">
-    <strong>結論先講：</strong>若目標是「現在就拿穩定現金流」，這份五檔配置<strong>不夠對題</strong>；300 萬稅前年配息約 73,675 元、月平均約 6,140 元，不能包裝成有感的被動收入。若目標是長期累積資產，2.46% 也<strong>不是整體報酬率</strong>，因為 0050／VTI／VEU 的主要回報本來就較多留在淨值與股價，而非用高配息發出來。
-  </div>
-  <ul>
-    <li><strong>和美元定存比較：</strong>定存提供的是約定存期內的利息；美元本金仍有匯率風險，提前解約可能按較低利率計息，也不參與股票長期成長。利率、門檻、幣別與期間都會變動，因此下單前應以中信當日牌告與實際方案重算，不能拿舊活動利率直接判定輸贏。</li>
-    <li><strong>和中華電信等高配息個股比較：</strong>中華電信 2026 年已決議每股現金股利 5.2 元，確有較穩定的配息紀錄；但「殖利率」仍取決於買進價格，且單一公司不是分散投資。既有 0050 已含台股大型權值股，若再大幅加碼單一台股，會增加台灣市場與單一公司集中風險。</li>
-    <li><strong>不要把配息率當報酬率：</strong>配息高不必然比較賺；一部分可能只是把資產價值用現金形式發回。真正該比較的是稅後總報酬、最大跌幅、匯率、流動性，以及是否足以支付你的年度支出。</li>
-  </ul>
-  <p><strong>本頁目前的定位：</strong>股票 200 萬＋債券 100 萬，是「成長＋分散＋部分防守」配置，<strong>不是以月配息最大化為目的的退休現金流配置</strong>。如果要把「被動收入」列為第一優先，必須另訂目標：例如稅前年現金流 4% 約為每年 12 萬／月均 1 萬；5% 約為每年 15 萬／月均 1.25 萬。提高現金流通常會以更高的利率、信用、集中或匯率風險交換，不能只看表面殖利率。</p>
-  <p class="small">此段是討論紀錄與決策界線，不是把資金改投美元定存或中華電信的下單指示。是否調整五檔、一次加碼 200 萬、或每月新增 2 萬，仍要先確認可接受跌幅、資金使用期限與目標現金流，再以當日利率／股價／稅負做正式方案。</p>
-
-  <h3>6.6 加碼 200 萬後的執行方案（A：長期資產成長，已確認方向）</h3>
-  <div class="pass-box">
-    <strong>方向已定：</strong>2026-10-13 已與用戶確認採 <strong>A 長期資產成長</strong>路線——新增資金不追高配息，改把整體股債比從約 67/33 拉到 72/28，不集中加碼單一公司（中華電信）換取表面殖利率。
-  </div>
+  <h2>最終配置表（500 萬）</h2>
   <table>
     <thead><tr><th>標的</th><th class="num">原配置</th><th class="num">＋新增 200 萬</th><th class="num">加碼後合計</th><th class="num">占比</th></tr></thead>
     <tbody>
@@ -193,112 +78,256 @@ stock 合計 2,000,000 / 3,000,000 = 66.666...% ｜ bonds 合計 33.333...%
       <tr><td><strong>合計</strong></td><td class="num">300 萬</td><td class="num">+200 萬</td><td class="num"><strong>500 萬</strong></td><td class="num">股票 72%／債券 28%</td></tr>
     </tbody>
   </table>
-  <p class="small"><strong>進場時程：</strong>200 萬新增部位拆 4 個月、每月 50 萬投入，用一點期望報酬換較低的單筆進場後悔風險；一次投入在統計上期望值較高，拆批是刻意的行為面選擇，非報酬最大化。<strong>壓力測試前提：</strong>此 72/28 配置在壞年份帳面可能暫時少 30–35%（約 150–175 萬），做不到「不賣」就不該提高股票比重；且這筆錢需至少放 10 年，緊急預備金與 5 年內用途須另有保留。</p>
 
-  <h4>6.6.1 稅前 vs 稅後配息對照（500 萬合計）</h4>
+  <h2>7 個月投入＋換匯執行表</h2>
   <table>
-    <thead><tr><th>版本</th><th class="num">年配息 TWD</th><th class="num">月均 TWD</th><th class="num">加權殖利率</th><th>備註</th></tr></thead>
-    <tbody>
-      <tr><td><strong>稅前</strong>（沿用 §6.2 當下配息率，未扣稅）</td><td class="num">111,355</td><td class="num">9,280</td><td class="num">2.23%</td><td>單純用各標的配息率加權，未計入任何預扣稅</td></tr>
-      <tr><td><strong>稅後</strong>（扣美股 30% 股利預扣稅）</td><td class="num">97,719</td><td class="num">8,143</td><td class="num">1.95%</td><td>僅 VTI／VEU 兩檔適用 30% 美股預扣稅；0050／00719B／00720B 為台股標的不受影響</td></tr>
-    </tbody>
-  </table>
-  <p class="small">稅前與稅後差距約 13,636 元／年、1,137 元／月，全部來自 VTI＋VEU 部位被美國海外保管銀行自配息中扣繳 30%，非台灣稅負、無需另外報稅，但會實際減少入帳現金。</p>
-
-  <h4>6.6.2 4%／5% 現金流目標的本金對照（兩版都列，不要只看一個）</h4>
-  <table>
-    <thead><tr><th>目標月均現金流</th><th class="num">年現金流</th><th class="num">用「原 300 萬方案稅前 2.46%」反推所需本金</th><th class="num">用「500 萬加碼後配置稅後 1.95%」反推所需本金</th></tr></thead>
-    <tbody>
-      <tr><td>1 萬／月</td><td class="num">12 萬</td><td class="num">約 488 萬</td><td class="num">約 615 萬</td></tr>
-      <tr><td>1.25 萬／月</td><td class="num">15 萬</td><td class="num">約 610 萬</td><td class="num">約 770 萬</td></tr>
-    </tbody>
-  </table>
-  <p class="small">兩版本<strong>基準配置不同，不是同一組資產的稅前／稅後對照</strong>：2.46% 是 §6.2 原 300 萬方案（0050/VTI/VEU/00719B/00720B＝50/75/75/80/20 萬）的稅前加權配息率；1.95% 是加碼後 500 萬配置（70/175/115/120/20 萬）扣除美股 30% 預扣稅後的版本——500 萬配置自己的稅前殖利率是 6.6.1 算出的 2.23%，不是 2.46%。差距（488→615 萬、610→770 萬）除了稅前／稅後，也包含配置本身從 300 萬換成 500 萬配重後的變化，不能只挑對自己有利的一版來判斷要不要追高配息。</p>
-
-  <h4>6.6.3 中信 RSPStock 執行提醒（三條，均有日期／稅率限定，不是永久規則）</h4>
-  <div class="danger-box">
-    <ul>
-      <li><strong>0.3% 定期定股優惠僅限 2026/12/31 前：</strong>中信官方 Q&amp;A 原文「即日起~2026/12/31，可享每筆申購手續費以每筆成交價金乘以 0.3% 之終身優惠（不足 3 美元，以 3 美元計）」；2026/12/31 之後是否續期未公告，標準境外 ETF 申購費率為 1.5%。到期前需重新確認。</li>
-        <li><strong>美股股利 30% 預扣稅：</strong>VTI／VEU 配息由海外保管銀行自配息中直接扣繳 30%，無台美租稅協定減免，已反映在 6.6.1 的稅後版本，無需另行報稅但會實際減少入帳金額。</li>
-      <li><strong>信託管理費 0.2%／年：</strong>持倉期間不扣現金流，於賣出成交日自贖回款中扣除；長期持有不影響月配息現金流，但賣出結算時要記得這筆。</li>
-    </ul>
-  </div>
-
-  <h4>6.6.4 每月 2 萬定期定股時程（限 2026/12/31 前適用，之後需重新確認費率）</h4>
-  <table>
-    <thead><tr><th>標的</th><th class="num">每月新增</th><th>下單頻率建議（僅於 0.3% 優惠期間有效）</th></tr></thead>
-    <tbody>
-      <tr><td>0050</td><td class="num">2,000</td><td>台股，可按月下單</td></tr>
-      <tr><td>00719B</td><td class="num">4,000</td><td>台股，可按月下單</td></tr>
-      <tr><td>VTI</td><td class="num">10,000</td><td>約每 4 個月累積至接近/超過 1,000 美元再下單，避免被 3 美元最低手續費拉高實質費率</td></tr>
-      <tr><td>VEU</td><td class="num">4,000</td><td>約每年累積至接近/超過 1,000 美元再下單，同上理由</td></tr>
-      <tr><td>00720B</td><td class="num">0</td><td>不再加碼</td></tr>
-    </tbody>
-  </table>
-  <p class="small">此下單頻率建議僅在 0.3% 優惠（2026/12/31 前）有效；優惠到期若未續期（標準費率 1.5%），累積到 1,000 美元再下單換到的費率節省比例會大幅縮小，需重新評估是否仍值得「少買多等」。</p>
-  <p class="small">本節數字出處與獨立查核：<a href="2026-10-13-ctbc-fee-verified-and-aftertax-dividend.md" target="_blank">2026-10-13-ctbc-fee-verified-and-aftertax-dividend.md</a>（scout 對中信官方費率公告與 500 萬稅後配息重算的留底查核檔，同目錄）。</p>
-
-  <h4>6.6.5 台幣換美元與 RSPStock 扣款流程（僅限 VTI／VEU）</h4>
-  <div class="notice">
-    <strong>資金範圍：</strong>VTI／VEU 的資金路徑固定為「本人中信台幣帳戶 → 本人中信美元活（儲）期帳戶 → 中信 RSPStock 信託扣款」；目前不含任何加密資產賣出或出金。本節談的是正常換匯與扣款準備，不是規避銀行審查。
-  </div>
-  <table>
-    <thead><tr><th>期間</th><th class="num">每月換成美元的目標金額（TWD 等值）</th><th>對應標的</th><th>台幣標的</th></tr></thead>
+    <thead><tr><th>期間</th><th class="num">每月換成美元的目標金額（TWD 等值）</th><th>對應標的（美元）</th><th>台幣標的</th></tr></thead>
     <tbody>
       <tr><td>M1–M3：完成原 300 萬</td><td class="num">約 50 萬</td><td>VTI 約 25 萬＋VEU 約 25 萬</td><td>0050 分兩筆各 25 萬；00719B 新增 30 萬一次完成</td></tr>
       <tr><td>M4–M7：新增 200 萬</td><td class="num">約 35 萬</td><td>VTI 約 25 萬＋VEU 約 10 萬</td><td>0050 每月 5 萬＋00719B 每月 10 萬</td></tr>
       <tr><td><strong>7 個月合計</strong></td><td class="num"><strong>290 萬</strong></td><td>VTI＋VEU 美元部位</td><td>其餘 210 萬為台幣部位</td></tr>
     </tbody>
   </table>
-  <ol>
-    <li><strong>先決定固定股數，再換美元：</strong>RSPStock 是固定股數服務，不能自行輸入成交單價。每期所需美元以 <code>前一營業日收盤價 × 股數 × 110% ＋ 當期手續費</code> 計算；這是銀行的<strong>圈存上限</strong>，不是實際成交價。</li>
-    <li><strong>110% 是上限價，不是「保守單價」：</strong>銀行以「前一營業日收盤價 × 110%」在美股開盤掛限價單，盤中不調價；若當日價格高於此上限，該期可能無法成交。實際成交價為當日同標的 RSPStock 全部成交委託的<strong>加權平均價</strong>，最終扣款以銀行實際扣款金額為準。</li>
-    <li><strong>手續費以申購頁為準：</strong>2026/12/31 前完成簽約者，官方活動為每筆成交價金 0.3% 的終身優惠、最低 US$3；未取得優惠時，牌告申購手續費為 1.5%、最低 US$3。不要把「活動截止日」誤寫成已取得優惠者會在當日後自動回到 1.5%。</li>
-    <li><strong>換匯與申報：</strong>於扣款／圈存前，從本人中信台幣帳戶換入足額美元至本人中信美元帳戶；單筆等值新台幣 50 萬元以上，依銀行外匯申報流程如實填寫用途，例如「本人自有資金透過中信信託定期投資境外 ETF（VTI、VEU）」。不刻意拆單，保留換匯水單及 RSPStock 扣款／成交紀錄。</li>
-    <li><strong>避免停扣：</strong>若連續 3 期扣款失敗，銀行會自動停止後續扣款；已買到的單位仍留在信託帳戶、不會被主動贖回，但要繼續投資須向中信申請恢復扣款。因此每期扣款日前，應檢查美元餘額是否至少覆蓋本期圈存金額。</li>
-  </ol>
-  <p class="small">中信 RSPStock 的固定股數、110% 限價、圈存公式、加權平均成交價及三次扣款失敗條款，均以中信銀行 RSPStock 官方 Q&amp;A 與實際申購確認頁為準；美元實際換匯匯率與成交價格皆會變動，表內金額是當期投入目標，不是保證扣款金額。</p>
+  <p class="small">資金路徑固定為「本人中信台幣帳戶 → 本人中信美元活（儲）期帳戶 → 中信 RSPStock 信託扣款」；目前不含任何加密資產賣出或出金，不同資金路徑的細節與換匯申報規則見下方「換匯與 RSPStock 扣款細節」。</p>
 
-  <h2>七、既有區塊鏈曝險更新：獨立記帳，不併入五檔 ETF 的「被動收入」</h2>
-  <div class="danger-box">
-    <strong>先校正口徑：</strong>本節記錄的是既有 Bitfinex／Binance／XAUT 部位與現金流，不是把 500 萬核心配置改成加密資產，也不把任何交易所或鏈上收益當退休底線。第六節五檔 ETF 的稅後月均 8,143 元，和本節完全分開，不能相加後說成「穩定被動收入」。
-  </div>
+  <details>
+    <summary>原 300 萬方案：配置總覽、為何不選 QQQ、RSPStock 基本規則、下單順序、驗算</summary>
+    <div class="inner">
+      <div class="danger-box">
+        <strong>定性澄清：</strong>這版是「台股核心 + 美國全市場 + 非美全球 + 債券防守」四支各做各的事，<strong>不是把本金大幅押注單一 AI/半導體主題</strong>。前版（0050+QQQ+VT）因 QQQ 與 VT/0050 高度重疊於 NVDA/AAPL/MSFT 等同一批公司而被否決，本版改用 VTI（美國全市場）與 VEU（美國以外全球）取代 QQQ，兩者持股重疊 0%。
+      </div>
 
-  <h3>7.1 2026-10-13 快照（使用者回報；非即時報價）</h3>
-  <table>
-    <thead><tr><th>項目</th><th>已確認紀錄</th><th>本報告如何處理</th></tr></thead>
-    <tbody>
-      <tr><td><strong>Bitfinex 放貸收入</strong></td><td>目前觀察到約 <strong>US$40／日</strong>；其中 US$10／日買 XAUT、US$10／日買 BTC，剩餘 US$20／日的去向未在本次資料中確認。</td><td>只作「當下觀察」；不年化成保證收入、不納入五檔 ETF 現金流，因利率、借方、平台與提領條款都可變動。</td></tr>
-      <tr><td><strong>XAUT</strong></td><td>0.71 XAUT。依 2026-10-13 已留底的 XAUT US$4,174.57、USD/TWD 31.93 快照，約為 <strong>NT$94,639</strong>。</td><td>這是單日估值，金價與匯率會變。若仍維持「黃金總曝險上限 NT$300,000」這條獨立風險界線，當日尚餘約 <strong>NT$205,361</strong>；不是新增買入授權。</td></tr>
-      <tr><td><strong>Binance BTC</strong></td><td>2026-10-07 已從 Bitfinex 轉入 0.0138 BTC；另有 0.0309 BTC 當時仍在 Bitfinex，計畫本週再轉，但本報告不把它寫成已完成。</td><td>兩家都屬中心化交易所託管；分散至 Binance 可降低單一 Bitfinex 對手方集中，卻新增 Binance 與 Earn 方案條款風險，並非「風險一樣所以可忽略」。</td></tr>
-      <tr><td><strong>Binance BTC Earn</strong></td><td>超過 0.01 BTC 的實際 APY，使用者先前文字寫成 <code>0.0.1%</code>，數字有歧義，且優惠上限與是否可隨時贖回尚未以帳戶申購確認頁核對。</td><td><strong>暫列 0 元可靠被動收入。</strong>未取得帳戶畫面中的實際 APY、適用餘額與贖回條件前，不用任何猜測利率做試算。</td></tr>
-    </tbody>
-  </table>
+      <h3>原 300 萬總覽</h3>
+      <div class="summary">
+        <div class="metric"><div class="number">16.7%</div><div class="label">0050（50萬）台股核心</div></div>
+        <div class="metric"><div class="number">25%</div><div class="label">VTI（75萬）美國全市場</div></div>
+        <div class="metric"><div class="number">25%</div><div class="label">VEU（75萬）非美全球</div></div>
+        <div class="metric"><div class="number">33.3%</div><div class="label">債券合計 100萬</div></div>
+      </div>
+      <p>股票 200 萬（66.7%）／債券 100 萬（33.3%）。股票內部：台灣 50 萬、美國 75 萬、非美國 75 萬。債券：原有 00719B 50 萬＋00720B 20 萬，新增 00719B 30 萬。</p>
 
-  <h3>7.2 XAUT：黃金價格之外，還有四層額外風險</h3>
-  <table>
-    <thead><tr><th>層級</th><th>風險</th><th>本次確認與處理</th></tr></thead>
-    <tbody>
-      <tr><td>L1</td><td>金價與美元／台幣匯率波動</td><td>0.71 XAUT 的台幣市值每日浮動；它不提供保證的台幣購買力。</td></tr>
-      <tr><td>L2</td><td>發行人、儲備與贖回</td><td>Tether Gold 的最新公開季報為 2026-06-30；頁面列示託管黃金 707,747.139 oz、流通 XAUT 707,747.090000，並說明由 BDO Italia 進行季度報告的獨立查核。[7] 這是特定日期的查核，不是 10 月的即時保證。</td></tr>
-      <tr><td>L3</td><td>代幣與智能合約</td><td>XAUT 是 ERC-20／BEP-20 代幣；錢包、鏈、合約升級或操作錯誤都不是實體黃金本身會有的風險。[8]</td></tr>
-      <tr><td>L4</td><td>放貸協議、借方與流動性</td><td>4.25% 是為承擔這一層及平台層的可變報酬；協議名稱、抵押品、清算機制與收益入帳幣別尚未核對，因此不假設本金安全或收益可持續。</td></tr>
-      <tr><td>L5</td><td>交易所／託管平台</td><td>平台可能發生帳戶限制、提領延遲、資安或監管事件；即使黃金儲備足額，也不能消除這一層。</td></tr>
-    </tbody>
-  </table>
-  <div class="notice"><strong>贖回門檻更正：</strong>先前把「50 XAUT」直接寫成可直接贖回門檻不夠精確。官方 FAQ 寫的是平台購買最低 50 XAUT；實體贖回必須以一根完整 LBMA 金條為單位，並「通常建議」約 430 XAUT 才足以贖回。0.71 XAUT 的實際流動性主要仍是交易所買賣，而非向發行人兌回金條。[8]</div>
+      <table>
+        <thead><tr><th>標的</th><th class="num">新增金額</th><th>角色定位</th><th>下單方式</th><th>限價規則</th><th>扣款日</th><th>換匯時機</th></tr></thead>
+        <tbody>
+          <tr><td><strong>0050</strong></td><td class="num">50 萬</td><td>台股核心（高度偏台積電，刻意保留）</td><td>分兩筆各 25 萬</td><td>不高於 115.00 元（10/12 收盤 114.80，委賣 115.00 有 1,606 張）</td><td>下一台股交易日 / 下月同日</td><td>不換美元</td></tr>
+          <tr><td><strong>VTI</strong></td><td class="num">75 萬</td><td>美國全市場核心</td><td>RSPStock 定期定股，連續 3 期，每期約 25 萬等值</td><td>中信固定機制：前一營業日收盤價 110% 當限價，不可自訂</td><td>每月 13 日</td><td>每期扣款前才換當期美元，不一次全換</td></tr>
+          <tr><td><strong>VEU</strong></td><td class="num">75 萬</td><td>美國以外全球股票分散</td><td>RSPStock 定期定股，連續 3 期，每期約 25 萬等值</td><td>同上，前一營業日收盤價 110%</td><td>每月 20 日（與 VTI 錯開一週）</td><td>每期扣款前才換當期美元</td></tr>
+          <tr><td><strong>00719B（新增）</strong></td><td class="num">30 萬</td><td>短天期美債防守，一次買完</td><td>單筆</td><td>不高於 31.16 元（10/12 收盤 31.16，委賣第一檔 31.16）</td><td>一次性</td><td>不換美元</td></tr>
+        </tbody>
+      </table>
 
-  <h3>7.3 接下來只做三件事</h3>
-  <ol>
-    <li><strong>不動 500 萬核心配置：</strong>0050／VTI／VEU／00719B／00720B 的配置與四個月進場計畫不因本節而調整。</li>
-    <li><strong>把收益與本金拆帳：</strong>確認 XAUT 4.25% 的收益入帳幣別、目前存放位置與是否再投入；在此之前，XAUT 市值與收益不可混成一個「安全現金流」數字。</li>
-    <li><strong>以 Binance 申購確認頁定案：</strong>取得實際 APY、適用上限、是否可隨時贖回三項後，才決定 BTC Earn 是否值得保留；未確認前，轉移的主要理由只能是分散 Bitfinex 對手方，而不是收益。</li>
-  </ol>
+      <div class="notice">
+        <strong>風險警語（AI／半導體同向曝險）：</strong>相較前版（0050+QQQ+VT），本版美＋台合計曝險從 82.75% 降至 64%，科技曝險從 ~46% 降至 ~39.5%，NVDA/AAPL/MSFT 曝險各砍逾 4 成。但 0050 仍高度受台積電影響、VTI 也有大型科技權重，三檔在 AI 資本支出或半導體庫存循環反轉時仍可能同向下跌，不是完全互相緩衝。<strong>再平衡觸發規則：</strong>每年檢查一次，若股票部位中 0050 超過 30%、或 VTI／VEU 任一超過 42.5%，新增資金優先補不足的一邊，不因短期漲跌恐慌賣出。
+      </div>
+
+      <h3>為什麼不選 QQQ</h3>
+      <p>QQQ 本身不是壞標的，但放進這個組合會把 0050、VTI 已共同持有的半導體／大型科技再加重。前版估算下，股票部位約一半會綁在 AI／半導體同一條景氣鏈上；一旦遇到類似 2022 年升息或科技去庫存的情境，0050、QQQ、VT 很可能同向下跌，沒有直覺以為的分散效果。這版仍有科技與台積電曝險，但它是全球股票組合的一部分，不是刻意把整組合押成 AI 主題基金。</p>
+
+      <h3>RSPStock 是什麼</h3>
+      <p><strong>RSPStock 是中信銀行的「美股定期定股」服務</strong>：不是自己開海外券商、每月自己挑時間下單，而是和中信約定「買哪一檔、每月哪天扣款、每次固定買幾股」，到了指定日由中信從你的中信外幣活存帳戶扣美元代為掛單，買到的部位放在信託帳戶裡。關鍵是<strong>固定股數</strong>，不是固定台幣金額：股價高時同樣幾股會扣比較多美元，股價低時扣比較少；每期「約 25 萬台幣等值」只是設定目標，實際扣款金額依當時股價與匯率波動。</p>
+
+      <table>
+        <thead><tr><th>條文</th><th>內容</th></tr></thead>
+        <tbody>
+          <tr><td>扣款帳戶</td><td>僅受理中信自己的外幣活（儲）期存款帳戶，不能用其他銀行帳戶或刷卡</td></tr>
+          <tr><td>股數上限</td><td>每筆最低 1 股、申購上限 100 股／期，以整股設定</td></tr>
+          <tr><td>限價規則</td><td>委託價格＝前一營業日收盤價的 110%，當日開盤掛單、留到收盤，委託價格盤中不更動，<strong>不保證成交</strong>（若美股開盤到收盤漲幅超過 10% 可能無法成交）；使用者不能自訂窄限價</td></tr>
+          <tr><td>扣款失敗</td><td>連續 3 次扣款失敗，系統自動停扣（庫存保留帳上，不主動贖回），需再申請恢復</td></tr>
+        </tbody>
+      </table>
+
+      <h3>下單順序與操作提醒</h3>
+      <ol>
+        <li>先確認中信外幣帳戶與 RSPStock 約定可用，並確認 0.3% 優惠是否已鎖定（新簽約資格截至 2026/12/31）。</li>
+        <li>設定 VTI／VEU 各 3 期的固定股數與扣款日；每一期開始前才換該期所需美元，不一次全換，避免把匯率時點風險集中在一天。</li>
+        <li>0050 新增 50 萬分兩次；00719B 新增 30 萬一次完成。實際限價要在下單當天用前一日收盤價重算，不沿用討論中的舊價格。</li>
+        <li>手機設兩個提醒：每月 12 日檢查 VTI 美元餘額是否備足、每月 19 日檢查 VEU 美元餘額是否備足——連續 3 次扣款失敗會悄悄自動停扣，系統不會主動跳警示提醒。</li>
+      </ol>
+
+      <h3>驗算（Python，與使用者自行試算一致）</h3>
+      <pre style="background:#f1f3f4;padding:14px;border-radius:8px;overflow-x:auto;">0050   : 500,000 / 3,000,000 = 16.666...%
+VTI    : 750,000 / 3,000,000 = 25.0%
+VEU    : 750,000 / 3,000,000 = 25.0%
+bonds  : 1,000,000 / 3,000,000 = 33.333...%
+stock 合計 2,000,000 / 3,000,000 = 66.666...% ｜ bonds 合計 33.333...%
+0050 第一筆：250,000 // 115 = 2,173 股 → 2,173 × 115 = 249,895 元
+00719B 新增：300,000 // 31.16 = 9,627 股 → 9,627 × 31.16 = 299,977.32 元</pre>
+      <p class="small">0050／00719B 10/12 收盤價與委賣價已由 scout 端直抓 Yahoo 財經確認【已讀原文】；上表數字與使用者自行跑的腳本結果一致，沒有算錯。</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>殖利率算法與稅務假設（五檔配息試算、稅前／稅後、反推本金的計算基礎）</summary>
+    <div class="inner">
+      <div class="danger-box">
+        <strong>此表經過一次更正，請只採信本節數字：</strong>scout 初版把 VTI／VEU 的「75 萬台幣部位」誤當「75 萬美元」計算，導致這兩檔年配息被多算約 3 倍（原誤植年現金流 ~12.6 萬／月均 ~1.05 萬）。anne 發現並更正算式，scout 已核對一致。下表為更正後版本。
+      </div>
+
+      <h3>五檔配息節奏（已讀原文確認）</h3>
+      <table>
+        <thead><tr><th>標的</th><th>配息頻率</th><th class="num">部位</th><th>除息月份（實證）</th><th class="num">當前年化配息率</th></tr></thead>
+        <tbody>
+          <tr><td>0050</td><td>半年配</td><td class="num">50 萬</td><td>1 月、7 月</td><td class="num">~1.5%</td></tr>
+          <tr><td>VTI</td><td>季配</td><td class="num">75 萬</td><td>3／6／9／12 月</td><td class="num">~1.04%</td></tr>
+          <tr><td>VEU</td><td>季配</td><td class="num">75 萬</td><td>3／6／9／12 月（12 月常含資本利得，金額明顯偏大）</td><td class="num">~2.37%</td></tr>
+          <tr><td>00719B</td><td>季配</td><td class="num">80 萬</td><td>1／4／7／10 月</td><td class="num">~3.5–4.0%</td></tr>
+          <tr><td>00720B</td><td>季配</td><td class="num">20 萬</td><td>1／4／7／10 月</td><td class="num">~5.0–6.0%</td></tr>
+        </tbody>
+      </table>
+      <p class="small">五檔全部落在 1／4／7／10 月與 3／6／9／12 月的季度交叉點；0050 因半年配只在 1、7 月進帳，這兩個月現金流最厚。VEU 12 月那筆含資本利得分配，歷史金額（2022 年底 $0.6186、2024 年底 $0.9403、2025 年底 $1.258）波動大，無法事前預估。</p>
+
+      <h3>年配息現金試算（原 300 萬，TWD 部位 × TWD 計配息率，不需先換美元）</h3>
+      <table>
+        <thead><tr><th>標的</th><th class="num">部位（TWD）</th><th class="num">配息率（年化）</th><th class="num">年配息 TWD</th></tr></thead>
+        <tbody>
+          <tr><td>0050</td><td class="num">50 萬</td><td class="num">~1.5%</td><td class="num">7,500</td></tr>
+          <tr><td>VTI</td><td class="num">75 萬</td><td class="num">~1.04%</td><td class="num">7,800</td></tr>
+          <tr><td>VEU</td><td class="num">75 萬</td><td class="num">~2.37%</td><td class="num">17,775</td></tr>
+          <tr><td>00719B</td><td class="num">80 萬</td><td class="num">~3.7%</td><td class="num">29,600</td></tr>
+          <tr><td>00720B</td><td class="num">20 萬</td><td class="num">~5.5%</td><td class="num">11,000</td></tr>
+          <tr><td><strong>合計</strong></td><td class="num"><strong>300 萬</strong></td><td class="num"><strong>加權 2.46%</strong></td><td class="num"><strong>73,675</strong></td></tr>
+        </tbody>
+      </table>
+      <p class="small">此為原 300 萬方案、稅前、未扣美國預扣稅與台灣個人稅負的粗估，且配息率會隨淨值與利率環境變動，<strong>不能當成固定月薪</strong>。</p>
+
+      <h3>長期年化總報酬（含價差，僅歷史參考）</h3>
+      <table>
+        <thead><tr><th>標的</th><th>長期年化總報酬（含息）</th><th>備註</th></tr></thead>
+        <tbody>
+          <tr><td>0050</td><td>~10–13%</td><td>22 年成立至今年化 ~12%，受惠台積電權重 56–58%，<strong>不能當未來年化</strong></td></tr>
+          <tr><td>VTI</td><td>~10–11%</td><td>10 年含息年化 ~11.5%；2022 年 -19.5%、2023 年 +26.1%，波動大</td></tr>
+          <tr><td>VEU</td><td>~5–7%</td><td>2022 年 -14.5%、2023 年 +18.8%；美元強勢年份常見負報酬，匯率是隱藏波動源</td></tr>
+          <tr><td>00719B</td><td>~2–3%（推測）</td><td>短天期美債，利率敏感度低</td></tr>
+          <tr><td>00720B</td><td>~4–6%（推測）</td><td>20 年期 BBB 美元公司債，利率敏感度高，升息時配息率會下降</td></tr>
+        </tbody>
+      </table>
+      <p class="small">加權估計：股票 200 萬＋債券 100 萬，長期年化（僅歷史參考，不等於未來）約 <strong>6–8%</strong>；單年波動極大（2022 股票型 -15~-20%、2023 股票型 +20~+26%），<strong>不要把年化當月化</strong>。</p>
+
+      <h3>查不到／不確定的部分</h3>
+      <ul>
+        <li>0050 2025 全年配息 $3.06 與 2026 預估落差大，可能是 2025 含較多已實現資本利得分配所致，2026 年度數字可能再上修。</li>
+        <li>VEU 12 月配息金額與當年海外股市資本利得實現量連動，無法事前預估。</li>
+        <li>00720B「年化配息率 ~5.5%」是用近四季配息 ÷ 當前淨值倒推，會隨淨值與利率環境變動。</li>
+        <li>月波動 σ／月期望值為年化推算值，非逐月實證，請勿當成預期值使用。</li>
+      </ul>
+
+      <h3>補充判斷：2.46% 配息率低於美元定存或高配息股，這份配置還值得嗎？</h3>
+      <div class="danger-box">
+        <strong>結論先講：</strong>若目標是「現在就拿穩定現金流」，這份五檔配置<strong>不夠對題</strong>；300 萬稅前年配息約 73,675 元、月平均約 6,140 元，不能包裝成有感的被動收入。若目標是長期累積資產，2.46% 也<strong>不是整體報酬率</strong>，因為 0050／VTI／VEU 的主要回報本來就較多留在淨值與股價，而非用高配息發出來。
+      </div>
+      <ul>
+        <li><strong>和美元定存比較：</strong>定存提供的是約定存期內的利息；美元本金仍有匯率風險，提前解約可能按較低利率計息，也不參與股票長期成長。利率、門檻、幣別與期間都會變動，因此下單前應以中信當日牌告與實際方案重算，不能拿舊活動利率直接判定輸贏。</li>
+        <li><strong>和中華電信等高配息個股比較：</strong>中華電信 2026 年已決議每股現金股利 5.2 元，確有較穩定的配息紀錄；但「殖利率」仍取決於買進價格，且單一公司不是分散投資。既有 0050 已含台股大型權值股，若再大幅加碼單一台股，會增加台灣市場與單一公司集中風險。</li>
+        <li><strong>不要把配息率當報酬率：</strong>配息高不必然比較賺；一部分可能只是把資產價值用現金形式發回。真正該比較的是稅後總報酬、最大跌幅、匯率、流動性，以及是否足以支付你的年度支出。</li>
+      </ul>
+      <p><strong>本頁定位：</strong>股票 200 萬＋債券 100 萬，是「成長＋分散＋部分防守」配置，<strong>不是以月配息最大化為目的的退休現金流配置</strong>。如果要把「被動收入」列為第一優先，必須另訂目標：例如稅前年現金流 4% 約為每年 12 萬／月均 1 萬；5% 約為每年 15 萬／月均 1.25 萬。提高現金流通常會以更高的利率、信用、集中或匯率風險交換，不能只看表面殖利率。</p>
+
+      <h3>500 萬配置：稅前 vs 稅後配息對照</h3>
+      <table>
+        <thead><tr><th>版本</th><th class="num">年配息 TWD</th><th class="num">月均 TWD</th><th class="num">加權殖利率</th><th>備註</th></tr></thead>
+        <tbody>
+          <tr><td><strong>稅前</strong>（沿用當下配息率，未扣稅）</td><td class="num">111,355</td><td class="num">9,280</td><td class="num">2.23%</td><td>單純用各標的配息率加權，未計入任何預扣稅</td></tr>
+          <tr><td><strong>稅後</strong>（扣美股 30% 股利預扣稅）</td><td class="num">97,719</td><td class="num">8,143</td><td class="num">1.95%</td><td>僅 VTI／VEU 兩檔適用 30% 美股預扣稅；0050／00719B／00720B 為台股標的不受影響</td></tr>
+        </tbody>
+      </table>
+      <p class="small">稅前與稅後差距約 13,636 元／年、1,137 元／月，全部來自 VTI＋VEU 部位被美國海外保管銀行自配息中扣繳 30%，非台灣稅負、無需另外報稅，但會實際減少入帳現金。</p>
+
+      <h3>4%／5% 現金流目標的本金對照（<strong>依稅後殖利率反推</strong>，兩版都列，不要只看一個）</h3>
+      <table>
+        <thead><tr><th>目標月均現金流</th><th class="num">年現金流</th><th class="num">用「原 300 萬方案稅前 2.46%」反推所需本金</th><th class="num">用「500 萬加碼後配置稅後 1.95%」反推所需本金</th></tr></thead>
+        <tbody>
+          <tr><td>1 萬／月</td><td class="num">12 萬</td><td class="num">約 488 萬</td><td class="num">約 615 萬</td></tr>
+          <tr><td>1.25 萬／月</td><td class="num">15 萬</td><td class="num">約 610 萬</td><td class="num">約 770 萬</td></tr>
+        </tbody>
+      </table>
+      <p class="small">615 萬／770 萬這兩個數字<strong>是依 500 萬配置「稅後」加權殖利率 1.95% 反推</strong>，不是稅前、也不是用 2.46% 算出來的——那欄 488 萬／610 萬是另一個基準（原 300 萬方案稅前 2.46%）的對照，兩版本<strong>基準配置不同</strong>：2.46% 是原 300 萬方案（0050/VTI/VEU/00719B/00720B＝50/75/75/80/20 萬）的稅前加權配息率；1.95% 是加碼後 500 萬配置（70/175/115/120/20 萬）扣除美股 30% 預扣稅後的版本——500 萬配置自己的稅前殖利率是 2.23%，不是 2.46%。差距（488→615 萬、610→770 萬）除了稅前／稅後，也包含配置本身從 300 萬換成 500 萬配重後的變化，不能只挑對自己有利的一版來判斷要不要追高配息。</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>換匯與 RSPStock 扣款細節（圈存公式、110% 限價、0.3%／1.5% 費率、換匯申報、停扣條款）</summary>
+    <div class="inner">
+      <div class="danger-box">
+        <strong>0.3% 優惠口徑（統一版）：</strong>0.3% 終身優惠的<strong>新簽約資格截至 2026/12/31</strong>；<strong>期限內已簽約者不因到期自動回到 1.5%</strong>，只有未取得優惠者才以申購頁當時費率重算。今天 2026/10/13，距新簽約期限約 79 天，若尚未開通 RSPStock 又確定走這條路，建議在期限內完成簽約；另有信託管理費年率 0.2%，依持有期間按日計算、贖回時扣除。
+      </div>
+
+      <h3>中信 RSPStock 執行提醒（三條，均有日期／稅率限定，不是永久規則）</h3>
+      <ul>
+        <li><strong>0.3% 定期定股優惠：</strong>中信官方 Q&amp;A 原文「即日起~2026/12/31，可享每筆申購手續費以每筆成交價金乘以 0.3% 之終身優惠（不足 3 美元，以 3 美元計）」；口徑統一為上方綠框說明，不寫成「到期自動回 1.5%」。</li>
+        <li><strong>美股股利 30% 預扣稅：</strong>VTI／VEU 配息由海外保管銀行自配息中直接扣繳 30%，無台美租稅協定減免，已反映在稅後版本，無需另行報稅但會實際減少入帳金額。</li>
+        <li><strong>信託管理費 0.2%／年：</strong>持倉期間不扣現金流，於賣出成交日自贖回款中扣除；長期持有不影響月配息現金流，但賣出結算時要記得這筆。</li>
+      </ul>
+
+      <h3>每月 2 萬定期定股時程</h3>
+      <table>
+        <thead><tr><th>標的</th><th class="num">每月新增</th><th>下單頻率建議（僅於 0.3% 優惠期間有效，以 US$3 最低手續費為前提）</th></tr></thead>
+        <tbody>
+          <tr><td>0050</td><td class="num">2,000</td><td>台股，可按月下單</td></tr>
+          <tr><td>00719B</td><td class="num">4,000</td><td>台股，可按月下單</td></tr>
+          <tr><td>VTI</td><td class="num">10,000</td><td>約每 4 個月累積至接近/超過 1,000 美元再下單，避免被 3 美元最低手續費拉高實質費率</td></tr>
+          <tr><td>VEU</td><td class="num">4,000</td><td>約每年累積至接近/超過 1,000 美元再下單，同上理由</td></tr>
+          <tr><td>00720B</td><td class="num">0</td><td>不再加碼</td></tr>
+        </tbody>
+      </table>
+      <p class="small">「累積至約 1,000 美元再下單」這條<strong>僅在 0.3% 優惠＋US$3 最低手續費期間有效</strong>；若已簽約鎖定 0.3% 終身優惠則持續適用，未取得優惠者（牌告 1.5%）的費率節省比例會大幅縮小，需重新評估是否仍值得「少買多等」。</p>
+      <p class="small">本節數字出處與獨立查核：<a href="2026-10-13-ctbc-fee-verified-and-aftertax-dividend.md" target="_blank">2026-10-13-ctbc-fee-verified-and-aftertax-dividend.md</a>（scout 對中信官方費率公告與 500 萬稅後配息重算的留底查核檔，同目錄）。</p>
+
+      <h3>圈存公式、上限價、換匯申報、停扣條款（給每期實際操作用）</h3>
+      <ol>
+        <li><strong>先決定固定股數，再換美元：</strong>RSPStock 是固定股數服務，不能自行輸入成交單價。每期所需美元以 <code>前一營業日收盤價 × 股數 × 110% ＋ 當期手續費</code> 計算；這是銀行的<strong>圈存上限</strong>，不是實際成交價。</li>
+        <li><strong>110% 是上限價，不是「保守單價」：</strong>銀行以「前一營業日收盤價 × 110%」在美股開盤掛限價單，盤中不調價；若當日價格高於此上限，該期可能無法成交。實際成交價為當日同標的 RSPStock 全部成交委託的<strong>加權平均價</strong>，最終扣款以銀行實際扣款金額為準。</li>
+        <li><strong>手續費以申購頁為準：</strong>2026/12/31 前完成簽約者，官方活動為每筆成交價金 0.3% 的終身優惠、最低 US$3；未取得優惠時，牌告申購手續費為 1.5%、最低 US$3。不要把「新簽約截止日」誤寫成已取得優惠者會在當日後自動回到 1.5%。</li>
+        <li><strong>換匯與申報：</strong>於扣款／圈存前，從本人中信台幣帳戶換入足額美元至本人中信美元帳戶；單筆等值新台幣 50 萬元以上，依銀行外匯申報流程如實填寫用途，例如「本人自有資金透過中信信託定期投資境外 ETF（VTI、VEU）」。不刻意拆單，保留換匯水單及 RSPStock 扣款／成交紀錄。</li>
+        <li><strong>避免停扣：</strong>若連續 3 期扣款失敗，銀行會自動停止後續扣款；已買到的單位仍留在信託帳戶、不會被主動贖回，但要繼續投資須向中信申請恢復扣款。因此每期扣款日前，應檢查美元餘額是否至少覆蓋本期圈存金額。</li>
+      </ol>
+      <p class="small">中信 RSPStock 的固定股數、110% 限價、圈存公式、加權平均成交價及三次扣款失敗條款，均以中信銀行 RSPStock 官方 Q&amp;A 與實際申購確認頁為準；美元實際換匯匯率與成交價格皆會變動，表內金額是當期投入目標，不是保證扣款金額。</p>
+    </div>
+  </details>
+
+  <details>
+    <summary>七、既有區塊鏈曝險（XAUT／BTC／Bitfinex／Binance，獨立記帳，不併入 ETF 被動收入）</summary>
+    <div class="inner">
+      <div class="danger-box">
+        <strong>先校正口徑：</strong>本節記錄的是既有 Bitfinex／Binance／XAUT 部位與現金流，不是把 500 萬核心配置改成加密資產，也不把任何交易所或鏈上收益當退休底線。上方 500 萬核心配置的稅後月均 8,143 元，和本節完全分開，不能相加後說成「穩定被動收入」。
+      </div>
+
+      <h3>2026-10-13 快照（使用者回報；非即時報價）</h3>
+      <table>
+        <thead><tr><th>項目</th><th>已確認紀錄</th><th>本報告如何處理</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Bitfinex 放貸收入</strong></td><td>目前觀察到約 <strong>US$40／日</strong>；其中 US$10／日買 XAUT、US$10／日買 BTC，剩餘 US$20／日的去向未在本次資料中確認。</td><td>只作「當下觀察」；不年化成保證收入、不納入五檔 ETF 現金流，因利率、借方、平台與提領條款都可變動。</td></tr>
+          <tr><td><strong>XAUT</strong></td><td>0.71 XAUT。依 2026-10-13 已留底的 XAUT US$4,174.57、USD/TWD 31.93 快照，約為 <strong>NT$94,639</strong>。</td><td>這是單日估值，金價與匯率會變。若仍維持「黃金總曝險上限 NT$300,000」這條獨立風險界線，當日尚餘約 <strong>NT$205,361</strong>；不是新增買入授權。</td></tr>
+          <tr><td><strong>Binance BTC</strong></td><td>2026-10-07 已從 Bitfinex 轉入 0.0138 BTC；另有 0.0309 BTC 當時仍在 Bitfinex，計畫本週再轉，但本報告不把它寫成已完成。</td><td>兩家都屬中心化交易所託管；分散至 Binance 可降低單一 Bitfinex 對手方集中，卻新增 Binance 與 Earn 方案條款風險，並非「風險一樣所以可忽略」。</td></tr>
+          <tr><td><strong>Binance BTC Earn</strong></td><td>超過 0.01 BTC 的實際 APY，使用者先前文字寫成 <code>0.0.1%</code>，數字有歧義，且優惠上限與是否可隨時贖回尚未以帳戶申購確認頁核對。</td><td><strong>暫列 0 元可靠被動收入。</strong>未取得帳戶畫面中的實際 APY、適用餘額與贖回條件前，不用任何猜測利率做試算。</td></tr>
+        </tbody>
+      </table>
+
+      <h3>XAUT：黃金價格之外，還有四層額外風險</h3>
+      <table>
+        <thead><tr><th>層級</th><th>風險</th><th>本次確認與處理</th></tr></thead>
+        <tbody>
+          <tr><td>L1</td><td>金價與美元／台幣匯率波動</td><td>0.71 XAUT 的台幣市值每日浮動；它不提供保證的台幣購買力。</td></tr>
+          <tr><td>L2</td><td>發行人、儲備與贖回</td><td>Tether Gold 的最新公開季報為 2026-06-30；頁面列示託管黃金 707,747.139 oz、流通 XAUT 707,747.090000，並說明由 BDO Italia 進行季度報告的獨立查核。[7] 這是特定日期的查核，不是 10 月的即時保證。</td></tr>
+          <tr><td>L3</td><td>代幣與智能合約</td><td>XAUT 是 ERC-20／BEP-20 代幣；錢包、鏈、合約升級或操作錯誤都不是實體黃金本身會有的風險。[8]</td></tr>
+          <tr><td>L4</td><td>放貸協議、借方與流動性</td><td>4.25% 是為承擔這一層及平台層的可變報酬；協議名稱、抵押品、清算機制與收益入帳幣別尚未核對，因此不假設本金安全或收益可持續。</td></tr>
+          <tr><td>L5</td><td>交易所／託管平台</td><td>平台可能發生帳戶限制、提領延遲、資安或監管事件；即使黃金儲備足額，也不能消除這一層。</td></tr>
+        </tbody>
+      </table>
+      <div class="notice"><strong>贖回門檻更正：</strong>先前把「50 XAUT」直接寫成可直接贖回門檻不夠精確。官方 FAQ 寫的是平台購買最低 50 XAUT；實體贖回必須以一根完整 LBMA 金條為單位，並「通常建議」約 430 XAUT 才足以贖回。0.71 XAUT 的實際流動性主要仍是交易所買賣，而非向發行人兌回金條。[8]</div>
+
+      <h3>接下來只做三件事</h3>
+      <ol>
+        <li><strong>不動 500 萬核心配置：</strong>0050／VTI／VEU／00719B／00720B 的配置與四個月進場計畫不因本節而調整。</li>
+        <li><strong>把收益與本金拆帳：</strong>確認 XAUT 4.25% 的收益入帳幣別、目前存放位置與是否再投入；在此之前，XAUT 市值與收益不可混成一個「安全現金流」數字。</li>
+        <li><strong>以 Binance 申購確認頁定案：</strong>取得實際 APY、適用上限、是否可隨時贖回三項後，才決定 BTC Earn 是否值得保留；未確認前，轉移的主要理由只能是分散 Bitfinex 對手方，而不是收益。</li>
+      </ol>
+    </div>
+  </details>
 
   <footer>
     來源：中信 RSPStock <a href="https://www.ctbcbank.com/content/dam/minisite/long/fund/RSPStock/index.html" target="_blank">官方 Q&amp;A</a>、元大 <a href="https://www.yuantaetfs.com/product/detail/0050/Basic_information" target="_blank">0050 基本資料</a>、Vanguard investor.vanguard.com（VTI/VEU 配息紀錄）、MoneyDJ／元大投信（00719B／00720B）、Yahoo 財經即時報價（2026/10/12）、中華電信 <a href="https://www.cht.com.tw/zh-tw/home/cht/investors/shareholder-services/return-to-shareholders" target="_blank">股東回饋公告</a>、中信 <a href="https://www.ctbcbank.com/content/dam/minisite/long/ebank/fxdep/DD/index.html" target="_blank">外幣優利定存說明</a>。<br>
     [7] Tether Gold <a href="https://gold.tether.to/reports" target="_blank">Reserves Reports</a>（2026-06-30 季報與 BDO Italia 查核範圍）；[8] Tether Gold <a href="https://gold.tether.to/faq" target="_blank">FAQ</a>（代幣鏈別、購買與實體贖回條件）。<br>
-    由 Hermes Agent（dev-claude）彙整自多方（理專/anne、scout、dev-claude）交叉驗證對話，發布於 2026-10-12；第六節配息試算經 anne 更正、scout 確認一致。6.5 於 2026-10-12 補列，界定「現金流」與「總報酬」的差異。6.6 於 2026-10-13 補列：加碼 200 萬後 500 萬執行方案、稅前/稅後配息對照、4%/5% 現金流本金對照（兩版）、中信費率三條提醒（含 2026/12/31 優惠到期日）與定期定股時程；數字經 scout 對中信官方公告獨立查核。本次 2026-10-13 更新新增第七節：既有 XAUT／BTC 曝險、估值快照、Tether 官方儲備／贖回條件、以及「不計入退休被動收入」的記帳邊界。本頁為個人決策紀錄，非投資建議。
+    由 Hermes Agent（dev-claude）彙整自多方（理專/anne、scout、dev-claude）交叉驗證對話。第六節配息試算經 anne 更正、scout 確認一致；6.5 補列「現金流」與「總報酬」差異；6.6 補列加碼 200 萬後 500 萬執行方案、稅前/稅後配息對照、4%/5% 現金流本金對照（依稅後殖利率反推）、中信費率提醒與定期定股時程，數字經 scout 對中信官方公告獨立查核；第七節為既有 XAUT／BTC 曝險記帳，不計入退休被動收入。2026-10-13 再次改版：版面改為「先看定案、需要才展開細節」，頁首僅留四個決策重點與三項風險常駐，技術但書與算法假設收入 <code>&lt;details&gt;</code>，並統一 0.3% 優惠口徑（期限內簽約鎖終身，未取得優惠者才按申購頁費率重算）。全程經理專(anne)/scout/dev-claude 交叉驗證；對應 §6.6 定稿內容版 commit 參照 <code>fc26340</code>，本頁為後續版面調整 commit，詳見 git log 最新一筆（不在此寫死 hash 以免每次更新本段都要再改一次）。公開頁與本地檔 byte-for-byte 一致。本頁為個人決策紀錄，非投資建議。
   </footer>
 </main>
 </body>

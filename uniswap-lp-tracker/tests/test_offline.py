@@ -1935,6 +1935,76 @@ class TestCollectEventDecode(unittest.TestCase):
         self.assertEqual(result["scanned_to_block"], 0x64)
 
 
+class TestIncrementalV3EventScan(unittest.TestCase):
+    """V3 歷史事件有完整快照時，只掃上次區塊之後的新範圍。"""
+
+    def test_plan_uses_previous_totals_and_next_block(self):
+        plan = wallet_live_fetch._v3_event_scan_plan(
+            {
+                "snapshot_block_number": 100,
+                "cumulative_claimed_0_raw": "10",
+                "cumulative_claimed_1_raw": "20",
+            },
+            150,
+            "cumulative_claimed_0_raw",
+            "cumulative_claimed_1_raw",
+        )
+        self.assertEqual(plan, (101, 10, 20, False))
+
+    def test_missing_cursor_fails_closed_to_full_scan(self):
+        plan = wallet_live_fetch._v3_event_scan_plan(
+            {"cumulative_claimed_0_raw": "10", "cumulative_claimed_1_raw": "20"},
+            150,
+            "cumulative_claimed_0_raw",
+            "cumulative_claimed_1_raw",
+        )
+        self.assertEqual(plan, (0, 0, 0, False))
+
+    def test_scan_adds_new_events_to_previous_totals(self):
+        calls = []
+
+        def fake_scanner(url, token_id, *, chain_id, from_block, to_block):
+            calls.append((url, token_id, chain_id, from_block, to_block))
+            return {"amount0_raw": 3, "amount1_raw": 4, "log_count": 2}
+
+        result = wallet_live_fetch._scan_v3_cumulative_events(
+            rpc_url="https://fake-rpc.invalid",
+            chain_id=42161,
+            token_id=7,
+            current_block=150,
+            previous_row={
+                "snapshot_block_number": 100,
+                "cumulative_claimed_0_raw": "10",
+                "cumulative_claimed_1_raw": "20",
+            },
+            total0_key="cumulative_claimed_0_raw",
+            total1_key="cumulative_claimed_1_raw",
+            scanner=fake_scanner,
+        )
+        self.assertEqual(result, {"amount0_raw": 13, "amount1_raw": 24, "log_count": 2})
+        self.assertEqual(calls, [("https://fake-rpc.invalid", 7, 42161, 101, 150)])
+
+    def test_same_block_reuses_previous_totals_without_rpc_scan(self):
+        def unexpected_scan(*args, **kwargs):
+            raise AssertionError("同一區塊不應重新掃描")
+
+        result = wallet_live_fetch._scan_v3_cumulative_events(
+            rpc_url="https://fake-rpc.invalid",
+            chain_id=1,
+            token_id=7,
+            current_block=100,
+            previous_row={
+                "snapshot_block_number": 100,
+                "cumulative_claimed_0_raw": "10",
+                "cumulative_claimed_1_raw": "20",
+            },
+            total0_key="cumulative_claimed_0_raw",
+            total1_key="cumulative_claimed_1_raw",
+            scanner=unexpected_scan,
+        )
+        self.assertEqual(result, {"amount0_raw": 10, "amount1_raw": 20, "log_count": 0})
+
+
 class TestDecreaseLiquidityEventDecode(unittest.TestCase):
     """anne 2026-10-03 核正：decreaseLiquidity() 本金要能從事件單獨掃出來，
     才能跟 Collect／可提領總額的「本金＋fee」混合值做恆等式扣本金。"""

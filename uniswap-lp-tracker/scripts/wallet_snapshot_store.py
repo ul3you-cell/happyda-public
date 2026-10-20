@@ -132,9 +132,11 @@ CREATE TABLE IF NOT EXISTS wallet_position_snapshot (
                                       -- feeGrowthInside0X128 原始快照（uint256，字串存避免
                                       -- 精度失真）；只有 v4 部位會寫，v3 部位一律 NULL
   v4_fee_growth_inside1_raw TEXT,      -- 同上，currency1 側
-  snapshot_block_number INTEGER,      -- 這筆快照對應的鏈上區塊高度（讓 has_v4_position_
-                                      -- activity_in_range 能用「上次快照區塊～這次快照區塊」
-                                      -- 當掃描區間，不用猜時間戳對應的區塊）
+  snapshot_block_number INTEGER,      -- 這筆快照對應的鏈上區塊高度；V3 用來讓
+                                      -- 累計 Collect／DecreaseLiquidity 事件只掃
+                                      -- 上次快照之後的新範圍，V4 讓
+                                      -- has_v4_position_activity_in_range 能用
+                                      -- 上次快照區塊～這次快照區塊掃描
   v4_delta_quality_status TEXT,       -- v4 fee delta 的品質狀態（見
                                       -- wallet_apr_calc.compute_v4_fee_delta_quality 的
                                       -- 完整判定邏輯）：'ok'（無活動＋上一筆齊全，diff

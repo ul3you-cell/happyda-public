@@ -22,6 +22,7 @@ import time
 from decimal import Decimal
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 import common
 import wallet_apr_calc
@@ -49,6 +50,82 @@ OUTPUT_PATH = common.DATA_DIR / "wallet_live_latest.json"
 V4_NATIVE_PRICE_ADDRESS_BY_CHAIN = {
     130: "0x4200000000000000000000000000000000000006",
 }
+
+
+def _v3_event_scan_plan(
+    previous_row: dict | None,
+    current_block: int | None,
+    total0_key: str,
+    total1_key: str,
+) -> tuple[int, int, int, bool]:
+    """Return (from_block, base0, base1, already_current) for an incremental scan.
+
+    A missing/old cursor deliberately falls back to a complete scan.  A complete
+    previous total is required before adding only the new event range; otherwise
+    silently mixing a partial historical total with a delta would undercount.
+    """
+    if not previous_row or current_block is None:
+        return 0, 0, 0, False
+    try:
+        previous_block = int(previous_row["snapshot_block_number"])
+        base0 = int(previous_row[total0_key])
+        base1 = int(previous_row[total1_key])
+    except (KeyError, TypeError, ValueError):
+        return 0, 0, 0, False
+    if previous_block < 0 or current_block < previous_block:
+        return 0, 0, 0, False
+    if current_block == previous_block:
+        return current_block + 1, base0, base1, True
+    return previous_block + 1, base0, base1, False
+
+
+def _previous_v3_snapshot(chain_id: int, token_id: int) -> dict | None:
+    """Read only the last local V3 snapshot; cache failure must not hide live data."""
+    conn = None
+    try:
+        conn = store.get_connection()
+        history = store.fetch_position_history(
+            conn, wallet_addr=WALLET_ADDRESS, chain_id=chain_id, token_id=token_id
+        )
+        return history[-1] if history else None
+    except Exception:
+        # A missing/unavailable local DB means full event scans, not fabricated
+        # cumulative values and not a failed live position query.
+        return None
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+def _scan_v3_cumulative_events(
+    *,
+    rpc_url: str,
+    chain_id: int,
+    token_id: int,
+    current_block: int | None,
+    previous_row: dict | None,
+    total0_key: str,
+    total1_key: str,
+    scanner,
+) -> dict:
+    """Scan only blocks after the last complete local V3 event snapshot."""
+    from_block, base0, base1, already_current = _v3_event_scan_plan(
+        previous_row, current_block, total0_key, total1_key
+    )
+    if already_current:
+        return {"amount0_raw": base0, "amount1_raw": base1, "log_count": 0}
+    scanned = scanner(
+        rpc_url,
+        token_id,
+        chain_id=chain_id,
+        from_block=from_block,
+        to_block=current_block if current_block is not None else "latest",
+    )
+    return {
+        "amount0_raw": base0 + int(scanned["amount0_raw"]),
+        "amount1_raw": base1 + int(scanned["amount1_raw"]),
+        "log_count": int(scanned.get("log_count", 0)),
+    }
 
 
 def _redact(exc: Exception) -> str:
@@ -164,7 +241,7 @@ def fetch_v3_chain(chain_id: int, whitelist: dict, smoke_block_number: int | Non
 
     result["position_count"] = len(token_ids)
     for token_id in token_ids:
-        pos = {"token_id": token_id}
+        pos: dict[str, Any] = {"token_id": token_id}
         try:
             details = rpc.get_position(rpc_url, token_id, chain_id=chain_id)
             pos.update({
@@ -188,10 +265,18 @@ def fetch_v3_chain(chain_id: int, whitelist: dict, smoke_block_number: int | Non
                 result["positions"].append(pos)
                 continue
 
+            liquidity = int(details["liquidity"])
+            if liquidity <= 0:
+                # 零流動性歷史 NFT 不會出現在使用者頁面；不要為了它掃描
+                # 從區塊 0 開始的 Collect／DecreaseLiquidity 歷史事件。
+                pos["position_status"] = "已退出／無流動性（liquidity=0）"
+                pos["note"] = "零流動性歷史部位保留查詢結果，不掃描累計事件"
+                result["positions"].append(pos)
+                continue
+
             slot0 = rpc.get_slot0(rpc_url, pool_addr)
             pos["current_tick"] = slot0["tick"]
             pos["in_range"] = math3.in_range(slot0["tick"], details["tick_lower"], details["tick_upper"])
-            liquidity = int(details["liquidity"])
             amt0_raw, amt1_raw = math3.amounts_for_liquidity(
                 liquidity, slot0["tick"], slot0["sqrt_price_x96"], details["tick_lower"], details["tick_upper"]
             )
@@ -220,12 +305,22 @@ def fetch_v3_chain(chain_id: int, whitelist: dict, smoke_block_number: int | Non
 
             # ②累計已領：掃描鏈上 Collect 事件，這是「這個 tokenId 有生以來
             # 已經真的領出過」的加總（同樣含本金＋fee，單獨看也分不出來）。
+            previous_snapshot = _previous_v3_snapshot(chain_id, token_id)
             try:
-                cumulative = rpc.get_cumulative_collected_fees(rpc_url, token_id, chain_id=chain_id)
+                cumulative = _scan_v3_cumulative_events(
+                    rpc_url=rpc_url,
+                    chain_id=chain_id,
+                    token_id=token_id,
+                    current_block=result.get("block_number"),
+                    previous_row=previous_snapshot,
+                    total0_key="cumulative_claimed_0_raw",
+                    total1_key="cumulative_claimed_1_raw",
+                    scanner=rpc.get_cumulative_collected_fees,
+                )
                 pos["cumulative_claimed_0_raw"] = str(cumulative["amount0_raw"])
                 pos["cumulative_claimed_1_raw"] = str(cumulative["amount1_raw"])
                 pos["cumulative_claimed_log_count"] = cumulative["log_count"]
-                pos["cumulative_claimed_source"] = "eth_getLogs 掃描 Collect(tokenId indexed) 事件加總"
+                pos["cumulative_claimed_source"] = "eth_getLogs 掃描 Collect(tokenId indexed) 事件加總（有完整快照時只掃新增區塊）"
                 claimed0 = (cumulative["amount0_raw"] / (10 ** dec0)) if dec0 is not None else None
                 claimed1 = (cumulative["amount1_raw"] / (10 ** dec1)) if dec1 is not None else None
             except Exception as exc:  # noqa: BLE001 — 掃描失敗不當掉整個部位，標示②不可用
@@ -235,12 +330,21 @@ def fetch_v3_chain(chain_id: int, whitelist: dict, smoke_block_number: int | Non
             # anne 2026-10-03 核正新增：累計 decreaseLiquidity() 撤出的本金，
             # 用來從①②裡扣掉本金、還原出精確恆等式算出的純 fee 收入。
             try:
-                decreased = rpc.get_cumulative_decrease_liquidity_principal(rpc_url, token_id, chain_id=chain_id)
+                decreased = _scan_v3_cumulative_events(
+                    rpc_url=rpc_url,
+                    chain_id=chain_id,
+                    token_id=token_id,
+                    current_block=result.get("block_number"),
+                    previous_row=previous_snapshot,
+                    total0_key="cumulative_decrease_principal_0_raw",
+                    total1_key="cumulative_decrease_principal_1_raw",
+                    scanner=rpc.get_cumulative_decrease_liquidity_principal,
+                )
                 pos["cumulative_decrease_principal_0_raw"] = str(decreased["amount0_raw"])
                 pos["cumulative_decrease_principal_1_raw"] = str(decreased["amount1_raw"])
                 pos["cumulative_decrease_principal_log_count"] = decreased["log_count"]
                 pos["cumulative_decrease_principal_source"] = (
-                    "eth_getLogs 掃描 DecreaseLiquidity(tokenId indexed) 事件加總（撤資本金）"
+                    "eth_getLogs 掃描 DecreaseLiquidity(tokenId indexed) 事件加總（撤資本金；有完整快照時只掃新增區塊）"
                 )
                 decreased0 = (decreased["amount0_raw"] / (10 ** dec0)) if dec0 is not None else None
                 decreased1 = (decreased["amount1_raw"] / (10 ** dec1)) if dec1 is not None else None
@@ -753,7 +857,11 @@ def write_snapshots(chain_results: list[dict]) -> int:
                 fee_income_delta_usd=(pos.get("fee_income_delta_usd") if protocol == "v4" else None),
                 v4_fee_growth_inside0_raw=pos.get("v4_fee_growth_inside0_raw"),
                 v4_fee_growth_inside1_raw=pos.get("v4_fee_growth_inside1_raw"),
-                snapshot_block_number=pos.get("v4_snapshot_block_number"),
+                snapshot_block_number=(
+                    pos.get("v4_snapshot_block_number")
+                    if protocol == "v4"
+                    else chain_result.get("block_number")
+                ),
                 v4_delta_quality_status=pos.get("v4_delta_quality_status"),
                 v4_delta_quality_reason=pos.get("v4_delta_quality_reason"),
             )

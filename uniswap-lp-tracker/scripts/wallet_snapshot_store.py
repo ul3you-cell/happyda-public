@@ -116,6 +116,8 @@ CREATE TABLE IF NOT EXISTS wallet_position_snapshot (
   cumulative_claimed_0_raw TEXT,      -- ②累計已領：掃描鏈上 Collect 事件加總的歷史已領
                                       -- token0/token1 raw 數量（跨 mint/increase/decrease）
   cumulative_claimed_1_raw TEXT,
+  cumulative_decrease_principal_0_raw TEXT, -- 累計 DecreaseLiquidity 撤出本金，token0 raw
+  cumulative_decrease_principal_1_raw TEXT, -- 同上，token1 raw；供下一次增量掃描作基準
   cumulative_claimed_usd REAL,        -- 累計已領換算成 USD（用「本次查詢同一時間點」價格，
                                       -- 不是各次 collect 當下的歷史價格——跟 fees_accrued_usd
                                       -- 用同一套即時報價，避免混用不同時間點的幣價）
@@ -260,6 +262,8 @@ _NEW_SNAPSHOT_COLUMNS = (
     ("claimable_1_raw", "TEXT"),
     ("cumulative_claimed_0_raw", "TEXT"),
     ("cumulative_claimed_1_raw", "TEXT"),
+    ("cumulative_decrease_principal_0_raw", "TEXT"),
+    ("cumulative_decrease_principal_1_raw", "TEXT"),
     ("cumulative_claimed_usd", "REAL"),
     ("fee_income_delta_usd", "REAL"),
     ("cumulative_decrease_principal_usd", "REAL"),
@@ -306,6 +310,8 @@ def insert_snapshot(
     claimable_1_raw: str | None = None,
     cumulative_claimed_0_raw: str | None = None,
     cumulative_claimed_1_raw: str | None = None,
+    cumulative_decrease_principal_0_raw: str | None = None,
+    cumulative_decrease_principal_1_raw: str | None = None,
     cumulative_claimed_usd: float | None = None,
     fee_income_delta_usd: float | None = None,
     cumulative_decrease_principal_usd: float | None = None,
@@ -320,13 +326,13 @@ def insert_snapshot(
     ts/wallet/chain/token_id）視為修正，不視為錯誤——排程本來就可能重跑
     （例如前一次 RPC 失敗中斷），不應該因為主鍵衝突而整支腳本掛掉。
 
-    新增的 claimable_*/cumulative_claimed_*/fee_income_delta_usd 全部預設
+    新增的 claimable_*/cumulative_claimed_*/cumulative_decrease_principal_*/fee_income_delta_usd 全部預設
     None（呼叫端尚未升級也能繼續用舊簽章呼叫），對應 anne 2026-10-03 spec
     的①目前可領／②累計已領／③本期新增收入 Δ 三欄。
 
     v4_fee_growth_inside*_raw／snapshot_block_number／v4_delta_quality_* 同樣
-    全部預設 None——這是 V4 fee delta 第 1 段的快照資料層與活動閘門所需欄位，
-    v3 部位或尚未升級的呼叫端完全不受影響，舊資料缺值一律維持 NULL。"""
+    全部預設 None——snapshot_block_number 也供 V3 增量事件掃描使用，舊資料缺值
+    一律維持 NULL，下一次查詢會安全退回完整基準掃描。"""
     conn.execute(
         """
         INSERT OR REPLACE INTO wallet_position_snapshot
@@ -334,11 +340,12 @@ def insert_snapshot(
            liquidity, in_range, fees_accrued_usd, position_value_usd,
            claimable_0_raw, claimable_1_raw,
            cumulative_claimed_0_raw, cumulative_claimed_1_raw,
+           cumulative_decrease_principal_0_raw, cumulative_decrease_principal_1_raw,
            cumulative_claimed_usd, fee_income_delta_usd,
            cumulative_decrease_principal_usd, cumulative_fee_income_usd,
            v4_fee_growth_inside0_raw, v4_fee_growth_inside1_raw,
            snapshot_block_number, v4_delta_quality_status, v4_delta_quality_reason)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             ts, wallet_addr.lower(), chain_id, token_id, pool_addr.lower(),
@@ -346,6 +353,7 @@ def insert_snapshot(
             fees_accrued_usd, position_value_usd,
             claimable_0_raw, claimable_1_raw,
             cumulative_claimed_0_raw, cumulative_claimed_1_raw,
+            cumulative_decrease_principal_0_raw, cumulative_decrease_principal_1_raw,
             cumulative_claimed_usd, fee_income_delta_usd,
             cumulative_decrease_principal_usd, cumulative_fee_income_usd,
             v4_fee_growth_inside0_raw, v4_fee_growth_inside1_raw,
@@ -389,6 +397,7 @@ def fetch_position_history(
                fees_accrued_usd, position_value_usd,
                claimable_0_raw, claimable_1_raw,
                cumulative_claimed_0_raw, cumulative_claimed_1_raw,
+               cumulative_decrease_principal_0_raw, cumulative_decrease_principal_1_raw,
                cumulative_claimed_usd, fee_income_delta_usd,
                cumulative_decrease_principal_usd, cumulative_fee_income_usd,
                v4_fee_growth_inside0_raw, v4_fee_growth_inside1_raw,

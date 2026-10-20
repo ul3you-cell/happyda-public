@@ -845,6 +845,8 @@ def write_snapshots(chain_results: list[dict]) -> int:
                 claimable_1_raw=pos.get("fees_owed_1_raw"),
                 cumulative_claimed_0_raw=pos.get("cumulative_claimed_0_raw"),
                 cumulative_claimed_1_raw=pos.get("cumulative_claimed_1_raw"),
+                cumulative_decrease_principal_0_raw=pos.get("cumulative_decrease_principal_0_raw"),
+                cumulative_decrease_principal_1_raw=pos.get("cumulative_decrease_principal_1_raw"),
                 cumulative_claimed_usd=pos.get("cumulative_claimed_usd"),
                 cumulative_decrease_principal_usd=pos.get("cumulative_decrease_principal_usd"),
                 cumulative_fee_income_usd=pos.get("cumulative_fee_income_usd"),

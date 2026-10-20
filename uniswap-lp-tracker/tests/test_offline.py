@@ -608,7 +608,13 @@ class TestWalletSnapshotStore(unittest.TestCase):
 
     def test_insert_and_fetch_round_trip_ordered_by_ts(self):
         conn = wallet_snapshot_store.get_connection(self.db_path)
-        wallet_snapshot_store.insert_snapshot(conn, **self._snapshot(300, fees=3.0))
+        latest = self._snapshot(300, fees=3.0)
+        latest.update(
+            cumulative_decrease_principal_0_raw="123",
+            cumulative_decrease_principal_1_raw="456",
+            snapshot_block_number=999,
+        )
+        wallet_snapshot_store.insert_snapshot(conn, **latest)
         wallet_snapshot_store.insert_snapshot(conn, **self._snapshot(100, fees=1.0))
         wallet_snapshot_store.insert_snapshot(conn, **self._snapshot(200, fees=2.0))
         history = wallet_snapshot_store.fetch_position_history(
@@ -616,6 +622,9 @@ class TestWalletSnapshotStore(unittest.TestCase):
         )
         self.assertEqual([h["ts"] for h in history], [100, 200, 300])
         self.assertEqual([h["fees_accrued_usd"] for h in history], [1.0, 2.0, 3.0])
+        self.assertEqual(history[-1]["cumulative_decrease_principal_0_raw"], "123")
+        self.assertEqual(history[-1]["cumulative_decrease_principal_1_raw"], "456")
+        self.assertEqual(history[-1]["snapshot_block_number"], 999)
         conn.close()
 
     def test_insert_or_replace_same_day_overwrites_not_errors(self):
@@ -2185,6 +2194,7 @@ class TestWalletSnapshotStoreV4FeeDeltaColumns(unittest.TestCase):
         row = history[0]
         for key in (
             "v4_fee_growth_inside0_raw", "v4_fee_growth_inside1_raw",
+            "cumulative_decrease_principal_0_raw", "cumulative_decrease_principal_1_raw",
             "snapshot_block_number", "v4_delta_quality_status", "v4_delta_quality_reason",
         ):
             self.assertIsNone(row[key], f"{key} 應在未提供時維持 NULL")
@@ -2227,6 +2237,7 @@ class TestWalletSnapshotStoreV4FeeDeltaColumns(unittest.TestCase):
         self.assertEqual(row["fees_accrued_usd"], 5.0)  # 舊欄位資料沒被破壞
         for key in (
             "v4_fee_growth_inside0_raw", "v4_fee_growth_inside1_raw",
+            "cumulative_decrease_principal_0_raw", "cumulative_decrease_principal_1_raw",
             "snapshot_block_number", "v4_delta_quality_status", "v4_delta_quality_reason",
         ):
             self.assertIsNone(row[key])

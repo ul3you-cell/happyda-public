@@ -1,6 +1,6 @@
 {
   "wallet_address": "0x267EE34200b09Ea8b52D02EeC3300b84985B1eFd",
-  "generated_at": 1792459782,
+  "generated_at": 1792540622,
   "rpc_smoke": [
     {
       "chain_id": 1,
@@ -8,7 +8,7 @@
       "ok": true,
       "rpc_source": "public-rpc",
       "reported_chain_id": 1,
-      "block_number": 26230504,
+      "block_number": 26237216,
       "error": null
     },
     {
@@ -17,7 +17,7 @@
       "ok": true,
       "rpc_source": "public-rpc",
       "reported_chain_id": 10,
-      "block_number": 158430451,
+      "block_number": 158470868,
       "error": null
     },
     {
@@ -26,7 +26,7 @@
       "ok": true,
       "rpc_source": "public-rpc",
       "reported_chain_id": 56,
-      "block_number": 128658153,
+      "block_number": 128837669,
       "error": null
     },
     {
@@ -35,7 +35,7 @@
       "ok": true,
       "rpc_source": "public-rpc",
       "reported_chain_id": 130,
-      "block_number": 61711322,
+      "block_number": 61792157,
       "error": null
     },
     {
@@ -44,7 +44,7 @@
       "ok": true,
       "rpc_source": "public-rpc",
       "reported_chain_id": 8453,
-      "block_number": 52835167,
+      "block_number": 52875585,
       "error": null
     },
     {
@@ -53,7 +53,7 @@
       "ok": true,
       "rpc_source": "public-rpc",
       "reported_chain_id": 42161,
-      "block_number": 516453921,
+      "block_number": 516750612,
       "error": null
     }
   ],
@@ -63,18 +63,18 @@
       "chain_id": 1,
       "chain_name": "Ethereum",
       "protocol": "v3",
-      "queried_at": 1792459683,
+      "queried_at": 1792540518,
       "positions": [],
       "error": null,
       "rpc_source": "public-rpc",
-      "block_number": 26230505,
+      "block_number": 26237217,
       "position_count": 0
     },
     {
       "chain_id": 42161,
       "chain_name": "Arbitrum",
       "protocol": "v3",
-      "queried_at": 1792459683,
+      "queried_at": 1792540518,
       "positions": [
         {
           "token_id": 3688542,
@@ -104,51 +104,51 @@
       ],
       "error": null,
       "rpc_source": "public-rpc",
-      "block_number": 516453925,
+      "block_number": 516750615,
       "position_count": 1
     },
     {
       "chain_id": 10,
       "chain_name": "Optimism",
       "protocol": "v3",
-      "queried_at": 1792459686,
+      "queried_at": 1792540521,
       "positions": [],
       "error": null,
       "rpc_source": "public-rpc",
-      "block_number": 158430455,
+      "block_number": 158470872,
       "position_count": 0
     },
     {
       "chain_id": 8453,
       "chain_name": "Base",
       "protocol": "v3",
-      "queried_at": 1792459688,
+      "queried_at": 1792540523,
       "positions": [],
       "error": null,
       "rpc_source": "public-rpc",
-      "block_number": 52835170,
+      "block_number": 52875588,
       "position_count": 0
     },
     {
       "chain_id": 56,
       "chain_name": "BNB Chain",
       "protocol": "v3",
-      "queried_at": 1792459689,
+      "queried_at": 1792540524,
       "positions": [],
       "error": null,
       "rpc_source": "public-rpc",
-      "block_number": 128658174,
+      "block_number": 128837692,
       "position_count": 0
     },
     {
       "chain_id": 130,
       "chain_name": "Unichain",
       "protocol": "v3",
-      "queried_at": 1792459689,
+      "queried_at": 1792540525,
       "positions": [],
       "error": null,
       "rpc_source": "public-rpc",
-      "block_number": 61711331,
+      "block_number": 61792167,
       "position_count": 0
     }
   ],
@@ -157,7 +157,7 @@
       "chain_id": 1,
       "chain_name": "Ethereum",
       "protocol": "v4",
-      "queried_at": 1792459690,
+      "queried_at": 1792540527,
       "positions": [
         {
           "token_id": 429477,
@@ -183,7 +183,7 @@
           "liquidity": 300692027326355,
           "pool_id_hex": "0x21c67e77068de97969ba93d4aab21826d33ca12bb9f565d8496e8fda8a82ca27",
           "fee_tier_pct": 0.05,
-          "current_tick": -198546,
+          "current_tick": -198289,
           "in_range": true,
           "position_value_usd": null,
           "fees_owed_usd": null,
@@ -191,15 +191,15 @@
           "position_status": "活躍（非零 liquidity）",
           "lp_fee_raw": 500,
           "pool_state_source": "Uniswap v4 StateView.getSlot0(bytes32)；RPC eth_call",
-          "token0_amount": 1.5160883079577012,
-          "token1_amount": 2187.063537,
+          "token0_amount": 1.4375514627365735,
+          "token1_amount": 2376.892824,
           "position_liquidity_stateview": "300692027326355",
-          "fees_owed_0_raw": "4681085903120670",
-          "fees_owed_1_raw": "11129218",
+          "fees_owed_0_raw": "4991978150625884",
+          "fees_owed_1_raw": "11977522",
           "fees_source": "StateView current feeGrowthInside − position checkpoint，乘以鏈上 liquidity 再除 2^128；估算可領 token base units",
-          "v4_fee_growth_inside0_raw": "115792089237316195423570985008687907831582476014135977375336791614756911657025",
-          "v4_fee_growth_inside1_raw": "115792089237316195423570985008687907853269984557660898194546520179104758139186",
-          "v4_snapshot_block_number": 26230505,
+          "v4_fee_growth_inside0_raw": "115792089237316195423570985008687907831934301603856799682391455062157363624179",
+          "v4_fee_growth_inside1_raw": "115792089237316195423570985008687907853269984558620894215786317159211417110940",
+          "v4_snapshot_block_number": 26237218,
           "v4_delta_quality_status": "activity_unknown",
           "v4_delta_quality_reason": "查詢此部位期間是否有活動失敗，fail-closed 不假設沒有活動：節點回報 eth_getLogs 錯誤（[RPC endpoint]'code': 429, 'message': 'too many requests'}",
           "fee_income_delta_token0_raw": null,
@@ -208,15 +208,15 @@
           "usd_pricing_error": "缺少 ALCHEMY_API_KEY 環境變數，無法查詢 USD 價格。",
           "observed_apr_7d_pct": null,
           "observed_apr_30d_pct": null,
-          "observed_apr_days_tracked": 9,
-          "observed_apr_note": "7d 視窗內有 7 天缺 fees_accrued_usd，7d APR 暫不可信；7d APR 已可計算；30d APR 尚不足計算（目前已追蹤 9 天，需要 30 天）",
+          "observed_apr_days_tracked": 10,
+          "observed_apr_note": "7d 視窗內有 7 天缺 fees_accrued_usd，7d APR 暫不可信；7d APR 已可計算；30d APR 尚不足計算（目前已追蹤 10 天，需要 30 天）",
           "delta_24h_usd": null,
           "base_established": false
         }
       ],
       "error": null,
       "rpc_source": "public-rpc",
-      "block_number": 26230505,
+      "block_number": 26237218,
       "enumeration_source": "eth_getLogs 掃描 Transfer(to=wallet) 事件＋ownerOf() 驗證現況（v4 PositionManager 本身不支援 tokenOfOwnerByIndex，此為替代方案）",
       "position_count": 1
     },
@@ -224,7 +224,7 @@
       "chain_id": 42161,
       "chain_name": "Arbitrum",
       "protocol": "v4",
-      "queried_at": 1792459693,
+      "queried_at": 1792540529,
       "positions": [
         {
           "token_id": 55626,
@@ -274,7 +274,7 @@
           "liquidity": 1421348070,
           "pool_id_hex": "0x80c735c5a0222241f211b3edb8df2ccefad94553ec18f1c29143f0399c78f500",
           "fee_tier_pct": 0.05,
-          "current_tick": 66995,
+          "current_tick": 67192,
           "in_range": true,
           "position_value_usd": null,
           "fees_owed_usd": null,
@@ -282,33 +282,33 @@
           "position_status": "活躍（非零 liquidity）",
           "lp_fee_raw": 500,
           "pool_state_source": "Uniswap v4 StateView.getSlot0(bytes32)；RPC eth_call",
-          "token0_amount": 0.04848183,
-          "token1_amount": 2804.027546,
+          "token0_amount": 0.04358406,
+          "token1_amount": 3205.54308,
           "position_liquidity_stateview": "1421348070",
-          "fees_owed_0_raw": "20736",
-          "fees_owed_1_raw": "16649743",
+          "fees_owed_0_raw": "21939",
+          "fees_owed_1_raw": "17834367",
           "fees_source": "StateView current feeGrowthInside − position checkpoint，乘以鏈上 liquidity 再除 2^128；估算可領 token base units",
-          "v4_fee_growth_inside0_raw": "174055058519148916236487392257743894",
-          "v4_fee_growth_inside1_raw": "154730629114054464919703829732677353300",
-          "v4_snapshot_block_number": 516453961,
-          "v4_delta_quality_status": "activity_unknown",
-          "v4_delta_quality_reason": "查詢此部位期間是否有活動失敗，fail-closed 不假設沒有活動：節點回報 eth_getLogs 錯誤（[RPC endpoint]'code': -32000, 'message': 'log query timed out'}",
-          "fee_income_delta_token0_raw": null,
-          "fee_income_delta_token1_raw": null,
+          "v4_fee_growth_inside0_raw": "174342921998562158755398215375557043",
+          "v4_fee_growth_inside1_raw": "155014237887594579491749462011675214997",
+          "v4_snapshot_block_number": 516750646,
+          "v4_delta_quality_status": "ok",
+          "v4_delta_quality_reason": null,
+          "fee_income_delta_token0_raw": "1202",
+          "fee_income_delta_token1_raw": "1184624",
           "_v4_price_addr_0": "0x2f2a2543b76a4166549f7aab2e75bef0aefc5b0f",
           "_v4_price_addr_1": "0xaf88d065e77c8cc2239327c5edb3a432268e5831",
           "usd_pricing_error": "缺少 ALCHEMY_API_KEY 環境變數，無法查詢 USD 價格。",
           "observed_apr_7d_pct": null,
           "observed_apr_30d_pct": null,
-          "observed_apr_days_tracked": 18,
-          "observed_apr_note": "7d 視窗內有 7 天缺 fees_accrued_usd，7d APR 暫不可信；7d APR 已可計算；30d APR 尚不足計算（目前已追蹤 18 天，需要 30 天）",
+          "observed_apr_days_tracked": 19,
+          "observed_apr_note": "7d 視窗內有 7 天缺 fees_accrued_usd，7d APR 暫不可信；7d APR 已可計算；30d APR 尚不足計算（目前已追蹤 19 天，需要 30 天）",
           "delta_24h_usd": null,
           "base_established": false
         }
       ],
       "error": null,
       "rpc_source": "public-rpc",
-      "block_number": 516453961,
+      "block_number": 516750646,
       "enumeration_source": "eth_getLogs 掃描 Transfer(to=wallet) 事件＋ownerOf() 驗證現況（v4 PositionManager 本身不支援 tokenOfOwnerByIndex，此為替代方案）",
       "position_count": 2
     },
@@ -316,40 +316,40 @@
       "chain_id": 10,
       "chain_name": "Optimism",
       "protocol": "v4",
-      "queried_at": 1792459756,
+      "queried_at": 1792540590,
       "positions": [],
       "error": null,
       "rpc_source": "public-rpc",
-      "block_number": 158430490,
+      "block_number": 158470907,
       "position_count": 0
     },
     {
       "chain_id": 8453,
       "chain_name": "Base",
       "protocol": "v4",
-      "queried_at": 1792459757,
+      "queried_at": 1792540592,
       "positions": [],
       "error": null,
       "rpc_source": "public-rpc",
-      "block_number": 52835205,
+      "block_number": 52875622,
       "position_count": 0
     },
     {
       "chain_id": 56,
       "chain_name": "BNB Chain",
       "protocol": "v4",
-      "queried_at": 1792459758,
+      "queried_at": 1792540593,
       "positions": [],
       "error": null,
       "rpc_source": "public-rpc",
-      "block_number": 128658329,
+      "block_number": 128837844,
       "position_count": 0
     },
     {
       "chain_id": 130,
       "chain_name": "Unichain",
       "protocol": "v4",
-      "queried_at": 1792459759,
+      "queried_at": 1792540593,
       "positions": [
         {
           "token_id": 997894,
@@ -714,7 +714,7 @@
       ],
       "error": null,
       "rpc_source": "public-rpc",
-      "block_number": 61711401,
+      "block_number": 61792235,
       "enumeration_source": "eth_getLogs 掃描 Transfer(to=wallet) 事件＋ownerOf() 驗證現況（v4 PositionManager 本身不支援 tokenOfOwnerByIndex，此為替代方案）",
       "position_count": 15
     }

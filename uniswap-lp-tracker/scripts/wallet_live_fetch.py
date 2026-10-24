@@ -48,6 +48,7 @@ V4_CHAINS = [1, 42161, 10, 8453, 56, 130]
 
 OUTPUT_PATH = common.DATA_DIR / "wallet_live_latest.json"
 V4_NATIVE_PRICE_ADDRESS_BY_CHAIN = {
+    1: "0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2",  # ETH → WETH 查價代理
     130: "0x4200000000000000000000000000000000000006",
 }
 
@@ -590,8 +591,9 @@ def enrich_with_usd(v3_results: list[dict]) -> None:
 
     if not pairs:
         return
+    price_sources: dict[tuple[str, str], str] = {}
     try:
-        prices = wallet_price_client.fetch_usd_prices_by_address(sorted(pairs))
+        prices = wallet_price_client.fetch_usd_prices_by_address(sorted(pairs), sources=price_sources)
     except wallet_price_client.PriceClientError as exc:
         for chain_result in v3_results:
             for pos in chain_result.get("positions", []):
@@ -607,6 +609,8 @@ def enrich_with_usd(v3_results: list[dict]) -> None:
             price1 = prices.get((slug, addr1)) if addr1 else None
             pos["token0_usd_price"] = price0
             pos["token1_usd_price"] = price1
+            pos["token0_usd_price_source"] = price_sources.get((slug, addr0)) if slug and addr0 else None
+            pos["token1_usd_price_source"] = price_sources.get((slug, addr1)) if slug and addr1 else None
             for i, (price, amount) in enumerate(
                 ((price0, pos.get("token0_amount")), (price1, pos.get("token1_amount")))
             ):
@@ -699,7 +703,7 @@ def enrich_with_usd(v3_results: list[dict]) -> None:
             pos.pop("_token0_addr_for_price", None)
             pos.pop("_token1_addr_for_price", None)
             if value_usd is None and (price0 is None or price1 is None):
-                pos.setdefault("note", "部分/全部 token 無法從 Alchemy Prices API 取得 USD 報價，估值欄位為 None（非 0）")
+                pos.setdefault("note", "部分／全部 token 無法從 Alchemy 或 CoinGecko 取得可信 USD 報價，估值為 None（非 0）")
 
 
 def enrich_v4_with_usd(v4_results: list[dict]) -> None:
@@ -719,8 +723,10 @@ def enrich_v4_with_usd(v4_results: list[dict]) -> None:
                 if addr:
                     pos[f"_v4_price_addr_{i}"] = addr
                     pairs.add((slug, addr))
+    price_sources: dict[tuple[str, str], str] = {}
     try:
-        prices = wallet_price_client.fetch_usd_prices_by_address(sorted(pairs)) if pairs else {}
+        prices = wallet_price_client.fetch_usd_prices_by_address(
+            sorted(pairs), sources=price_sources) if pairs else {}
     except wallet_price_client.PriceClientError as exc:
         for chain_result in v4_results:
             for pos in chain_result.get("positions", []):
@@ -746,6 +752,7 @@ def enrich_v4_with_usd(v4_results: list[dict]) -> None:
                 price_by_index[i] = price
                 decimals_by_index[i] = decimals
                 pos[f"token{i}_usd_price"] = price
+                pos[f"token{i}_usd_price_source"] = price_sources.get((slug, pos.get(f"_v4_price_addr_{i}"))) if slug else None
                 pos[f"token{i}_value_usd"] = (
                     None if amount is None or (amount != 0 and price is None)
                     else 0.0 if amount == 0
@@ -772,7 +779,7 @@ def enrich_v4_with_usd(v4_results: list[dict]) -> None:
             ]
             if missing_prices:
                 pos["value_unsupported_reason"] = (
-                    "Alchemy Prices API 未回傳 USD 報價：" + ", ".join(missing_prices)
+                    "Alchemy／CoinGecko 未取得可信 USD 報價：" + ", ".join(missing_prices)
                     + "；不以部分代幣估值冒充整筆 LP 價值。"
                 )
             pos.pop("_v4_price_addr_0", None)
@@ -1085,6 +1092,10 @@ def build_wallet_rows(wallet_data: dict) -> list[dict]:
             source_notes = [
                 pos.get("fees_source"), pos.get("fees_unsupported_reason"),
                 pos.get("pool_state_source"), pos.get("value_unsupported_reason"),
+                (f"token0 USD 報價：{pos['token0_usd_price_source']}"
+                 if pos.get("token0_usd_price_source") else None),
+                (f"token1 USD 報價：{pos['token1_usd_price_source']}"
+                 if pos.get("token1_usd_price_source") else None),
                 pos.get("note"), pos.get("error"), chain_result.get("enumeration_source"),
             ]
             rows.append({

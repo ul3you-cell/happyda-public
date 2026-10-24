@@ -740,6 +740,35 @@ def main() -> int:
             f"活躍部位總估值：{value_summary}；目前可提領總額（含本金，非純fee）：{fee_summary}",
             f"最後查詢時間：{datetime.fromtimestamp(wallet_data.get('generated_at', 0), tz=timezone.utc).astimezone(wallet_live_fetch._TAIPEI_TZ).strftime('%Y-%m-%d %H:%M:%S')}（台北）",
         ]
+        # 使用者要求「清楚顯示可提取的代幣數量」：逐部位列出原幣數量與
+        # 美元估值，並把「純手續費收入（已扣本金）」單獨標示，避免把
+        # 含本金的可提領總額誤讀成手續費。
+        claimable_lines = []
+        for row in wallet_rows:
+            if row.get("position_status") != "活躍（非零 liquidity）":
+                continue
+            amount0 = row.get("unclaimed_fee_raw_token0")
+            amount1 = row.get("unclaimed_fee_raw_token1")
+            if not amount0 and not amount1:
+                continue
+            sym0 = row.get("token0_symbol") or "token0"
+            sym1 = row.get("token1_symbol") or "token1"
+            usd = row.get("fees_owed_usd")
+            usd_text = f"（約 ${usd:,.2f}）" if isinstance(usd, (int, float)) else "（USD 報價缺）"
+            claimable_lines.append(
+                f"{row.get('pair_label') or '部位'}｜token_id {row.get('token_id')}："
+                f"可提取 {amount0} {sym0} ＋ {amount1} {sym1} {usd_text}"
+            )
+        if claimable_lines:
+            note_parts.append("可提取代幣（逐部位原幣數量）：" + "；".join(claimable_lines))
+        pure_fee_values = [
+            float(row["cumulative_fee_income_usd"]) for row in wallet_rows
+            if isinstance(row.get("cumulative_fee_income_usd"), (int, float))
+        ]
+        if pure_fee_values:
+            note_parts.append(
+                f"累計純手續費收入（已扣除撤出本金，與上列可提取總額不同口徑）：${sum(pure_fee_values):,.2f}"
+            )
         if failed_chains:
             note_parts.append(f"查詢失敗（詳見下表來源欄的真實錯誤訊息）：{', '.join(failed_chains)}")
 

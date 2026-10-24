@@ -1989,8 +1989,11 @@ class TestIncrementalV3EventScan(unittest.TestCase):
             total0_key="cumulative_claimed_0_raw",
             total1_key="cumulative_claimed_1_raw",
             scanner=fake_scanner,
+            scope="v3_collect",
         )
-        self.assertEqual(result, {"amount0_raw": 13, "amount1_raw": 24, "log_count": 2})
+        self.assertEqual(result["amount0_raw"], 13)
+        self.assertEqual(result["amount1_raw"], 24)
+        self.assertEqual(result["log_count"], 2)
         self.assertEqual(calls, [("https://fake-rpc.invalid", 7, 42161, 101, 150)])
 
     def test_same_block_reuses_previous_totals_without_rpc_scan(self):
@@ -2010,8 +2013,11 @@ class TestIncrementalV3EventScan(unittest.TestCase):
             total0_key="cumulative_claimed_0_raw",
             total1_key="cumulative_claimed_1_raw",
             scanner=unexpected_scan,
+            scope="v3_collect",
         )
-        self.assertEqual(result, {"amount0_raw": 10, "amount1_raw": 20, "log_count": 0})
+        self.assertEqual(result["amount0_raw"], 10)
+        self.assertEqual(result["amount1_raw"], 20)
+        self.assertEqual(result["log_count"], 0)
 
 
 class TestDecreaseLiquidityEventDecode(unittest.TestCase):

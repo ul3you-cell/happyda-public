@@ -28,6 +28,7 @@ import common
 import wallet_apr_calc
 import wallet_price_client
 import wallet_rpc_client as rpc
+import wallet_scan_cursor as cursor_store
 import wallet_snapshot_store as store
 import wallet_v3_math as math3
 
@@ -59,7 +60,9 @@ def _v3_event_scan_plan(
     total0_key: str,
     total1_key: str,
 ) -> tuple[int, int, int, bool]:
-    """Return (from_block, base0, base1, already_current) for an incremental scan.
+    """續掃計畫。規則集中在 wallet_scan_cursor.plan_window()，所有掃描家族
+    （V3 事件、V4 活動、V4 持倉列舉）共用同一套「缺值就退回基準、區塊相同
+    就不重掃」的判斷，不各寫各的。
 
     A missing/old cursor deliberately falls back to a complete scan.  A complete
     previous total is required before adding only the new event range; otherwise
@@ -67,17 +70,28 @@ def _v3_event_scan_plan(
     """
     if not previous_row or current_block is None:
         return 0, 0, 0, False
+    return cursor_store.plan_window(
+        current_block=current_block,
+        previous_block=previous_row.get("snapshot_block_number"),
+        base0=previous_row.get(total0_key),
+        base1=previous_row.get(total1_key),
+    )
+
+
+def _read_scan_cursor(chain_id: int, scope: str, scope_key: str = "") -> dict | None:
+    """讀共用游標表裡這個家族的續掃狀態。"""
+    conn = None
     try:
-        previous_block = int(previous_row["snapshot_block_number"])
-        base0 = int(previous_row[total0_key])
-        base1 = int(previous_row[total1_key])
-    except (KeyError, TypeError, ValueError):
-        return 0, 0, 0, False
-    if previous_block < 0 or current_block < previous_block:
-        return 0, 0, 0, False
-    if current_block == previous_block:
-        return current_block + 1, base0, base1, True
-    return previous_block + 1, base0, base1, False
+        conn = store.get_connection()
+        return cursor_store.read_cursor(
+            conn, wallet_addr=WALLET_ADDRESS, chain_id=chain_id, scope=scope, scope_key=scope_key
+        )
+    except Exception:
+        # 讀不到游標 = 沒有可續掃的狀態 → 呼叫端會退回完整基準掃描。
+        return None
+    finally:
+        if conn is not None:
+            conn.close()
 
 
 def _previous_v3_snapshot(chain_id: int, token_id: int) -> dict | None:
@@ -108,10 +122,24 @@ def _scan_v3_cumulative_events(
     total0_key: str,
     total1_key: str,
     scanner,
+    scope: str,
 ) -> dict:
-    """Scan only blocks after the last complete local V3 event snapshot."""
+    """Scan only blocks after the last complete local V3 event snapshot.
+
+    續掃狀態存在共用的游標表（scope=v3_collect / v3_decrease，scope_key=token_id）；
+    游標不存在時退回上一筆部位快照（既有資料），再沒有就退回完整基準掃描。
+    """
+    cursor = _read_scan_cursor(chain_id, scope, str(token_id))
+    if cursor and cursor.get("last_scanned_block") is not None:
+        plan_source = {
+            "snapshot_block_number": cursor.get("last_scanned_block"),
+            total0_key: cursor.get("total0_raw"),
+            total1_key: cursor.get("total1_raw"),
+        }
+    else:
+        plan_source = previous_row
     from_block, base0, base1, already_current = _v3_event_scan_plan(
-        previous_row, current_block, total0_key, total1_key
+        plan_source, current_block, total0_key, total1_key
     )
     if already_current:
         return {"amount0_raw": base0, "amount1_raw": base1, "log_count": 0}
@@ -122,11 +150,47 @@ def _scan_v3_cumulative_events(
         from_block=from_block,
         to_block=current_block if current_block is not None else "latest",
     )
+    total0 = base0 + int(scanned["amount0_raw"])
+    total1 = base1 + int(scanned["amount1_raw"])
     return {
-        "amount0_raw": base0 + int(scanned["amount0_raw"]),
-        "amount1_raw": base1 + int(scanned["amount1_raw"]),
+        "amount0_raw": total0,
+        "amount1_raw": total1,
         "log_count": int(scanned.get("log_count", 0)),
+        # 游標要等「對應的快照寫入成功」才推進，所以先放在這裡，
+        # 由 write_snapshots() 一起寫入（避免掃描成功但快照失敗時跳過區塊）。
+        "pending_cursor": {
+            "scope": scope,
+            "scope_key": str(token_id),
+            "last_scanned_block": current_block,
+            "total0_raw": total0,
+            "total1_raw": total1,
+        },
     }
+
+
+def _write_scan_cursor(
+    chain_id: int,
+    scope: str,
+    scope_key: str = "",
+    *,
+    last_scanned_block: int | None,
+    total0_raw: int | None = None,
+    total1_raw: int | None = None,
+) -> None:
+    """把續掃狀態寫回共用的游標表。寫不進去不影響本次資料（下次會退回基準重掃）。"""
+    conn = None
+    try:
+        conn = store.get_connection()
+        cursor_store.write_cursor(
+            conn, wallet_addr=WALLET_ADDRESS, chain_id=chain_id, scope=scope,
+            scope_key=scope_key, last_scanned_block=last_scanned_block,
+            total0_raw=total0_raw, total1_raw=total1_raw,
+        )
+    except Exception:
+        pass
+    finally:
+        if conn is not None:
+            conn.close()
 
 
 def _redact(exc: Exception) -> str:
@@ -317,10 +381,13 @@ def fetch_v3_chain(chain_id: int, whitelist: dict, smoke_block_number: int | Non
                     total0_key="cumulative_claimed_0_raw",
                     total1_key="cumulative_claimed_1_raw",
                     scanner=rpc.get_cumulative_collected_fees,
+                    scope="v3_collect",
                 )
                 pos["cumulative_claimed_0_raw"] = str(cumulative["amount0_raw"])
                 pos["cumulative_claimed_1_raw"] = str(cumulative["amount1_raw"])
                 pos["cumulative_claimed_log_count"] = cumulative["log_count"]
+                if cumulative.get("pending_cursor"):
+                    pos.setdefault("_pending_cursors", []).append(cumulative["pending_cursor"])
                 pos["cumulative_claimed_source"] = "eth_getLogs 掃描 Collect(tokenId indexed) 事件加總（有完整快照時只掃新增區塊）"
                 claimed0 = (cumulative["amount0_raw"] / (10 ** dec0)) if dec0 is not None else None
                 claimed1 = (cumulative["amount1_raw"] / (10 ** dec1)) if dec1 is not None else None
@@ -340,10 +407,13 @@ def fetch_v3_chain(chain_id: int, whitelist: dict, smoke_block_number: int | Non
                     total0_key="cumulative_decrease_principal_0_raw",
                     total1_key="cumulative_decrease_principal_1_raw",
                     scanner=rpc.get_cumulative_decrease_liquidity_principal,
+                    scope="v3_decrease",
                 )
                 pos["cumulative_decrease_principal_0_raw"] = str(decreased["amount0_raw"])
                 pos["cumulative_decrease_principal_1_raw"] = str(decreased["amount1_raw"])
                 pos["cumulative_decrease_principal_log_count"] = decreased["log_count"]
+                if decreased.get("pending_cursor"):
+                    pos.setdefault("_pending_cursors", []).append(decreased["pending_cursor"])
                 pos["cumulative_decrease_principal_source"] = (
                     "eth_getLogs 掃描 DecreaseLiquidity(tokenId indexed) 事件加總（撤資本金；有完整快照時只掃新增區塊）"
                 )
@@ -403,7 +473,11 @@ def _evaluate_v4_delta_quality(
             activity_error=None,
         )
 
-    from_block = previous_row["snapshot_block_number"] + 1
+    from_block, _b0, _b1, _already = cursor_store.plan_window(
+        current_block=current_block,
+        previous_block=previous_row["snapshot_block_number"],
+        base0=0, base1=0,
+    )
     to_block = current_block
     has_activity: bool | None = False
     activity_error: str | None = None
@@ -436,6 +510,119 @@ def _evaluate_v4_delta_quality(
         has_activity=has_activity,
         activity_error=activity_error,
     )
+
+
+def _seed_v4_enumeration_cursor_from_previous_artifact(chain_id: int) -> dict | None:
+    """沒有游標時，從「上一次成功查詢的結果檔」取得續掃基準。
+
+    為什麼需要這一步：游標表是新的，第一次跑沒有游標就會退回從區塊 0
+    完整掃描——那正是把每日收集拖到逾時的原因（Arbitrum 單這一步 60 秒以上）。
+    上一份結果檔裡已經記錄了「上次查到的區塊高度」與「上次查到的所有部位
+    token_id（含已退出、liquidity=0 的歷史部位）」，用它當續掃基準既省時間
+    又不漏：上次之後才轉入的部位會被新區間的 Transfer 事件抓到；上次之後
+    轉出的部位會被 ownerOf() 判定為不再持有而自然消失。
+
+    安全邊界：種子區塊往前退 2000 個區塊，寧可多掃一點也不漏事件。
+    找不到可信的前一份結果時回 None → 退回完整基準掃描（慢但完整）。
+    """
+    artifact = common.DATA_DIR / "wallet_live_latest.json"
+    try:
+        payload = json.loads(artifact.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    for chain_result in payload.get("v4", []) or []:
+        if chain_result.get("chain_id") != chain_id:
+            continue
+        if chain_result.get("error"):
+            return None
+        block = chain_result.get("block_number")
+        if not isinstance(block, int) or block <= 0:
+            return None
+        token_ids = sorted({
+            int(pos["token_id"]) for pos in chain_result.get("positions", []) or []
+            if isinstance(pos.get("token_id"), int)
+        })
+        return {"last_scanned_block": max(0, block - 2000), "token_ids": token_ids}
+    return None
+
+
+def _enumerate_v4_positions_incrementally(
+    rpc_url: str, chain_id: int, current_block: int | None
+) -> dict:
+    """V4 持倉列舉（增量版）：只掃上次區塊之後的新事件。
+
+    與其他掃描家族共用 cursor_store 的游標機制：
+    - 游標存在 → 只掃 [last_scanned_block + 1, current_block]；
+    - 游標不存在 → 先用上一份成功結果檔當基準；連那份都沒有才退回
+      完整基準掃描（從區塊 0 開始），寧可慢也不漏。
+    掃到的結果（含新發現的候選部位）寫回游標表，下一次從這裡續掃。
+    """
+    scope = "v4_enumeration"
+    conn = None
+    try:
+        conn = store.get_connection()
+        cursor = cursor_store.read_cursor(
+            conn, wallet_addr=WALLET_ADDRESS, chain_id=chain_id, scope=scope
+        )
+        known_token_ids = cursor_store.list_tokens(
+            conn, wallet_addr=WALLET_ADDRESS, chain_id=chain_id, scope=scope
+        )
+    except Exception:
+        cursor = None
+        known_token_ids = []
+    finally:
+        if conn is not None:
+            conn.close()
+
+    if not cursor or cursor.get("last_scanned_block") is None:
+        seed = _seed_v4_enumeration_cursor_from_previous_artifact(chain_id)
+        if seed is not None:
+            cursor = {"last_scanned_block": seed["last_scanned_block"]}
+            known_token_ids = sorted(set(known_token_ids) | set(seed["token_ids"]))
+
+    previous_block = cursor.get("last_scanned_block") if cursor else None
+    # 這個家族沒有 token 累積總數（base 固定 0）；若不給 base，
+    # plan_window 會判定「缺基準」而退回從區塊 0 全掃——正好是舊的慢路徑。
+    from_block, _b0, _b1, _already_current = cursor_store.plan_window(
+        current_block=current_block, previous_block=previous_block, base0=0, base1=0,
+    )
+    outcome = rpc.list_wallet_v4_token_ids_via_logs(
+        rpc_url, WALLET_ADDRESS, chain_id,
+        from_block=from_block, known_token_ids=known_token_ids,
+    )
+
+    scanned_to_block = outcome.get("scanned_to_block")
+    discovered = outcome.get("discovered_token_ids") or []
+    candidates = outcome.get("candidate_token_ids") or []
+    if scanned_to_block is not None:
+        conn = None
+        try:
+            conn = store.get_connection()
+            # 保存「全部候選」而不只是新發現的：已轉出的舊部位也要留下，
+            # 下次才能用 ownerOf() 確認它確實不再屬於本錢包。
+            to_persist = sorted(set(candidates) | set(discovered))
+            if to_persist:
+                cursor_store.add_tokens(
+                    conn, wallet_addr=WALLET_ADDRESS, chain_id=chain_id, scope=scope,
+                    token_ids=to_persist, first_seen_block=scanned_to_block,
+                )
+            cursor_store.write_cursor(
+                conn, wallet_addr=WALLET_ADDRESS, chain_id=chain_id, scope=scope,
+                last_scanned_block=scanned_to_block,
+            )
+        except Exception:
+            # 游標寫不進去不影響本次資料正確性；下次會退回基準重掃（寧可慢不漏）。
+            pass
+        finally:
+            if conn is not None:
+                conn.close()
+    return {
+        "token_ids": outcome["token_ids"],
+        "from_block": from_block,
+        "scanned_to_block": scanned_to_block,
+        "discovered_token_ids": discovered,
+        "scan_error": outcome.get("scan_error"),
+    }
 
 
 def fetch_v4_chain(chain_id: int, smoke_block_number: int | None = None) -> dict:
@@ -472,12 +659,25 @@ def fetch_v4_chain(chain_id: int, smoke_block_number: int | None = None) -> dict
         # Transfer(to=wallet) 事件反查 token_id、再用 ownerOf() 驗證現況——
         # 這是「查得到明細」而不是「balanceOf() 統計數字」，兩者在
         # AC/報告裡要分開講清楚（見 @anne 2026-09-27 覆核意見）。
+        #
+        # 續掃：這一段以前每次都從區塊 0 掃到最新（Arbitrum 單這一步就要
+        # 60 秒以上，會把整個每日收集拖到逾時）。現在改成和其他掃描家族
+        # 共用同一個游標機制——只掃上次區塊之後的新事件，已知的部位逐一
+        # ownerOf() 驗證現況（轉出就自然消失，不會被當成還在持有）。
         try:
-            token_ids = rpc.list_wallet_v4_token_ids_via_logs(rpc_url, WALLET_ADDRESS, chain_id)
+            enumeration = _enumerate_v4_positions_incrementally(
+                rpc_url, chain_id, result.get("block_number")
+            )
+            token_ids = enumeration["token_ids"]
             result["enumeration_source"] = (
                 "eth_getLogs 掃描 Transfer(to=wallet) 事件＋ownerOf() 驗證現況"
                 "（v4 PositionManager 本身不支援 tokenOfOwnerByIndex，此為替代方案）"
+                f"；增量掃描區間：{enumeration['from_block']}～{enumeration['scanned_to_block']}"
             )
+            if enumeration.get("scan_error"):
+                result["enumeration_scan_error"] = _redact(
+                    Exception(enumeration["scan_error"])
+                )
         except Exception as log_exc:  # noqa: BLE001 — 掃描本身也可能因供應商限制失敗
             # balanceOf() 這個真實數字還是保留下來，不要因為列不出明細就整條鏈消失。
             result["position_count"] = exc.balance_count
@@ -880,6 +1080,19 @@ def write_snapshots(chain_results: list[dict]) -> int:
                 v4_delta_quality_status=pos.get("v4_delta_quality_status"),
                 v4_delta_quality_reason=pos.get("v4_delta_quality_reason"),
             )
+            # 快照寫入成功後才推進續掃游標：掃描成功但快照失敗時，
+            # 下一次會從舊游標重掃同一段，不會跳過未提交的區塊。
+            for pending in pos.get("_pending_cursors", []) or []:
+                cursor_store.write_cursor(
+                    conn,
+                    wallet_addr=WALLET_ADDRESS,
+                    chain_id=chain_id,
+                    scope=pending["scope"],
+                    scope_key=pending.get("scope_key", ""),
+                    last_scanned_block=pending.get("last_scanned_block"),
+                    total0_raw=pending.get("total0_raw"),
+                    total1_raw=pending.get("total1_raw"),
+                )
             count += 1
     conn.close()
     return count

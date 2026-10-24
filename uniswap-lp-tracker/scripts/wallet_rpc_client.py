@@ -53,7 +53,7 @@ import os
 import re
 import urllib.error
 import urllib.request
-from typing import Callable, Optional
+from typing import Callable, Iterable, Optional
 
 POSITION_MANAGER_ADDRESS_BY_CHAIN = {
     # 全部逐字核對自 developers.uniswap.org/docs/protocols/v3/deployments/*
@@ -800,15 +800,19 @@ def list_wallet_v4_token_ids_via_logs(
     wallet_addr: str,
     chain_id: int,
     http_post: Optional[HttpPost] = None,
-) -> list[int]:
-    """v4 PositionManager 不支援 tokenOfOwnerByIndex 時的替代方案：直接掃\n    ERC-721 標準 Transfer 事件裡 `to == wallet_addr` 的紀錄取得候選 token_id，\n    再逐一呼叫 ownerOf() 驗證「現在還是不是這個錢包持有」——避免把已經轉出\n    的舊部位也算進來。呼叫端要另外處理 WalletRpcError（掃描失敗，不代表\n    真的沒有部位，是這個免費 RPC 供應商查不到）。"""
+    from_block: int = 0,
+    known_token_ids: Optional[Iterable[int]] = None,
+) -> dict:
+    """v4 PositionManager 不支援 tokenOfOwnerByIndex 時的替代方案：掃 ERC-721\n    標準 Transfer 事件裡 `to == wallet_addr` 的紀錄取得候選 token_id，再逐一\n    呼叫 ownerOf() 驗證「現在還是不是這個錢包持有」——避免把已經轉出的舊部位\n    也算進來。\n\n    **增量**：from_block 之後才掃新事件；known_token_ids 是上次已知的候選\n    （已轉出的部位也要保留在候選裡，才能確認它現在確實不屬於本錢包）。\n    回傳 {"token_ids": 目前仍持有, "scanned_to_block": 本次掃到的區塊,\n    "discovered_token_ids": 本次新發現的候選}。"""
     if chain_id not in V4_POSITION_MANAGER_ADDRESS_BY_CHAIN:
         raise WalletRpcError(f"chain_id={chain_id} 沒有已核對過的 v4 PositionManager 位址")
     to_address = V4_POSITION_MANAGER_ADDRESS_BY_CHAIN[chain_id]
     logs_url = LOGS_RPC_OVERRIDE_BY_CHAIN.get(chain_id, rpc_url)
     poster = http_post or _default_http_post
 
-    candidate_ids: set[int] = set()
+    candidate_ids: set[int] = {int(t) for t in (known_token_ids or [])}
+    discovered: set[int] = set()
+    scanned_to_block: int | None = None
     scan_error: Exception | None = None
     try:
         latest_hex_resp = poster(logs_url, {"jsonrpc": "2.0", "id": 1, "method": "eth_blockNumber", "params": []})
@@ -816,9 +820,12 @@ def list_wallet_v4_token_ids_via_logs(
             raise WalletRpcError(f"eth_blockNumber 查詢失敗（{_redact_rpc_url(logs_url)}）：{latest_hex_resp}")
         latest_block = int(latest_hex_resp["result"], 16)
 
-        topics = [TRANSFER_EVENT_TOPIC0, None, _address_to_topic(wallet_addr)]
-        logs = eth_get_logs(logs_url, to_address, topics, 0, latest_block, http_post=http_post)
-        candidate_ids.update(decode_transfer_log_token_id(log) for log in logs)
+        if from_block <= latest_block:
+            topics = [TRANSFER_EVENT_TOPIC0, None, _address_to_topic(wallet_addr)]
+            logs = eth_get_logs(logs_url, to_address, topics, from_block, latest_block, http_post=http_post)
+            discovered = {decode_transfer_log_token_id(log) for log in logs}
+            candidate_ids.update(discovered)
+            scanned_to_block = latest_block
     except Exception as exc:  # noqa: BLE001 — 掃描失敗不當掉，改用下面的 receipt 備援候選
         scan_error = exc
 
@@ -835,7 +842,18 @@ def list_wallet_v4_token_ids_via_logs(
         owner_addr = decode_owner_of_result(owner_hex)
         if owner_addr.lower() == wallet_addr.lower():
             still_owned.append(token_id)
-    return still_owned
+    return {
+        "token_ids": still_owned,
+        "scanned_to_block": scanned_to_block,
+        "discovered_token_ids": sorted(discovered),
+        # 全部候選（含已轉出、ownerOf 已確認不屬於本錢包的）都要回傳給呼叫端
+        # 保存：下次只掃新區塊時，這些舊部位仍然要被逐一 ownerOf() 驗證，
+        # 否則「上次持有、這次沒出現在新事件裡」的位置會被誤判成已消失。
+        "candidate_token_ids": sorted(candidate_ids),
+        # 掃描本身失敗要如實回報（呼叫端顯示在來源欄），不能因為已知部位
+        # 還在就假裝這次掃描成功。
+        "scan_error": (str(scan_error) if scan_error is not None else None),
+    }
 
 
 def list_wallet_token_ids(

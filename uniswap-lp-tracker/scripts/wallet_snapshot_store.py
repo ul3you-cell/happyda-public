@@ -290,6 +290,11 @@ def ensure_schema(conn: sqlite3.Connection) -> None:
     conn.executescript(SCHEMA)
     conn.commit()
     _migrate_add_fee_delta_columns(conn)
+    # 掃描游標表（所有鏈上掃描家族共用）建在同一个 DB 裡，
+    # 這樣游標與快照是同一份本機狀態，不會出現「游標在 A 檔、快照在 B 檔」。
+    import wallet_scan_cursor
+
+    wallet_scan_cursor.ensure_schema(conn)
 
 
 def insert_snapshot(

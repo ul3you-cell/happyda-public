@@ -2540,6 +2540,29 @@ class TestEvaluateV4DeltaQualityWiring(unittest.TestCase):
         self.assertEqual(result["delta0_raw"], 5)
         self.assertEqual(result["delta1_raw"], 9)
 
+    def test_arbitrum_activity_scan_uses_existing_public_logs_rpc(self):
+        chain_id = 42161
+        token_id = 212750
+        conn = wallet_snapshot_store.get_connection(self.db_path)
+        wallet_snapshot_store.insert_snapshot(
+            conn, ts=100, wallet_addr=wallet_live_fetch.WALLET_ADDRESS, chain_id=chain_id,
+            token_id=token_id, pool_addr="0xpool", tick_lower=-100, tick_upper=100,
+            liquidity="100", in_range=True, fees_accrued_usd=None, position_value_usd=None,
+            v4_fee_growth_inside0_raw="1000", v4_fee_growth_inside1_raw="2000",
+            snapshot_block_number=20000000, v4_delta_quality_status="insufficient_snapshot",
+            v4_delta_quality_reason="第一筆快照",
+        )
+        conn.close()
+        with mock.patch.object(wallet_rpc_client, "has_v4_position_activity_in_range", return_value=False) as check:
+            result = wallet_live_fetch._evaluate_v4_delta_quality(
+                rpc_url="https://slow-primary.invalid", chain_id=chain_id, token_id=token_id,
+                pool_id_hex=self.POOL_ID, current_raw0=1000 + 5 * 2**128,
+                current_raw1=2000 + 9 * 2**128, current_liquidity=1, current_block=20000100,
+            )
+        self.assertEqual(result["status"], "ok")
+        self.assertEqual(check.call_args.args[0], wallet_rpc_client.LOGS_RPC_OVERRIDE_BY_CHAIN[42161])
+        self.assertEqual(check.call_args.args[4:6], (20000001, 20000100))
+
     def test_activity_rpc_failure_is_fail_closed(self):
         conn = wallet_snapshot_store.get_connection(self.db_path)
         wallet_snapshot_store.insert_snapshot(

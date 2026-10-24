@@ -409,8 +409,14 @@ def _evaluate_v4_delta_quality(
     activity_error: str | None = None
     if from_block <= to_block:
         try:
+            # Arbitrum 的主 RPC 在大範圍 eth_getLogs 容易遞迴切片；
+            # 沿用已驗證的公開 logs 節點。失敗仍由下方標為 activity_unknown。
+            activity_rpc_url = (
+                rpc.LOGS_RPC_OVERRIDE_BY_CHAIN.get(chain_id, rpc_url)
+                if chain_id == 42161 else rpc_url
+            )
             has_activity = rpc.has_v4_position_activity_in_range(
-                rpc_url,
+                activity_rpc_url,
                 pool_id_hex,
                 rpc.V4_POSITION_MANAGER_ADDRESS_BY_CHAIN[chain_id],
                 token_id,

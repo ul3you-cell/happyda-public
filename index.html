@@ -33,6 +33,13 @@
 
   <h2>DeFi / Uniswap</h2>
   <ul>
+    <li><strong>2026-10-24 — Uniswap 錢包 LP 追蹤（每日自動更新）</strong>：追蹤錢包
+      <code>0x267E…1eFd</code> 在 Ethereum／Arbitrum／Optimism／Base／BNB／Unichain 六條鏈的
+      V3 與 V4 部位；頁面顯示每個部位的可提取代幣原幣數量（如
+      <code>0.005892875 ETH ＋ 14.057804 USDC</code>）與美元估值、部位總值、每日變化。
+      報價以 Alchemy 為主、查不到時改用 CoinGecko 備援；兩者皆無可信價格時該欄維持缺值，
+      不以 0 頂替。資料源與限制（v4 部位改用 Transfer 事件＋ownerOf 驗證列舉）皆在頁內標示。<br>
+      <a href="uniswap-lp-tracker-20260926.html">→ uniswap-lp-tracker-20260926.html</a></li>
     <li><strong>2026-09-26 — Uniswap 多鏈 LP／熱門池唯讀儀表板</strong>：官方 Liquidity API
       （<code>/lp/pool_info</code>）唯讀路徑；涵蓋 Ethereum／Arbitrum／Base／BNB 的 ETH/BTC/SOL/AAVE/UNI
       對 USDC/USDT 目標池與指定 Unichain 池位；TVL／volume／fee APR／歷史／錢包 position 官方均未提供，

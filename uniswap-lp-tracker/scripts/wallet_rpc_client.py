@@ -770,6 +770,34 @@ LOGS_RPC_OVERRIDE_BY_CHAIN = {
 }
 
 
+# 這些鏈「不做 eth_getLogs 事件掃描」，只用 RECEIPT_DERIVED 手寫清單
+# ＋ ownerOf() 逐一驗證現況。
+#
+# 為什麼（2026-10-26 實測，非憑記憶）：
+#   Ethereum 主網高度已達 2600 萬塊以上，而所有可用免費 RPC 的
+#   eth_getLogs 單次區塊範圍上限都極小——Alchemy 免費方案 10 blocks、
+#   1rpc.io 50 blocks、blockrazor 直接回 "pruned history unavailable"。
+#   從區塊 0 掃到最新需要 260 萬次請求，實測速率約 2.7 req/s，等於要跑
+#   數天。eth_get_logs() 的錯誤訊息含 "range" 會觸發範圍遞迴切分，於是
+#   每日排程每次都要燒掉整個時間預算（實測 collect 腳本 120 秒被砍）
+#   卻永遠掃不完——比明確跳過更糟。
+#
+# 為什麼這樣做仍然安全：
+#   1. 清單裡的每個 token_id 都會照樣走 ownerOf() 驗證「現在還是不是
+#      這個錢包持有」，轉出就自然消失，不會被當成還在持有。
+#   2. 清單來源是可稽核的鏈上交易 hash（見 RECEIPT_DERIVED 註解），
+#      不是猜的。
+#   3. 代價是「這條鏈新開的部位不會自動發現」，需要人工把新 token_id
+#      加進 RECEIPT_DERIVED_CANDIDATE_TOKEN_IDS_BY_CHAIN。這是明確取捨，
+#      不是漏洞。
+#
+# 其他鏈（Arbitrum / Unichain）有 LOGS_RPC_OVERRIDE，能在合理區間內掃完
+# 歷史，因此不受這個限制影響。
+LOG_SCAN_DISABLED_BY_CHAIN = {
+    1,  # Ethereum Mainnet — 見上方實測理由
+}
+
+
 class V4LogScanError(WalletRpcError):
     """eth_getLogs 掃描 Transfer 事件失敗時丟出，帶著失敗前已經成功掃到的
     logs_url，方便呼叫端在錯誤訊息裡誠實標出是哪個供應商查不到。"""
@@ -791,6 +819,15 @@ RECEIPT_DERIVED_CANDIDATE_TOKEN_IDS_BY_CHAIN: dict[int, list[tuple[str, int, str
     1: [
         ("0x267ee34200b09ea8b52d02eec3300b84985b1efd", 429477,
          "0x69ca24b1ef90db064564d1135782845503dd18e43b572896b73f30abad93b0f7"),
+        # ETH/UNI 部位（Uniswap v4，Ethereum 主網）：2026-10-26 用
+        # alchemy_getAssetTransfers ＋ eth_getLogs 定位到 mint 交易
+        # 0x4af4bb53…ed23ae7（區塊 26,138,683，Transfer from 0x0 to 本錢包），
+        # ownerOf() 實測確認仍由本錢包持有。ETH/UNI、fee 0.3%、
+        # tick 48660～62160、liquidity 非零。
+        # ⚠️ 本鏈 LOG_SCAN 已停用（見 LOG_SCAN_DISABLED_BY_CHAIN），
+        # 新開部位不會自動發現，需人工加進這份清單。
+        ("0x267ee34200b09ea8b52d02eec3300b84985b1efd", 441465,
+         "0x4af4bb53c17729d603fe66c639253d19b5acad2acf548d2670de5bb06ed23ae7"),
     ],
 }
 
@@ -814,20 +851,28 @@ def list_wallet_v4_token_ids_via_logs(
     discovered: set[int] = set()
     scanned_to_block: int | None = None
     scan_error: Exception | None = None
-    try:
-        latest_hex_resp = poster(logs_url, {"jsonrpc": "2.0", "id": 1, "method": "eth_blockNumber", "params": []})
-        if "error" in latest_hex_resp or not isinstance(latest_hex_resp.get("result"), str):
-            raise WalletRpcError(f"eth_blockNumber 查詢失敗（{_redact_rpc_url(logs_url)}）：{latest_hex_resp}")
-        latest_block = int(latest_hex_resp["result"], 16)
 
-        if from_block <= latest_block:
-            topics = [TRANSFER_EVENT_TOPIC0, None, _address_to_topic(wallet_addr)]
-            logs = eth_get_logs(logs_url, to_address, topics, from_block, latest_block, http_post=http_post)
-            discovered = {decode_transfer_log_token_id(log) for log in logs}
-            candidate_ids.update(discovered)
-            scanned_to_block = latest_block
-    except Exception as exc:  # noqa: BLE001 — 掃描失敗不當掉，改用下面的 receipt 備援候選
-        scan_error = exc
+    # 明確停用掃描的鏈（見 LOG_SCAN_DISABLED_BY_CHAIN 的實測理由）：
+    # 跳過 eth_getLogs，直接走下面的手寫清單 ＋ ownerOf() 驗證。
+    # 這樣做的後果是 scanned_to_block 保持 None → 呼叫端不會寫游標，
+    # 下次仍然從清單重新驗證——每次只是幾次 ownerOf() 呼叫，很快。
+    scan_disabled = chain_id in LOG_SCAN_DISABLED_BY_CHAIN
+
+    if not scan_disabled:
+        try:
+            latest_hex_resp = poster(logs_url, {"jsonrpc": "2.0", "id": 1, "method": "eth_blockNumber", "params": []})
+            if "error" in latest_hex_resp or not isinstance(latest_hex_resp.get("result"), str):
+                raise WalletRpcError(f"eth_blockNumber 查詢失敗（{_redact_rpc_url(logs_url)}）：{latest_hex_resp}")
+            latest_block = int(latest_hex_resp["result"], 16)
+
+            if from_block <= latest_block:
+                topics = [TRANSFER_EVENT_TOPIC0, None, _address_to_topic(wallet_addr)]
+                logs = eth_get_logs(logs_url, to_address, topics, from_block, latest_block, http_post=http_post)
+                discovered = {decode_transfer_log_token_id(log) for log in logs}
+                candidate_ids.update(discovered)
+                scanned_to_block = latest_block
+        except Exception as exc:  # noqa: BLE001 — 掃描失敗不當掉，改用下面的 receipt 備援候選
+            scan_error = exc
 
     for owner_lower, token_id, _src_tx in RECEIPT_DERIVED_CANDIDATE_TOKEN_IDS_BY_CHAIN.get(chain_id, []):
         if owner_lower == wallet_addr.lower():
@@ -853,6 +898,8 @@ def list_wallet_v4_token_ids_via_logs(
         # 掃描本身失敗要如實回報（呼叫端顯示在來源欄），不能因為已知部位
         # 還在就假裝這次掃描成功。
         "scan_error": (str(scan_error) if scan_error is not None else None),
+        # 掃描是刻意停用的鏈要說清楚，讓報告不會被誤讀成「掃過但沒發現」。
+        "scan_disabled": scan_disabled,
     }
 
 

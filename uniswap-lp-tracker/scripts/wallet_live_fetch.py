@@ -622,6 +622,7 @@ def _enumerate_v4_positions_incrementally(
         "scanned_to_block": scanned_to_block,
         "discovered_token_ids": discovered,
         "scan_error": outcome.get("scan_error"),
+        "scan_disabled": outcome.get("scan_disabled", False),
     }
 
 
@@ -669,11 +670,23 @@ def fetch_v4_chain(chain_id: int, smoke_block_number: int | None = None) -> dict
                 rpc_url, chain_id, result.get("block_number")
             )
             token_ids = enumeration["token_ids"]
-            result["enumeration_source"] = (
-                "eth_getLogs 掃描 Transfer(to=wallet) 事件＋ownerOf() 驗證現況"
-                "（v4 PositionManager 本身不支援 tokenOfOwnerByIndex，此為替代方案）"
-                f"；增量掃描區間：{enumeration['from_block']}～{enumeration['scanned_to_block']}"
-            )
+            if enumeration.get("scan_disabled"):
+                # 這條鏈的 eth_getLogs 掃描是刻意停用的（見
+                # wallet_rpc_client.LOG_SCAN_DISABLED_BY_CHAIN），
+                # 報告必須說清楚是「手寫候選清單＋ownerOf() 驗證」，
+                # 不能被讀成「掃過整條鏈但沒發現新部位」。
+                result["enumeration_source"] = (
+                    "手寫候選清單（依鏈上 mint 交易 hash 逐筆核對）＋ownerOf() 驗證現況"
+                    "（此鏈 eth_getLogs 掃描刻意停用：主網區塊數與免費節點的"
+                    "單次區塊範圍上限不相容，實測每次掃描都掃不完；"
+                    "新開部位需人工加入清單）"
+                )
+            else:
+                result["enumeration_source"] = (
+                    "eth_getLogs 掃描 Transfer(to=wallet) 事件＋ownerOf() 驗證現況"
+                    "（v4 PositionManager 本身不支援 tokenOfOwnerByIndex，此為替代方案）"
+                    f"；增量掃描區間：{enumeration['from_block']}～{enumeration['scanned_to_block']}"
+                )
             if enumeration.get("scan_error"):
                 result["enumeration_scan_error"] = _redact(
                     Exception(enumeration["scan_error"])

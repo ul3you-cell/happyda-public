@@ -1936,7 +1936,7 @@ class TestCollectEventDecode(unittest.TestCase):
             raise AssertionError(f"未預期的方法：{method}")
 
         result = wallet_rpc_client.get_cumulative_collected_fees(
-            "https://fake-rpc.invalid", token_id=42, chain_id=1, http_post=fake_http_post,
+            "https://fake-rpc.invalid", token_id=42, chain_id=42161, http_post=fake_http_post,
         )
         self.assertEqual(result["amount0_raw"], 400)
         self.assertEqual(result["amount1_raw"], 600)
@@ -2070,7 +2070,7 @@ class TestDecreaseLiquidityEventDecode(unittest.TestCase):
             raise AssertionError(f"未預期的方法：{method}")
 
         result = wallet_rpc_client.get_cumulative_decrease_liquidity_principal(
-            "https://fake-rpc.invalid", token_id=7, chain_id=1, http_post=fake_http_post,
+            "https://fake-rpc.invalid", token_id=7, chain_id=42161, http_post=fake_http_post,
         )
         self.assertEqual(result["amount0_raw"], 1200)
         self.assertEqual(result["amount1_raw"], 1400)
@@ -2264,7 +2264,10 @@ class TestHasV4PositionActivityInRange(unittest.TestCase):
     POOL_ID = "0x" + "ab" * 32
     SENDER = "0x1234567890123456789012345678901234567890"  # v4 PositionManager 地址（假設）
     TOKEN_ID = 42
-    CHAIN_ID = 1
+    # 用 42161（Arbitrum，未停用日誌掃描的鏈）測聚合/解碼邏輯本身；
+    # chain 1 已刻意停用 eth_getLogs（見 wallet_rpc_client.LOG_SCAN_DISABLED_BY_CHAIN），
+    # 那裡改用 TestLogScanDisabledByChain 專門驗證 fail-closed。
+    CHAIN_ID = 42161
 
     def _modify_liquidity_log(self, tick_lower, tick_upper, liquidity_delta, token_id):
         salt = wallet_rpc_client.v4_salt_from_token_id(token_id)
@@ -2493,7 +2496,9 @@ class TestEvaluateV4DeltaQualityWiring(unittest.TestCase):
     需要的引數並 fail-closed 轉發結果。"""
 
     POOL_ID = "0x" + "cd" * 32
-    CHAIN_ID = 1
+    # 用 42161（未停用日誌掃描）測 wiring 本身；chain 1 的停用行為另由
+    # TestLogScanDisabledByChain 驗證。
+    CHAIN_ID = 42161
     TOKEN_ID = 429477
 
     def setUp(self):
@@ -2592,6 +2597,46 @@ class TestEvaluateV4DeltaQualityWiring(unittest.TestCase):
             )
         self.assertEqual(result["status"], "activity_unknown")
         self.assertIsNone(result["delta0_raw"])
+
+
+class TestLogScanDisabledByChain(unittest.TestCase):
+    """chain 1（Ethereum 主網）已刻意停用 eth_getLogs 歷史掃描
+    （wallet_rpc_client.LOG_SCAN_DISABLED_BY_CHAIN）。
+
+    這三個家族若對 chain 1 呼叫，必須立刻 fail-closed 拋 LogScanDisabled，
+    不得真的發起掃描（實測免費節點 10-block 上限會讓單一活躍部位打出數百次
+    請求、燒光每日時間預算）。呼叫端再把例外轉成「不可得／未知」，絕非 0。
+    """
+
+    def _forbid_post(self, url, payload):
+        raise AssertionError("chain 1 不應發起任何 RPC 呼叫（含 eth_getLogs）")
+
+    def test_collected_fees_raises(self):
+        with self.assertRaises(wallet_rpc_client.LogScanDisabled):
+            wallet_rpc_client.get_cumulative_collected_fees(
+                "https://fake-rpc.invalid", token_id=42, chain_id=1,
+                http_post=self._forbid_post,
+            )
+
+    def test_decrease_principal_raises(self):
+        with self.assertRaises(wallet_rpc_client.LogScanDisabled):
+            wallet_rpc_client.get_cumulative_decrease_liquidity_principal(
+                "https://fake-rpc.invalid", token_id=42, chain_id=1,
+                http_post=self._forbid_post,
+            )
+
+    def test_activity_raises(self):
+        with self.assertRaises(wallet_rpc_client.LogScanDisabled):
+            wallet_rpc_client.has_v4_position_activity_in_range(
+                "https://fake-rpc.invalid", "0x" + "ab" * 32,
+                "0x1234567890123456789012345678901234567890", 42,
+                from_block=0, to_block=100, chain_id=1,
+                http_post=self._forbid_post,
+            )
+
+    def test_helper_marks_only_chain_1(self):
+        self.assertTrue(wallet_rpc_client.log_scan_disabled(1))
+        self.assertFalse(wallet_rpc_client.log_scan_disabled(42161))
 
 
 if __name__ == "__main__":

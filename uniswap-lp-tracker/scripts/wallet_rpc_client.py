@@ -798,6 +798,30 @@ LOG_SCAN_DISABLED_BY_CHAIN = {
 }
 
 
+class LogScanDisabled(WalletRpcError):
+    """該鏈已刻意停用 eth_getLogs 歷史掃描（見 LOG_SCAN_DISABLED_BY_CHAIN）。
+
+    免費節點的單次區塊範圍上限（實測 Alchemy 免費方案 10 blocks）與主網區塊總數
+    （約 2628 萬）不相容，全歷史掃描永遠掃不完、只會把每日時間預算燒光（實測
+    chain 1 單一活躍部位就能打出數百次 10-block 請求）。呼叫端必須把此例外
+    當成「此值不可得」誠實回報（fail-closed），不得吞成 0 或 False，也不得
+    改讀成「掃過但沒發現」。
+    """
+
+
+def log_scan_disabled(chain_id: int) -> bool:
+    """此鏈是否已刻意停用 eth_getLogs 歷史掃描。"""
+    return chain_id in LOG_SCAN_DISABLED_BY_CHAIN
+
+
+def _log_scan_disabled_reason(chain_id: int) -> str:
+    return (
+        f"chain_id={chain_id} 的 eth_getLogs 歷史掃描已刻意停用"
+        "（LOG_SCAN_DISABLED_BY_CHAIN：主網區塊數與免費節點單次範圍上限不相容，"
+        "全歷史掃描永遠掃不完）。此值以「不可得（fail-closed）」回報，非 0。"
+    )
+
+
 class V4LogScanError(WalletRpcError):
     """eth_getLogs 掃描 Transfer 事件失敗時丟出，帶著失敗前已經成功掃到的
     logs_url，方便呼叫端在錯誤訊息裡誠實標出是哪個供應商查不到。"""
@@ -986,6 +1010,8 @@ def get_cumulative_collected_fees(
 
     回傳 {"amount0_raw", "amount1_raw", "log_count", "scanned_to_block"}；
     呼叫端要自行處理 WalletRpcError（掃描失敗不等於真的沒領過，要誠實回報）。"""
+    if log_scan_disabled(chain_id):
+        raise LogScanDisabled(_log_scan_disabled_reason(chain_id))
     if chain_id not in POSITION_MANAGER_ADDRESS_BY_CHAIN:
         raise WalletRpcError(f"chain_id={chain_id} 沒有已核對過的 v3 NonfungiblePositionManager 位址")
     to_address = POSITION_MANAGER_ADDRESS_BY_CHAIN[chain_id]
@@ -1031,6 +1057,8 @@ def get_cumulative_decrease_liquidity_principal(
 
     回傳 {"amount0_raw", "amount1_raw", "log_count", "scanned_to_block"}；
     呼叫端要自行處理 WalletRpcError（掃描失敗不等於沒撤過資，要誠實回報）。"""
+    if log_scan_disabled(chain_id):
+        raise LogScanDisabled(_log_scan_disabled_reason(chain_id))
     if chain_id not in POSITION_MANAGER_ADDRESS_BY_CHAIN:
         raise WalletRpcError(f"chain_id={chain_id} 沒有已核對過的 v3 NonfungiblePositionManager 位址")
     to_address = POSITION_MANAGER_ADDRESS_BY_CHAIN[chain_id]
@@ -1115,6 +1143,8 @@ def has_v4_position_activity_in_range(
     是否被動過」來判斷要不要信任/重算 fee delta，不需要本函式替它分類動作
     種類）。
     """
+    if log_scan_disabled(chain_id):
+        raise LogScanDisabled(_log_scan_disabled_reason(chain_id))
     if chain_id not in V4_POOL_MANAGER_ADDRESS_BY_CHAIN:
         raise WalletRpcError(f"chain_id={chain_id} 沒有已核對過的 v4 PoolManager 位址")
     if not re.fullmatch(r"0x[0-9a-fA-F]{64}", pool_id):

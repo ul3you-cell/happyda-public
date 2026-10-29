@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fuly.ai 出入金課程整理（2026/10/28）＋ 每月匯 1,000／2,000／3,000 美元費用比較</title>
+<style>
+  :root { --blue:#1a73e8; --ink:#263238; --line:#d9e2ec; --paper:#fff; --bg:#f4f7fb; --good:#0f9d58; --bad:#d93025; --warn:#b06000; }
+  * { box-sizing:border-box; }
+  body { font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans TC",sans-serif; line-height:1.75; max-width:1040px; margin:0 auto; padding:28px; background:var(--bg); color:var(--ink); }
+  main { background:var(--paper); padding:32px; border-radius:14px; box-shadow:0 8px 30px rgba(31,55,80,.08); }
+  h1 { color:var(--blue); margin-top:0; font-size:1.7rem; }
+  h2 { color:var(--blue); margin-top:2.2rem; border-bottom:2px solid #e8f0fe; padding-bottom:.3rem; }
+  h3 { margin-top:1.5rem; }
+  table { border-collapse:collapse; width:100%; margin:.8rem 0; font-size:.93rem; }
+  th, td { border:1px solid var(--line); padding:7px 10px; text-align:left; vertical-align:top; }
+  th { background:#eef4fd; }
+  td.n, th.n { text-align:right; white-space:nowrap; }
+  .box { border-left:5px solid var(--blue); background:#f0f6ff; padding:12px 16px; border-radius:6px; margin:1rem 0; }
+  .warn { border-left-color:var(--warn); background:#fff7e6; }
+  .bad { border-left-color:var(--bad); background:#fdecea; }
+  .good { border-left-color:var(--good); background:#e8f5e9; }
+  .tag { display:inline-block; border-radius:999px; padding:1px 9px; font-size:.75rem; color:#fff; background:#667085; }
+  .tag.ok { background:var(--good); } .tag.no { background:var(--bad); } .tag.mid { background:var(--warn); }
+  .meta { color:#667085; font-size:.85rem; }
+  .best { background:#e8f5e9; font-weight:600; }
+  .na { color:var(--bad); font-weight:600; }
+  code { background:#eef1f5; padding:1px 5px; border-radius:4px; }
+  footer { margin-top:2.5rem; color:#667085; font-size:.82rem; border-top:1px solid var(--line); padding-top:1rem; }
+  details { margin:.6rem 0; } summary { cursor:pointer; font-weight:600; }
+  @media (max-width:700px) { body { padding:10px; } main { padding:18px; } table { font-size:.82rem; } }
+</style>
+</head>
+<body>
+<main>
+<h1>Fuly.ai「加密貨幣出金攻略 2026」課程整理<br><small style="font-size:.95rem;color:#667085">含 Fluidkey／幣安／Bitfinex，並比較每月匯 1,000／2,000／3,000 美元的手續費</small></h1>
+<p class="meta">課程日期：2026/10/28（晚間直播，約 2 小時 14 分）｜講者：Rex（主講）、Jennifer Hsu（Fluidkey 亞太區負責人，示範操作）｜整理日期：2026/10/29｜資料來源：錄音（本機自動轉文字）＋ 62 張簡報截圖（本機文字辨識）</p>
+
+<div class="box warn">
+<strong>先看這裡（誠實聲明）</strong>
+<ul>
+  <li>課程講者自己說「今天講了可能明天就變了」。下面所有費用都是 <strong>2026/10/28 簡報當天</strong>的數字，實際操作前請回官方頁面核對。</li>
+  <li>錄音是機器轉文字，人名、平台名有錯字；簡報截圖是機器辨識，有些數字欄位排版錯位。<strong>凡是數字，我以簡報為準，錄音只用來補充語氣與細節</strong>；對不上或我自己推斷的地方，都有標「推斷」。</li>
+  <li>這不是稅務或法律建議。稅的部分只整理課程內容，大額請問會計師。</li>
+</ul>
+</div>
+
+<h2>一、結論（一分鐘版）</h2>
+<div class="box good">
+<p><strong>如果你每個月只匯 1,000～3,000 美元：</strong></p>
+<ol>
+  <li><strong>Bitfinex 直接電匯完全不能用</strong>：單筆最低 10,000 美元，而且收 0.1%（最低 100 美元）。你的金額連門檻都不到。（而且新綁銀行帳號目前也被擋住，見第三節。）</li>
+  <li><strong>幣安（Binance）每筆固定 25 美元</strong>；<strong>Fluidkey 的電匯（SWIFT）也是每筆 25 美元</strong>，而且月量 3,000 美元以內「量額費」是 0。所以<strong>純手續費兩者一樣</strong>。</li>
+  <li><strong>真正的差別不是手續費，是「會不會被銀行擋」與「有沒有更便宜的內部路線」</strong>：
+    <ul>
+      <li>幣安匯出的帳戶是巴林的第三方公司，對台灣傳統銀行來說「匯款人不是你本人」，簡報寫「陌生巴林帳號 99% 會被擋」；對 LINE Bank、匯豐這類加密貨幣友善銀行通常可過。</li>
+      <li>Fluidkey 是用「你本人名字」開的美國銀行帳戶匯出，簡報說被擋機率很低。</li>
+      <li>Fluidkey 若走 ACH（美國境內轉帳）入嘉信／盈透／Wise，額度內是 <strong>0 元</strong>。</li>
+    </ul>
+  </li>
+  <li>Backpack 首筆免費，之後每筆 50 美元，月匯 1,000 美元時等於 5%，最貴；Kraken 本身匯費便宜（14 美元），但換匯價差很差。</li>
+</ol>
+<p><strong>我的建議（推論）：</strong>每月小額、要匯回台灣銀行，優先順序是 <strong>Fluidkey（同名帳戶、被擋機率低）＞ 幣安（同價，但要靠友善銀行）</strong>。想把成本壓到最低，一次匯 3,000 美元比匯 1,000 美元便宜得多（每月 25 美元是固定成本，筆數越少越省）。</p>
+</div>
+
+<h2>二、費用比較：每月匯 1,000／2,000／3,000 美元</h2>
+<p><strong>假設</strong>：每個月只匯 1 筆；錢已經在該平台是穩定幣（USDT／USDC）；只算「平台收的費」，<strong>不含</strong>台灣收款銀行的入帳費與中轉銀行（匯款中途經過的美國銀行）可能被扣的錢（下一張小表另列）。美元對台幣僅在換算入帳費時以 1:32 粗估。Fluidkey 假設當月沒有別的法幣（美元）入金，免費額度 3,000 美元才不會被佔用。</p>
+
+<table>
+<thead>
+<tr><th>路線</th><th>收費規則（簡報）</th><th class="n">每月 1,000 美元</th><th class="n">每月 2,000 美元</th><th class="n">每月 3,000 美元</th><th class="n">一年（12 次）<br>1,000／2,000／3,000</th></tr>
+</thead>
+<tbody>
+<tr class="best"><td><strong>Fluidkey → SWIFT 匯台灣銀行</strong><br>一般用戶／Fuly 優惠戶／Frontier 會員 結果相同</td><td>量額費：超過當月免費額度才收 0.3%（一般 3,000／Fuly 戶 10,000／Frontier 20,000）；另加 SWIFT 每筆 25 美元</td><td class="n">25 美元<br>（2.50%）</td><td class="n">25 美元<br>（1.25%）</td><td class="n">25 美元<br>（0.83%）</td><td class="n">300／300／300</td></tr>
+<tr class="best"><td><strong>Fluidkey → ACH 入嘉信／盈透／Wise</strong>（不是匯台灣）</td><td>額度內 ACH 完全 0 元</td><td class="n">0</td><td class="n">0</td><td class="n">0</td><td class="n">0</td></tr>
+<tr class="best"><td><strong>幣安 Binance → SWIFT</strong></td><td>每筆 25 美元，最低 100 美元</td><td class="n">25 美元<br>（2.50%）</td><td class="n">25 美元<br>（1.25%）</td><td class="n">25 美元<br>（0.83%）</td><td class="n">300／300／300</td></tr>
+<tr><td>OKX → SWIFT</td><td>每筆 25 美元；要先入金過美元一次才看得到美元出金選項</td><td class="n">25（2.50%）</td><td class="n">25（1.25%）</td><td class="n">25（0.83%）</td><td class="n">300／300／300</td></tr>
+<tr><td>Backpack → SWIFT</td><td>首筆免費，之後每筆 50 美元；30 日內超過 20 萬美元的部分另收 0.1%</td><td class="n">首月 0；之後 50<br>（5.00%）</td><td class="n">首月 0；之後 50<br>（2.50%）</td><td class="n">首月 0；之後 50<br>（1.67%）</td><td class="n">550／550／550<br>（首筆免費，我解讀為一次性）</td></tr>
+<tr><td>Kraken → SWIFT</td><td>匯費 14 美元；但交易手續費最高約 0.2%，且 USDT 換 USD 價格差（價差）通常很差</td><td class="n">約 16 美元<br>（1.6%＋價差）</td><td class="n">約 18 美元<br>（0.9%＋價差）</td><td class="n">約 20 美元<br>（0.67%＋價差）</td><td class="n">約 192／216／240<br>（還沒算價差）</td></tr>
+<tr><td>Bitfinex 直接 SWIFT</td><td>單筆最低 10,000 美元；0.1%、最低 100 美元；加急 1%、最低 125 美元</td><td class="n na">不能用</td><td class="n na">不能用</td><td class="n na">不能用</td><td class="n">—</td></tr>
+<tr><td>Bitfinex → 台灣交易所（MAX／BitoPro）賣成台幣<br>（路線 A，不是電匯）</td><td>Bitfinex 用 TRC20 鏈提領 0 元；台幣提領 NT$30 筆；另有 USDT/TWD 買賣價差（簡報未給數字）</td><td class="n">約 1 美元＋價差</td><td class="n">約 1 美元＋價差</td><td class="n">約 1 美元＋價差</td><td class="n">約 11＋價差</td></tr>
+</tbody>
+</table>
+<p class="meta">綠底＝成本最低且可實際匯回台灣銀行（或 ACH）的選項。數字出處：簡報第 12～15 頁（「境外平台美元出金比較」）、Fluidkey 簡報第 4～10 頁。Kraken 的 0.2%、Backpack 的「一次性」解讀、OKX 的「先入金一次」都有簡報字樣但欄位排版錯位，已標為估計。</p>
+
+<div class="box warn">
+<strong>路線 A 為什麼不能只看手續費便宜：</strong>在台灣交易所賣出會被認定為「國內所得」，併入綜合所得稅，稅率 5%～40%，而且沒有免稅門檻；沒有成本紀錄時，可能成本以 0 計算、全額課稅。簡報明講「境外實現（海外所得）」那條才適用「全戶海外所得達 NT$100 萬才計入、基本所得額超過 NT$750 萬的部分課 20%」。所以小額頻繁走路線 A，表面幾乎免費，稅務風險最高。
+</div>
+
+<h3>另算一筆：收款銀行端的費用（不論從哪個平台匯，都會遇到）</h3>
+<table>
+<thead><tr><th>項目</th><th>簡報／課程內容</th></tr></thead>
+<tbody>
+<tr><td>LINE Bank 收款</td><td>每筆入帳費 NT$50（約 1.6 美元）；單筆無上限；最近最多人用，但<strong>實測要填中轉行</strong>：JP Morgan Chase，SWIFT <code>CHASUS33</code></td></tr>
+<tr><td>匯豐 Premier（卓越理財）</td><td>入帳費 0 元，也不收中轉行費用（Rex 自己的經驗）</td></tr>
+<tr><td>中轉行扣費</td><td>事前無法得知。實測：從 Fluidkey 匯 1,000 USDC 到國泰世華，入帳 992 美元（中轉行扣 8 美元），解匯費另計；匯 2,000 USDT 到 LINE Bank 入帳 1,998.1 美元（差 1.9 美元）</td></tr>
+<tr><td>其他傳統銀行</td><td>可能有較貴的入帳費、再加中轉行費，「加起來可能扣個幾百到一千台幣」（講者原話，口頭概述）</td></tr>
+</tbody>
+</table>
+<p>也就是說：<strong>每月匯 1,000 美元時，最終「落地成本」大約會是 25（平台）＋ 1.6（LINE Bank 入帳費）＋ 0～8（中轉行）＝ 約 27～35 美元，約 2.7%～3.5%</strong>（推論加總，不是簡報原句）；匯 3,000 美元時約 0.9%～1.2%。</p>
+
+<h3>什麼時候 Fluidkey 比別家貴／划算？（簡報第 16 頁換算）</h3>
+<ul>
+  <li>「Fluidkey 費用」＝（超過免費額度的部分 × 量額費率）＋ SWIFT 單筆費。免費額度是<strong>「入金＋出金合計」</strong>，所以月初若又有美元法幣進帳，就會吃掉額度。</li>
+  <li>跟 Backpack（每筆 50 美元）比，單月一筆 SWIFT，金額在下列以內 Fluidkey 比較便宜：一般戶約 11,300 美元、Fuly 優惠戶約 18,300 美元、Frontier 約 28,300 美元（存款滿 5 萬美元後費率降到 0.1% 且 SWIFT 免費，上限再提高）。我用 25＋0.3%×(金額−3,000)＝50 驗算，一般戶確實約 11,333 美元，與簡報相符。</li>
+  <li>你的 1,000～3,000 美元遠低於以上門檻，所以「Fluidkey 不會比 Backpack 貴」；跟幣安則是打平。</li>
+</ul>
+
+<h2>三、課程要點</h2>
+
+<h3>1. 為什麼突然要整理出金（背景）</h3>
+<ul>
+  <li>2026/07/22 公布《虛擬資產服務法》，部分條文尚未施行。Bitfinex 因此對台灣用戶（個人與公司）暫停透過銀行的電匯入金／出金；講者去問客服取得最新狀態：</li>
+  <li><strong>入金（法幣）</strong>：台灣用戶完全禁止，只能用 USDT 等加密貨幣入金。</li>
+  <li><strong>出金，已綁定銀行</strong>：如果你「以前做過進階驗證並已綁過外幣銀行帳號」（國內外皆可），現在還可以出金；講者說若有人申請被拒，可以通知他去跟客服反映。</li>
+  <li><strong>出金，沒綁過的</strong>：新綁國內銀行目前不行；國外銀行簡報頁寫「目前可以綁定」，但講者口述與簡報有點矛盾（口述是「沒綁過就完全無法出金」）——這點請以 Bitfinex 官方客服當下答覆為準，我標為<strong>未確認</strong>。</li>
+  <li>台灣合規交易所只有 MAX、BitoPro 等 7～8 家；幣安、OKX、Bitfinex、Backpack、Kraken 都是境外，沒有在台灣合規。</li>
+</ul>
+
+<h3>2. 三條大路線（課程出金地圖）</h3>
+<table>
+<thead><tr><th>路線</th><th>做法</th><th>適合</th><th>重點代價</th></tr></thead>
+<tbody>
+<tr><td><strong>A 台灣交易所換台幣</strong></td><td>Bitfinex 把 USD 換 USDT（站內交易手續費 0）→ 用 TRC20 鏈提到 MAX／BitoPro → 賣台幣 → 提領到本人台灣銀行</td><td>最快、最常用、當日入帳</td><td>稅：視為國內所得，5%～40%；常被要求資金來源、被風控</td></tr>
+<tr><td><strong>B 美元電匯</strong></td>
+<td>B2：Bitfinex 直接電匯（≥1 萬美元、0.1%）<br>B3（推薦）：Bitfinex → 境外平台（幣安／OKX／Backpack／Kraken／Fluidkey）→ SWIFT 匯回台灣外幣帳戶</td><td>大額、想保留美元；已有本人外幣帳戶</td><td>B2 太貴太慢；B3 要多換一次幣，平台各有費用</td></tr>
+<tr><td><strong>C 加密卡直接消費</strong></td><td>USDT／USDC 轉入卡片 → Apple Pay／Google Pay／LINE Pay 刷，或 ATM 提領台幣</td><td>年出金超過 20 萬美元、或所得已達 750 萬上限、或嫌電匯麻煩</td><td>外幣手續費與價差約 1%～2%；回饋常用代幣發放、價格會波動</td></tr>
+</tbody>
+</table>
+<p>講者另提「錢留在海外」第四種玩法（Bitfinex→USD→SWIFT→匯豐新加坡等海外戶→美股券商、資產質借、海外刷卡）：<strong>不進台灣就沒有台灣銀行端的問題，但海外所得仍須申報</strong>（全戶達 NT$100 萬計入、超過 NT$750 萬的部分課 20%）。講者明講這屬於「灰色地帶，知道就好」，我只記錄、不建議照做。</p>
+
+<h3>3. 路線選擇的兩個問題（簡報決策樹）</h3>
+<ol>
+  <li>每年出金會超過 20 萬美元，或覺得電匯很麻煩？→ 是：路線 C（加密卡）。</li>
+  <li>有本人名字的海外銀行帳戶，且單筆 ≥ 10,000 美元？→ 是：B2（Bitfinex 電匯到海外帳戶，再由海外帳戶 SWIFT 回台灣）；否 → B3（境外交易所美元電匯，<strong>簡報標示「推薦」</strong>）。</li>
+</ol>
+
+<h3>4. 講者自己的做法（Rex，案例）</h3>
+<ul>
+  <li>每年固定出金約 20 萬美元，目標是「海外所得＋台灣所得」湊到 NT$750 萬以內（基本所得額免稅線）。</li>
+  <li>路線 1：Bitfinex（USDT→USD）→ SWIFT → 匯豐新加坡 → 匯豐台灣（本人外幣帳戶）。</li>
+  <li>路線 2：幣安（USDT→USD）→ SWIFT → 直接匯回台灣。</li>
+  <li>理由：合法申報後，這筆錢變成「有申報書背書的乾淨資金」，被問資金來源時有紀錄可拿。</li>
+  <li>匯豐「環球帳戶」：Premier 客戶可另開香港／新加坡／美國的匯豐戶並串在一起，戶間轉帳免手續費、財力證明可合併計算。</li>
+</ul>
+
+<h3>5. 各境外平台的特色（課程口述＋簡報）</h3>
+<table>
+<thead><tr><th>平台</th><th>SWIFT 出金費</th><th>最低</th><th>到帳（簡報）</th><th>特色／提醒</th></tr></thead>
+<tbody>
+<tr><td>Bitfinex（B2）</td><td>0.1%，最低 100 美元；加急 1%、最低 125 美元</td><td>1 萬美元</td><td>一般 5～10 工作天（講者說跨週末可能兩週）；加急 1 工作天</td><td>需進階驗證；戶名要與 Bitfinex 相同；站內交易 0 元、TRC20 提領 0 元；簡報備註「目前應該是從遠東銀行出入」</td></tr>
+<tr><td>幣安</td><td>25 美元</td><td>100 美元</td><td>官方 0～3 工作天；實測約 3 小時（推斷：欄位對應）</td><td>匯款人是巴林的 Bpay Global（中轉行 JPMorgan CHASUS33）；友善銀行（LINE Bank、匯豐等）可收，傳統銀行可能被擋；不能轉到美國，只能轉到一個國家的戶頭</td></tr>
+<tr><td>OKX</td><td>25 美元</td><td>100 美元</td><td>官方 1～3 工作天；實測約 3 小時（推斷）</td><td>最近幾個月才開放；要先入金過美元，出金選項才會出現</td></tr>
+<tr><td>Backpack</td><td>首筆免費，之後每筆 50 美元；30 日超過 20 萬美元部分加 0.1%；質押 BP 代幣可降</td><td>100 美元</td><td>官方 1～5 工作天；實測約 3 小時（推斷）</td><td>以前最強，被濫用後改版，需質押平台幣（講者比喻像以前的 FTX 平台幣），現在沒那麼好</td></tr>
+<tr><td>Kraken</td><td>14 美元</td><td>100 美元</td><td>官方 1～5 工作天；晚上申請隔天下午到匯豐（推斷）</td><td>匯費最低但「羊毛出在羊身上」：交易手續費最高 0.2%、USDT 價差差；出自 Kraken 的款項，加密貨幣不友善銀行反而有的會收</td></tr>
+<tr><td><strong>Fluidkey</strong></td><td>25 美元（SWIFT）；ACH 額度內 0 元</td><td>1 美元</td><td>官方 1～5 工作天；實測 7 小時～隔天早上</td><td>見第四節。USDT／USDC 1:1 直接當美元，不用先換匯；用你本人名字開的美國銀行戶匯出</td></tr>
+</tbody>
+</table>
+
+<h3>6. 通用注意事項（簡報「出金前必看六件事」＋課程補充）</h3>
+<ol>
+  <li><strong>戶名一致</strong>：收款帳戶必須是本人，英文姓名要與各平台 KYC（身分驗證）、護照完全相同。</li>
+  <li><strong>第一次都先小額測試</strong>：新平台、新鏈先打一筆；選錯鏈資產追不回。講者的習慣：大額先測幾萬，隔天到帳再出大的。</li>
+  <li><strong>Travel Rule（旅行規則，反洗錢規定）</strong>：交易所之間轉幣要填收款人身分資訊。台灣境內交易所互轉自 2026/10/20 起要填收款方資訊，單筆超過 NT$3 萬須加填；境內外完整規範預計 2027 年底施行。Bitfinex 提領時要選「託管（交易所）或非託管錢包、哪間交易所、是否本人」；填錯被退回要付「退款恢復手續費」。轉給自己就選「本人為受款人」。</li>
+  <li><strong>避免快進快出</strong>：入金後馬上出金，所有交易所都會風控，這是基本常識。</li>
+  <li><strong>保留資金來源與成本紀錄</strong>：Bitfinex 入金、放貸利息、USD 換 USDT 紀錄要留，被稅局查時用來證明成本。</li>
+  <li><strong>稅務申報</strong>：海外所得達 NT$100 萬就要計入基本所得額；課程提醒「出金」與「支付工具」不同——出金只能到本人帳戶，付錢給別人是支付工具（如 Binance Pay）。</li>
+  <li><strong>鏈的選擇</strong>：台灣交易所只用 TRC20（Tron 鏈）；冷門鏈、Layer 2 入金容易被卡很久。</li>
+  <li><strong>匯款備註</strong>：SWIFT 銀行備註只能英文、140 字元內。</li>
+  <li>Bitfinex 內部要先把資金從 Funding（放貸）錢包轉到 Exchange（交易）錢包，並取消未成交的放貸單。</li>
+</ol>
+
+<h2>四、Fluidkey 專章（Jennifer Hsu 示範）</h2>
+<h3>1. 它是什麼</h3>
+<ul>
+  <li>自託管錢包（私鑰在你自己手上，沒有交易所倒閉風險）＋鏈上隱私（每次收款自動產生新地址，別人拼不出你的餘額與消費足跡）＋接軌傳統金融（穩定幣兌換美元，用你本人名下美國帳戶出入金到券商或銀行）。支援 ACH（美國境內）、SEPA（歐元）、SWIFT、Fedwire（美國）。</li>
+  <li>銀行服務由 Noah（美國持牌業者）提供，美國合作銀行是 SSB Bank（簡報後面也出現 Lead Bank）。KYC 嚴格，台灣用戶都能過；不提供中國人使用。</li>
+  <li>可選的「自動收益」會有 DeFi（鏈上借貸協議）風險，由使用者自負。</li>
+</ul>
+<h3>2. 三大優勢</h3>
+<ul>
+  <li>USDT→USD（獨家）、USDC→USD 都是 1:1，出入金不用先換匯、沒有兌換費。</li>
+  <li>同名帳戶：銀行看到的是你本人的帳戶，不是交易所的統一出金帳戶。嘉信、盈透等券商要求「同名帳戶」才收 ACH，交易所做不到。</li>
+  <li>免手續費額度：入金＋出金合計，一般用戶每月 3,000 美元；Frontier 會員每月 20,000 美元；額度內 ACH 完全 0 元。加密貨幣轉入轉出本身都不收費（以太坊主網要付 Gas；其他鏈每日有 20 筆 Gas 補助）。</li>
+</ul>
+<h3>3. 費用怎麼算（兩種費用分開看）</h3>
+<table>
+<thead><tr><th>身分</th><th>每月免費額度（入金＋出金合計）</th><th>怎麼取得</th></tr></thead>
+<tbody>
+<tr><td>一般用戶</td><td>3,000 美元</td><td>—</td></tr>
+<tr><td>Fuly 優惠戶</td><td>10,000 美元</td><td>用 Fuly 推薦碼開戶，首月存入 20,000 美元（加密貨幣或法幣皆可）</td></tr>
+<tr><td>Frontier 會員</td><td>20,000 美元</td><td>用 Fuly 推薦碼首月存入 100,000 美元直接解鎖（講者回覆：目前設計為終身）；或參與月初不定期活動，存款維持 30,000 美元以上滿 30 天；或 FKS 積分 ≥ 10,000</td></tr>
+</tbody>
+</table>
+<ul>
+  <li><strong>量額費</strong>＝（當月轉帳金額 − 免費額度）× 0.1%～0.3%，費率看近 30 日平均餘額：未滿 10 萬美元 0.30%；10 萬以上 0.15%；25 萬以上 0.10%。</li>
+  <li><strong>單筆手續費</strong>：ACH／SEPA 0 元；SWIFT／Fedwire 每筆 25 美元。存款越多每月免費 SWIFT 次數越多：5 萬以上 1 筆、25 萬以上 3 筆、50 萬以上無限次（適用合理使用原則）。（簡報前後兩頁分級門檻寫法略有差異，以官方文件為準。）</li>
+  <li>簡報的算例（一般用戶、當月唯一一筆）：ACH 入金 1 萬美元 → 量額費 21 美元；SWIFT 匯出 1 萬美元 → 21＋25＝46 美元；5 萬美元 → 141＋25＝166 美元；Frontier 轉 5 萬美元 → 90＋25＝115 美元。</li>
+</ul>
+<h3>4. Fuly 專屬開戶優惠（簡報第 8 張；活動期間至 2026/12/31）</h3>
+<table>
+<thead><tr><th>優惠</th><th>條件</th></tr></thead>
+<tbody>
+<tr><td>開戶獎勵 10U</td><td>首月存入 100U（加密貨幣或法幣皆可），需完成 KYC</td></tr>
+<tr><td>每月 10,000 美元免費轉帳額度</td><td>首月存入 20,000 美元</td></tr>
+<tr><td>一筆法幣入金不限金額免手續費</td><td>限一筆、僅限入金（Fuly 獨家）</td></tr>
+<tr><td>Frontier 會員</td><td>首月存入 100,000 美元；每月 20,000 美元免費額度、專屬客服窗口、實體會員卡等</td></tr>
+</tbody>
+</table>
+<ul>
+  <li>開戶連結：<code>i.fluidkey.com/fulyai</code>；或 App 右下角個人頁手動輸入推薦碼 <code>FULYAI</code>。限新用戶，開戶 7 天內填入。「首月」指建立帳戶後 30 天。</li>
+  <li>已 KYC 或已做過不少轉帳者可能不適用（講者／Jennifer 表示未 KYC 仍可算新戶；已 KYC 可能不行，可私訊 Jennifer；或用家人帳號）。</li>
+  <li>已知客服窗口：Telegram <code>@jennifer_fluidkey</code>；中文社群 <code>@fluidkey_zh</code>（由用戶自發營運）。</li>
+</ul>
+
+<h3>5. 操作流程摘要</h3>
+<details open><summary>A. 加密貨幣轉入 Fluidkey</summary>
+<ol>
+  <li>App 點「接收」，複製收款地址（每次點開地址會變，舊地址仍屬於你）。</li>
+  <li>到 Bitfinex／交易所選提幣，貼上地址，代幣與網路要相符。</li>
+  <li>支援網路：Ethereum、Base、Optimism、Arbitrum、Polygon、Gnosis、BSC；<strong>不支援 Solana、TRC20（Tron）</strong>。</li>
+  <li>原生幣（如 ETH）建議先換成穩定幣再轉到 Bitfinex，否則因為 Fluidkey 是 Safe 智能合約帳戶，Bitfinex 可能無法立刻偵測到（已轉了也不用慌，聯繫客服提供交易 ID 可人工對應）。</li>
+</ol></details>
+<details open><summary>B. 美元（法幣）入帳設定</summary>
+<ol>
+  <li>App →「銀行」→ 滑到「接收為」→ 編輯。美元匯進來時會自動換成你選的穩定幣。</li>
+  <li>之後要轉到 Bitfinex 的人：建議選 <strong>USDT on Ethereum</strong>；Polygon 上的 USDT 轉進 Bitfinex 會以 USDT0 入帳，比較複雜。</li>
+</ol></details>
+<details open><summary>C. SWIFT 匯回台灣銀行（先準備好收款銀行資訊）</summary>
+<ol>
+  <li>先在 App「銀行」完成 KYC 並開通銀行帳戶。</li>
+  <li>出金支援鏈：USDC 走 Base、Polygon、Gnosis、Ethereum；USDT 走 Polygon、Ethereum。<strong>BSC、Optimism、Arbitrum 上的穩定幣無法直接出金成美元。</strong>USDC／USDT 皆 1:1 出金成美元；其他代幣先依市價換成穩定幣。</li>
+  <li>點代幣 → 發送 → 收款方欄位點銀行圖示 → 新增收款銀行，類型選 SWIFT（Wire）。</li>
+  <li>填：帳號、SWIFT／BIC、銀行名稱、中轉銀行 SWIFT（選填，<strong>LINE Bank 一定要填</strong>）、英文姓名（要與銀行戶名一致）、收款人地址。</li>
+  <li>輸入金額（可加英文備註，140 字元內）→ Email 驗證 → 確認送出。</li>
+  <li>App 顯示轉帳完成只代表鏈上這段完成；要等 Noah 處理後，信箱才會收到電子收據。假日、美國國定假日會順延；收到收據也不代表錢已到帳。</li>
+</ol></details>
+<details open><summary>D. ACH 出入金嘉信（ACH＝美國境內電子轉帳）</summary>
+<ol>
+  <li>入金嘉信：先在嘉信「Transfer Funds」取得 ACH 入金資訊（Routing Number、帳號、銀行名稱）→ 在 Fluidkey 選銀行圖示 → ACH 填入 → 儲存聯絡人 → 送出。一般 1～3 個工作天（講者實測多為 1 天）。</li>
+  <li>從嘉信出金回 Fluidkey：先連結外部銀行帳戶（填 Fluidkey 的姓名、Routing、帳號；帳號類型選 <strong>Checking</strong>），完成小額驗證（收到兩筆小金額，例如 0.28 與 0.02 美元，回嘉信輸入驗證），預留 1～3 個工作天，之後每次從 Transfer Funds 開始。</li>
+  <li>嘉信與 Fluidkey 銀行戶的英文姓名必須完全一致。盈透證券（IBKR）、Wise 同樣可用；Firstrade 因其自身限制不能進。</li>
+</ol></details>
+
+<h3>6. 實測紀錄（Jennifer，簡報第 24～25 頁）</h3>
+<table>
+<thead><tr><th>日期</th><th>銀行</th><th>發起</th><th>入帳</th><th>費用</th></tr></thead>
+<tbody>
+<tr><td>2026/7/27</td><td>LINE Bank</td><td>15:11 2,000 USDT（Polygon）</td><td>22:09 入帳 1,998.1 美元（約 7 小時）</td><td>當月免費額度內 Fluidkey 量額費 0；LINE Bank 入帳費 NT$50</td></tr>
+<tr><td>2026/8/5</td><td>國泰世華</td><td>15:21 1,000 USDC（Base）</td><td>隔天 09:17 入帳 992 美元</td><td>差 8 美元＝中轉行費用；SWIFT 25 美元；解匯費另計</td></tr>
+</tbody>
+</table>
+
+<h2>五、加密卡（路線 C）要點</h2>
+<ul>
+  <li><strong>講者結論</strong>：若追求極致信用卡回饋，加密卡是「智商稅」；只有兩種人很適合：①覺得電匯回台灣很麻煩；②海外所得＋國內所得已達 NT$750 萬上限、還有錢要花的人。</li>
+  <li>對照：匯豐旅人無限卡海外消費 NT$10＝1 積分，積分換刷卡金約 3.00% 回饋、國內 1.66%；Premier Elite 客戶免年費（原 NT$8,000）。Premier Elite 資格門檻總資產月均 3,000 萬（2026/7～8 間由 1,500 萬提高），Premier 門檻月均 300 萬，講者認為隨便開個 Premier 就有 4 點可換機場接送。</li>
+  <li><strong>六張卡簡比</strong>（2026/10/28）：ether.fi Cash（自託管，講者主推）、Plasma One（自託管）、RedotPay（託管；虛擬卡 10 美元、實體 100 美元，基本方案無回饋、外幣＋換匯約 2.2% 成本，Pro 月費 12.9 美元但回饋月上限 18 美元，講者批評很差）、Binance Card、OKX Card、Bybit Card（皆為交易所託管，適合本來就是 VIP 大戶）。</li>
+  <li><strong>ether.fi Cash 重點</strong>：外幣加價 Core 0.5%、Luxe 0.25%、Pinnacle／VIP 0%；Core 回饋前 2,000 美元 3%；回饋以 ETHFI 代幣發放（價格波動）、要鎖倉 7 天、累積滿 5 美元才可領；ATM 提款費 2%；借貸模式有清算風險；KYC 可用台灣身分證。講者實測 NT$690 的訂閱，淨回饋約 1.5%。</li>
+  <li><strong>迷思破解：刷 U 卡不會被查稅？</strong>錯。卡是實名（訂機票、飯店、網購都留名字），稅局可從實名消費找到卡號，調出整張卡所有消費；消費金額遠超過申報所得，差額可能被核定補稅。重點是「卡裡的錢從哪來」，加密貨幣獲利、放貸利息都屬所得；不申報除補稅還可能加罰。</li>
+</ul>
+
+<h2>六、優惠與可行動清單（匯整）</h2>
+<ul>
+  <li><strong>Fluidkey（Fuly 推薦碼 <code>FULYAI</code>，至 2026/12/31，新用戶 7 天內）</strong>：10U 開戶獎勵、首月存 20,000 美元解鎖每月 10,000 免費額度、一筆法幣入金免手續費、首月存 100,000 美元直接升 Frontier。</li>
+  <li><strong>Line Bank</strong>：入帳費每筆 NT$50（網路上多數教學用它）。</li>
+  <li><strong>匯豐 Premier</strong>：收匯 0 元、不收中轉行費；Premier Elite 信用卡福利（點數、機場接送、貴賓室等，2026/7/21～12/31 活動期）。</li>
+  <li>MAX 與 Bankee 網銀用戶台幣提領免費（其餘 NT$30／筆）。</li>
+  <li>ether.fi 部分等級訂閱類消費最高 10%／20%／30% 回饋（月上限 US$10／20／30）；講者實測 Claude 訂閱曾有 30%。</li>
+  <li>簡報與匯豐開戶教學將放進 Fuly「會員專區」（講者口述，目前尚未公開）。</li>
+</ul>
+
+<h2>七、我替你判斷的建議與沒把握的地方</h2>
+<div class="box">
+<ol>
+  <li><strong>如果你的目標是「每月固定小額回台灣銀行」</strong>：Fluidkey 與幣安在 3,000 美元以內費用相同；但 Fluidkey 同名帳戶，被擋機率較低，值得優先。若同月還要把美元法幣存進 Fluidkey，要留意免費額度是「入金＋出金合計」。</li>
+  <li><strong>想降低固定成本</strong>：每月 25 美元的 SWIFT 是固定成本。每兩個月合併一次匯 4,000～6,000 美元，費用約為 25＋0.3%×(金額−3,000)（約 28～34 美元），比每月匯兩次的 50 美元便宜。這是我用簡報公式算的，不是講者建議。</li>
+  <li><strong>想要 0 成本</strong>：Fluidkey ACH 進嘉信／盈透（美國券商），但那是留在美國，不是進台灣銀行。</li>
+  <li>稅：任何一條電匯路線把海外所得帶回台灣，都是海外所得，需要申報。小額頻繁也不例外；走台灣交易所賣出（路線 A）則直接是國內所得。</li>
+</ol>
+<p><strong>未確認／推斷清單：</strong>(a) Bitfinex 新綁銀行帳號目前是否可綁國外銀行（簡報與口述矛盾）；(b) Backpack「首筆免費」是否每月重置（我解讀為一次性，若是每月重置則費用大幅下降）；(c) 各境外平台「官方到帳天數」與「實測 3 小時」欄位的排版錯位，我依列順序推斷；(d) 國泰實測那筆的 25 美元 Fluidkey 單筆費是否另外從餘額扣除，簡報只寫入帳 992 美元，我沒有進一步證據；(e) Binance 的 SWIFT 費用 25 美元來自簡報表格，但錄音對這條的說法是「手續費 25 塊、最少 100 塊」，我判斷「最少 100」是最低出金金額，不是最低手續費。</p>
+</div>
+
+<h2>八、名詞白話對照</h2>
+<table>
+<tbody>
+<tr><td>SWIFT（國際電匯）</td><td>跨國銀行轉帳的通道，通常每筆都有固定手續費，錢可能被中途銀行扣掉一點。</td></tr>
+<tr><td>中轉行</td><td>電匯中間經過的銀行，像轉機的機場，可能被收轉機費且事前不知道。</td></tr>
+<tr><td>ACH</td><td>美國境內的電子轉帳，便宜但只能在美國帳戶之間。</td></tr>
+<tr><td>KYC</td><td>身分驗證，用證件、地址證明確認你是本人。</td></tr>
+<tr><td>Travel Rule（旅行規則）</td><td>反洗錢規定：轉幣時要說明收款人是誰。</td></tr>
+<tr><td>價差（Spread）</td><td>買價與賣價的差，也是隱形的手續費。</td></tr>
+<tr><td>穩定幣 USDT／USDC</td><td>價值約等於 1 美元的加密貨幣。</td></tr>
+<tr><td>量額費</td><td>Fluidkey 的「超額費」：超過每月免費額度的金額，按比例收的費用。</td></tr>
+</tbody>
+</table>
+
+<footer>
+  資料來源：Fuly.ai 直播錄音《Fuly.ai 出入金分享.m4a》（2 小時 14 分）、簡報截圖 62 張（Fuly「出金攻略 2026」33 頁＋Jennifer Hsu「Fluidkey 美元出入金實戰」68 頁截圖）。處理方式：錄音以本機 Whisper large-v3-turbo 轉文字；截圖以 macOS 內建 Vision 文字辨識。公開提醒：本頁僅整理課程的費用與流程資訊，未放簡報截圖、帳號、地址與個人資料；課程內容與簡報屬 Fuly.ai／Fluidkey，若屬會員專屬請自行評估是否保持公開。<br>
+  不構成投資、稅務或法律建議。跨境資金移轉請依自身所在地法規自行確認並承擔風險。
+</footer>
+</main>
+</body>
+</html>

@@ -39,7 +39,11 @@ import urllib.request
 
 DEFAULT_URL = "https://ul3you-cell.github.io/happyda-public/uniswap-lp-tracker-20260926.html"
 CHROME_BIN = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-DEBUG_PORT = 9333
+# 本測試「自己」啟動一個用完即丟的 headless Chrome（tempfile user-data-dir），
+# 不依賴任何常駐爬蟲。9333 是刻意沿用舊爬蟲的埠號當預設值（現已無常駐程式佔用）；
+# 若該埠被佔用（例如重啟舊爬蟲、或桌面 App CDP 設成同埠），改用環境變數覆寫：
+#   BROWSER_CLICK_CHECK_PORT=9400 python3 tests/browser_click_check.py
+DEBUG_PORT = int(os.environ.get("BROWSER_CLICK_CHECK_PORT", "9333"))
 
 COLUMNS = [
     "chain_name", "protocol", "pair_label", "fee_tier_pct", "tvl_usd",

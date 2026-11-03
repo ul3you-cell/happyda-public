@@ -522,6 +522,19 @@ def main() -> int:
                       exposesHistoryCount: summary.includes('NFT 持有總數') || summary.includes('歷史 NFT') };
                   })()
                 """)
+                # 2026-10-27/28 起 chain 1 的 eth_getLogs 歷史掃描「刻意停用」
+                # （LOG_SCAN_DISABLED_BY_CHAIN，主網區塊量與免費節點單次範圍上限不相容），
+                # 因此 Ethereum 部位的 fee Δ 走 fail-closed：顯示「—」並附原因，
+                # 不是顯示數字。測試改成分支判斷，兩種都合法但都要有紀律：
+                #   有原始 delta → 文字必須帶幣別前綴（ETH／WBTC／USDC）
+                #   沒有原始 delta → 必須是「—」，且 reason 非空（上方條件已檢查）
+                # 這樣仍守得住「有資料時的格式」，也不會把刻意停用誤判成 bug。
+                def _delta_text_ok(row, text_key, raw_key, symbol):
+                    text = (row.get(text_key) or "").strip()
+                    if row.get(raw_key) is None:
+                        return text == "—"
+                    return text.startswith(symbol + " ")
+
                 display_ok = (
                     isinstance(display_contract, dict)
                     and display_contract["buildMarker"].startswith("v4-fee-delta-")
@@ -529,12 +542,12 @@ def main() -> int:
                     and all(r and r["fee0"] and r["fee1"] and r["reason"] for r in display_contract["requiredRows"])
                     and display_contract["requiredRows"][0]["fee0Text"].startswith("ETH ")
                     and display_contract["requiredRows"][0]["fee1Text"].startswith("USDC ")
-                    and display_contract["requiredRows"][0]["delta0Text"].startswith("ETH ")
-                    and display_contract["requiredRows"][0]["delta1Text"].startswith("USDC ")
                     and display_contract["requiredRows"][1]["fee0Text"].startswith("WBTC ")
                     and display_contract["requiredRows"][1]["fee1Text"].startswith("USDC ")
-                    and display_contract["requiredRows"][1]["delta0Text"].startswith("WBTC ")
-                    and display_contract["requiredRows"][1]["delta1Text"].startswith("USDC ")
+                    and _delta_text_ok(display_contract["requiredRows"][0], "delta0Text", "delta0", "ETH")
+                    and _delta_text_ok(display_contract["requiredRows"][0], "delta1Text", "delta1", "USDC")
+                    and _delta_text_ok(display_contract["requiredRows"][1], "delta0Text", "delta0", "WBTC")
+                    and _delta_text_ok(display_contract["requiredRows"][1], "delta1Text", "delta1", "USDC")
                     and display_contract["hasFeeHeaders"]
                     and display_contract["hasDeltaReason"]
                     and not display_contract["exposesHistoryCount"]

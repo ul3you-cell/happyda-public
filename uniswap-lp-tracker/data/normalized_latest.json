@@ -7537,12 +7537,12 @@
       "limitations": []
     },
     {
-      "id": "130-V4-empty_response-None-None-None-0x267EE34200b09Ea8b52D02EeC3300b84985B1eFd",
+      "id": "130-V4-empty_response-None-None-None-0x267EE342…1eFd",
       "status": "empty_response",
       "chain_id": 130,
       "chain_name": "Unichain",
       "protocol": "V4",
-      "pool_address": "0x267EE34200b09Ea8b52D02EeC3300b84985B1eFd",
+      "pool_address": "0x267EE342…1eFd",
       "token_a_symbol": null,
       "token_b_symbol": null,
       "pair_label": null,
@@ -7570,12 +7570,12 @@
       "limitations": []
     },
     {
-      "id": "130-V3-empty_response-None-None-None-0x267EE34200b09Ea8b52D02EeC3300b84985B1eFd",
+      "id": "130-V3-empty_response-None-None-None-0x267EE342…1eFd",
       "status": "empty_response",
       "chain_id": 130,
       "chain_name": "Unichain",
       "protocol": "V3",
-      "pool_address": "0x267EE34200b09Ea8b52D02EeC3300b84985B1eFd",
+      "pool_address": "0x267EE342…1eFd",
       "token_a_symbol": null,
       "token_b_symbol": null,
       "pair_label": null,

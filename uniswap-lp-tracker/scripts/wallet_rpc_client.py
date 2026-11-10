@@ -55,6 +55,8 @@ import urllib.error
 import urllib.request
 from typing import Callable, Iterable, Optional
 
+import wallet_identity
+
 POSITION_MANAGER_ADDRESS_BY_CHAIN = {
     # 全部逐字核對自 developers.uniswap.org/docs/protocols/v3/deployments/*
     # （2026-09-27 抓取，見 handoff.md「多鏈地址核對」段落），不憑記憶填寫。
@@ -835,13 +837,14 @@ class V4LogScanError(WalletRpcError):
 # eth_getTransactionReceipt 誠實解出的 token_id」當候選來源，跟 log 掃描
 # 掃出來的候選 id 走同一套 ownerOf() 現況驗證，不直接信任、不跳過驗證。
 # 每一筆都要標明來源 tx hash，方便稽核回放核對（2026-10-03 case：
-# wallet 0x267ee342...885b1efd 在 ETH mainnet 開新 V4 倉位，tx
+# wallet 0x267EE342…1eFd 在 ETH mainnet 開新 V4 倉位，tx
 # 0x69ca24b1...93b0f7，receipt topics[3] = 0x68da5，用 int('68da5',16)
 # 程式算出 token_id=429477——第一輪手算 hex 誤算成 429989，那其實是
 # 完全不相關的另一顆 token（owner 是別的 EOA），已由 @anne 核對修正。
+_WALLET_LC = wallet_identity.get_wallet_address().lower()  # 私有來源，不寫死在公開 repo
 RECEIPT_DERIVED_CANDIDATE_TOKEN_IDS_BY_CHAIN: dict[int, list[tuple[str, int, str]]] = {
     1: [
-        ("0x267ee34200b09ea8b52d02eec3300b84985b1efd", 429477,
+        (_WALLET_LC, 429477,
          "0x69ca24b1ef90db064564d1135782845503dd18e43b572896b73f30abad93b0f7"),
         # ETH/UNI 部位（Uniswap v4，Ethereum 主網）：2026-10-26 用
         # alchemy_getAssetTransfers ＋ eth_getLogs 定位到 mint 交易
@@ -850,7 +853,7 @@ RECEIPT_DERIVED_CANDIDATE_TOKEN_IDS_BY_CHAIN: dict[int, list[tuple[str, int, str
         # tick 48660～62160、liquidity 非零。
         # ⚠️ 本鏈 LOG_SCAN 已停用（見 LOG_SCAN_DISABLED_BY_CHAIN），
         # 新開部位不會自動發現，需人工加進這份清單。
-        ("0x267ee34200b09ea8b52d02eec3300b84985b1efd", 441465,
+        (_WALLET_LC, 441465,
          "0x4af4bb53c17729d603fe66c639253d19b5acad2acf548d2670de5bb06ed23ae7"),
     ],
 }

@@ -67,7 +67,7 @@ Unichain HTTP 400；且 normalize 後仍有 61 筆卡在 `pending`（理論上 2
    真實請求重驗**（本環境無 `UNISWAP_API_KEY`）——需要 anne 帶 key 重跑
    `fetch_pool_info.py` 才能確認 Unichain 這兩筆真的變成 200 或其他非
    schema-error 的結果；下方 §0 的三件事仍需 anne 執行。另外要提醒：
-   `0x267EE34200b09Ea8b52D02EeC3300b84985B1eFd` 這個位址依 anne 判斷是
+   `0x267EE342…1eFd` 這個位址依 anne 判斷是
    **錢包位址而非池位**，官方 `pool_info` 端點做不到「錢包→池位」查詢，
    即使 schema 修正後仍很可能查無結果；真正的 V3/V4 wallet position 查詢
    已交由另一張研究卡處理，**不可把這個目標池當成功交付項**。
@@ -129,7 +129,7 @@ Unichain 是 `130`）：
 確認 Unichain 這兩筆這次真的不再是 schema 相關的 400。
 
 再次提醒（anne 已在第三輪確認、本輪重申，避免被誤判為交付成功）：
-`0x267EE34200b09Ea8b52D02EeC3300b84985B1eFd` 是**錢包地址而非池位**，
+`0x267EE342…1eFd` 是**錢包地址而非池位**，
 即使這次 schema 完全修對、伺服器也接受請求格式，`pool_info` 端點依然
 **做不到「錢包→池位」查詢**，這兩筆查詢即使拿到 HTTP 200 也很可能是
 `pools: []`（`empty_response`），必須照 §0.2 第 3 點的規則正規化為
@@ -198,7 +198,7 @@ anne 用修正過 nested `chainId` 的正式資料驗收，nested `chainId` 修�
    產生真實資料版的 `uniswap-lp-tracker-20260926.html`。**本次 dev-claude 執行
    環境沒有 key，所以目前頁面上 230 筆是 `pending`**，只有 1 筆（Ethereum
    WETH/USDC V3 0.30%）是你之前提供的離線 fixture。
-2. **確認 Unichain 目標池位語意**：任務卡給的 `0x267EE34200b09Ea8b52D02EeC3300b84985B1eFd`
+2. **確認 Unichain 目標池位語意**：任務卡給的 `0x267EE342…1eFd`
    我假設是 pool address（`poolReferenceIdentifier`），腳本會依序嘗試
    V4 再 V3。如果實際上這是一個**錢包地址**（要查 LP position 而非池子本身），
    官方 Liquidity API **沒有唯讀 position 端點**，做不到 — 麻煩先跟需求方確認，
@@ -237,7 +237,7 @@ anne 用修正過 nested `chainId` 的正式資料驗收，nested `chainId` 修�
 | Arbitrum | 42161 | WETH, WBTC, cbBTC, AAVE, UNI | USDC, USDT | 同上 | V3, V4 |
 | Base | 8453 | WETH, cbBTC, AAVE, UNI | USDC, USDT | 同上 | V3, V4 |
 | BNB Smart Chain | 56 | WETH(peg), BTCB, AAVE, UNI | USDC, USDT | 同上 | V3, V4 |
-| Unichain | 130 | — | — | — | 指定池位 `0x267EE34200b09Ea8b52D02EeC3300b84985B1eFd`（見 §0.2） |
+| Unichain | 130 | — | — | — | 指定池位 `0x267EE342…1eFd`（見 §0.2） |
 
 共 228 個 token-pair 查詢（4 鏈 × 平均 ~5 base token × 2 quote × 3 fee × 2 protocol，
 扣除各鏈實際 base token 數不同：Ethereum 72 + Arbitrum 60 + Base 48 + BNB 48）

@@ -11,6 +11,7 @@ import re
 from datetime import datetime, timezone
 from pathlib import Path
 
+import wallet_identity
 from common import DATA_DIR, ENDPOINT, PROJECT_ROOT
 
 OUTPUT_PATH = PROJECT_ROOT.parent / "uniswap-lp-tracker-20260926.html"
@@ -695,7 +696,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 
 def mask_wallet(addr: str) -> str:
     """公開頁只顯示 0x + 前 8 碼 … 末 4 碼，例：0x267EE342…1eFd。"""
-    return addr[:10] + "…" + addr[-4:] if len(addr) >= 20 else addr
+    return wallet_identity.mask_wallet(addr)
 
 
 def mask_wallet_in_text(text: str, addr: str) -> str:

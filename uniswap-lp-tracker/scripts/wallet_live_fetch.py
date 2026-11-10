@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""端到端唯讀查詢：錢包 0x267EE34200b09Ea8b52D02EeC3300b84985B1eFd 在
+"""端到端唯讀查詢：錢包 0x267EE342…1eFd（完整位址見 wallet_identity）在
 Unichain / Ethereum / Arbitrum / Base / BNB Chain 的 Uniswap V3／V4 部位。
 
 只做唯讀 RPC（eth_call／eth_chainId／eth_blockNumber）與唯讀 Alchemy Prices
@@ -26,6 +26,7 @@ from typing import Any
 
 import common
 import wallet_apr_calc
+import wallet_identity
 import wallet_price_client
 import wallet_rpc_client as rpc
 import wallet_scan_cursor as cursor_store
@@ -38,7 +39,7 @@ try:
 except Exception:  # pragma: no cover - stdlib zoneinfo 應永遠存在
     _TAIPEI_TZ = timezone.utc
 
-WALLET_ADDRESS = "0x267EE34200b09Ea8b52D02EeC3300b84985B1eFd"
+WALLET_ADDRESS = wallet_identity.get_wallet_address()  # 私有來源；缺值時 main 會中止
 
 # 每日總值口徑版本；口徑一變（例如改成含歷史部位）就要換版本號，
 # 避免新舊口徑的每日快照被誤拿來互相比較 delta。
@@ -1417,6 +1418,10 @@ def build_wallet_rows(wallet_data: dict) -> list[dict]:
 
 
 def main() -> int:
+    if not WALLET_ADDRESS:
+        print("找不到錢包位址：請設定 UNISWAP_WALLET_ADDRESS 或建立 "
+              f"{wallet_identity.PRIVATE_FILE}", file=sys.stderr)
+        return 2
     smoke = [chain_smoke(cid) for cid in sorted(set(V3_CHAINS + V4_CHAINS))]
     smoke_blocks = {r["chain_id"]: r.get("block_number") for r in smoke if r.get("ok")}
     graph_key_present = bool(__import__("os").environ.get("GRAPH_API_KEY", "").strip())
@@ -1471,7 +1476,7 @@ def main() -> int:
         portfolio_daily_delta["note"] = f"每日總值快照寫入失敗：{exc}"
 
     output = {
-        "wallet_address": WALLET_ADDRESS,
+        "wallet_address": wallet_identity.mask_wallet(WALLET_ADDRESS),  # 公開輸出只放遮罩
         "generated_at": generated_at,
         "rpc_smoke": smoke,
         "graph_api_key_present": graph_key_present,

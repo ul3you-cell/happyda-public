@@ -70,7 +70,7 @@
     {
       "chain_id": 130,
       "chain_name": "Unichain",
-      "pool_reference_identifier": "0x267EE34200b09Ea8b52D02EeC3300b84985B1eFd",
+      "pool_reference_identifier": "0x267EE342…1eFd",
       "protocol_guess_order": ["V4", "V3"],
       "note": "Kanban 任務卡 t_bf8f4d3e 指定目標；protocol 未知，fetch 腳本會依序嘗試 V4/V3 直到回 200。"
     }

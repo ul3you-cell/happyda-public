@@ -18,7 +18,7 @@ import wallet_rpc_client  # noqa: E402
 import wallet_scan_cursor as cursor_store  # noqa: E402
 
 
-WALLET = "0x267ee34200b09ea8b52d02eec3300b84985b1efd"
+WALLET = "0x" + "ab" * 20  # 測試用假位址
 
 
 class TestPlanWindow(unittest.TestCase):

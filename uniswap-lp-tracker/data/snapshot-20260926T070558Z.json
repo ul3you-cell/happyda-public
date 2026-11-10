@@ -9596,13 +9596,13 @@
       "chain_id": 130,
       "chain_name": "Unichain",
       "protocol": "V4",
-      "pool_reference_identifier": "0x267EE34200b09Ea8b52D02EeC3300b84985B1eFd",
+      "pool_reference_identifier": "0x267EE342…1eFd",
       "request_body": {
         "protocol": "V4",
         "chainId": 130,
         "poolReferences": [
           {
-            "poolReferenceIdentifier": "0x267EE34200b09Ea8b52D02EeC3300b84985B1eFd"
+            "poolReferenceIdentifier": "0x267EE342…1eFd"
           }
         ]
       },
@@ -9624,13 +9624,13 @@
       "chain_id": 130,
       "chain_name": "Unichain",
       "protocol": "V3",
-      "pool_reference_identifier": "0x267EE34200b09Ea8b52D02EeC3300b84985B1eFd",
+      "pool_reference_identifier": "0x267EE342…1eFd",
       "request_body": {
         "protocol": "V3",
         "chainId": 130,
         "poolReferences": [
           {
-            "poolReferenceIdentifier": "0x267EE34200b09Ea8b52D02EeC3300b84985B1eFd"
+            "poolReferenceIdentifier": "0x267EE342…1eFd"
           }
         ]
       },

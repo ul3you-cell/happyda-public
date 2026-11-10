@@ -24,6 +24,8 @@ import urllib.request
 from datetime import datetime, timezone
 from itertools import product
 
+import wallet_identity
+
 from common import (
     BACKOFF_BASE_SECONDS,
     BACKOFF_MAX_RETRIES,
@@ -98,7 +100,7 @@ def build_queries(config: dict) -> list[dict]:
 
 
 def call_api(body: dict, api_key: str) -> tuple[int, dict | str]:
-    data = json.dumps(body).encode("utf-8")
+    data = wallet_identity.unmask_for_request(json.dumps(body)).encode("utf-8")  # 設定檔存遮罩，送出才還原
     req = urllib.request.Request(
         ENDPOINT,
         data=data,

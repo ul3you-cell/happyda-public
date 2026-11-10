@@ -25,3 +25,9 @@ def get_wallet_address() -> str:
 def mask_wallet(addr: str) -> str:
     """0x + 前 8 碼 … 末 4 碼，例：0x267EE342…1eFd。"""
     return addr[:10] + "…" + addr[-4:] if len(addr) >= 20 else addr
+
+
+def unmask_for_request(text: str) -> str:
+    """送出 API 請求前，把遮罩位址還原成完整位址（僅記憶體內；落檔的 request_body 仍是遮罩）。"""
+    full = get_wallet_address()
+    return text.replace(mask_wallet(full), full) if full else text

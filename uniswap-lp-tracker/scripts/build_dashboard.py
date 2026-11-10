@@ -7,6 +7,7 @@
 from __future__ import annotations
 
 import json
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -116,7 +117,7 @@ HTML_TEMPLATE = """<!DOCTYPE html>
       <li>目前顯示的是<strong>池子級 fee APR</strong>：以完整日 fees 與池子 TVL 年化推算，非保證報酬；
         <strong>不等於你的個人收益</strong>，也不含代幣漲跌與無常損失（Impermanent Loss）。小 TVL 池的年化數字可能極端，需特別審慎。</li>
       <li>下方「我的 LP 部位」表格是唯讀 RPC（eth_call）直接查詢錢包
-        <code>0x267EE34200b09Ea8b52D02EeC3300b84985B1eFd</code> 的 Uniswap v3／v4 部位，
+        <code>0x267EE342…1eFd</code> 的 Uniswap v3／v4 部位，
         逐鏈查詢＝0 或供應商不支援時會如實顯示區塊與原因。V3 fee 以唯讀
         <code>eth_call</code> 模擬 <code>collect()</code> 取得 V3 fee；V4 顯示鏈上 StateView 推得的
         token0/token1 未領 fee 原幣數量與快照 fee Δ，不套用 V3 的 collect 總額欄位。V4 poolId 用純 Python
@@ -692,6 +693,18 @@ HTML_TEMPLATE = """<!DOCTYPE html>
 """
 
 
+def mask_wallet(addr: str) -> str:
+    """公開頁只顯示 0x + 前 8 碼 … 末 4 碼，例：0x267EE342…1eFd。"""
+    return addr[:10] + "…" + addr[-4:] if len(addr) >= 20 else addr
+
+
+def mask_wallet_in_text(text: str, addr: str) -> str:
+    """把輸出 HTML 內所有（不分大小寫）完整錢包位址換成遮罩形式。"""
+    if not addr:
+        return text
+    return re.sub(re.escape(addr), mask_wallet(addr), text, flags=re.IGNORECASE)
+
+
 def main() -> int:
     normalized_path = DATA_DIR / "normalized_latest.json"
     with open(normalized_path, "r", encoding="utf-8") as f:
@@ -711,7 +724,7 @@ def main() -> int:
             wallet_data = json.load(wf)
         wallet_rows = wallet_live_fetch.build_wallet_rows(wallet_data)
         addr = wallet_data.get("wallet_address", "")
-        wallet_address_short = (addr[:6] + "…" + addr[-4:]) if addr else "（未知）"
+        wallet_address_short = mask_wallet(addr) if addr else "（未知）"
         chains = wallet_data.get("v3", []) + wallet_data.get("v4", [])
         active_total = sum(
             1 for r in chains for pos in r.get("positions", [])
@@ -806,6 +819,9 @@ def main() -> int:
         wallet_rows_json=json.dumps(wallet_rows, ensure_ascii=False),
     )
 
+    html = mask_wallet_in_text(html, wallet_live_fetch.WALLET_ADDRESS)
+    if wallet_live_path.exists():
+        html = mask_wallet_in_text(html, wallet_data.get("wallet_address", ""))
     OUTPUT_PATH.write_text(html, encoding="utf-8")
     print(f"寫入 {OUTPUT_PATH}（{len(rows)} rows, {len(html)} bytes）")
     return 0
